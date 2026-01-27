@@ -101,19 +101,7 @@ export default function Show({ event }: Props) {
                     } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === "PerformancePricingCode") {
                         const elem = node as Element;
                         const price = elem.querySelector("PerformancePrice")?.textContent || "0";
-                        let code = "";
-
-                        // Extract code from text nodes of PricingCode
-                        elem.childNodes.forEach(child => {
-                            if (child.nodeType === Node.TEXT_NODE) {
-                                const t = child.textContent?.trim();
-                                if (t) code = t;
-                            }
-                        });
-
-                        const finalLabel = code && code !== "REG" && code !== "CDV"
-                            ? `${currentLabel} (${code})`
-                            : currentLabel;
+                        const finalLabel = currentLabel;
 
                         // Filter out zero prices if needed, or keep them. 
                         // Assuming we show all valid price points.
