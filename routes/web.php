@@ -14,8 +14,29 @@ Route::get('/', function () {
 
 Route::get('/event/{id}', [App\Http\Controllers\EventController::class, 'show'])->name('event.show');
 
+Route::get('/quienessomos', function () {
+    return Inertia::render('Static/About');
+})->name('static.quienessomos');
 
+Route::get('/terminosycondiciones', function () {
+    return Inertia::render('Static/Terms');
+})->name('static.terminosycondiciones');
 
+Route::get('/avisodeprivacidad', function () {
+    return Inertia::render('Static/Privacy');
+})->name('static.avisodeprivacidad');
+
+Route::get('/terminos-ticketassist', function () {
+    return Inertia::render('Static/TicketAssist');
+})->name('static.ticketassist');
+
+Route::get('/bolepay', function () {
+    return Inertia::render('Static/Bolepay');
+})->name('static.bolepay');
+
+Route::get('/centros-de-venta', function () {
+    return Inertia::render('Static/SalesCenters');
+})->name('static.centrosdeventa');
 
 
 require __DIR__ . '/settings.php';

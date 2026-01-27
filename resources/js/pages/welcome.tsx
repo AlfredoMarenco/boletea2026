@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { ModeToggle } from '@/components/mode-toggle';
+import PublicHeader from '@/components/public-header';
 
 interface ExternalEvent {
     id: number;
@@ -24,36 +25,8 @@ export default function Welcome({ canRegister, events }: Props) {
             <Head title="Inicio - Boletea" />
 
             {/* Navbar / Header */}
-            <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-black/80 dark:border-white/5">
-                <div className="container mx-auto flex h-20 items-center justify-between px-6">
-                    <div className="flex items-center gap-2">
-                        {/* Logo */}
-                        <img src="https://boletea.com/img/logoBoletea.png" alt="Boletea" className="h-10 w-auto" />
-                    </div>
-                    <nav className="hidden items-center gap-8 md:flex">
-                        <a href="#" className="text-sm font-medium hover:text-[#c90000] transition-colors">Eventos</a>
-                        <a href="#" className="text-sm font-medium hover:text-[#c90000] transition-colors">Sedes</a>
-                        <a href="#" className="text-sm font-medium hover:text-[#c90000] transition-colors">Contacto</a>
-                    </nav>
-                    <div className="flex items-center gap-4">
-                        <ModeToggle />
-                        <Link
-                            href={route('login')}
-                            className="rounded-full px-6 py-2 text-sm font-semibold transition-all hover:bg-gray-100 dark:hover:bg-white/10"
-                        >
-                            Log in
-                        </Link>
-                        {canRegister && (
-                            <Link
-                                href={route('register')}
-                                className="hidden rounded-full bg-[#c90000] px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-red-600/20 transition-all hover:scale-105 hover:bg-[#a00000] md:block"
-                            >
-                                Registrarse
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </header>
+            {/* Navbar / Header */}
+            <PublicHeader canRegister={canRegister} />
 
             <main>
                 {/* Hero Section */}

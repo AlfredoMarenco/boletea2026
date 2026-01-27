@@ -1,9 +1,13 @@
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Ticket } from 'lucide-react';
+import { Calendar as CalendarIcon, MapPin, Ticket } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import PublicHeader from '@/components/public-header';
+import { Calendar } from '@/components/ui/calendar';
+import { format, isSameDay, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface Performance {
     PerformanceID: number;
@@ -39,6 +43,22 @@ export default function Show({ event }: Props) {
         performances.length === 1 ? performances[0].PerformanceID.toString() : undefined
     );
 
+    // Calendar Logic
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+    const performanceDates = useMemo(() => {
+        const dates = new Set<string>();
+        performances.forEach(p => {
+            dates.add(format(new Date(p.PerformanceDateTime), 'yyyy-MM-dd'));
+        });
+        return dates;
+    }, [performances]);
+
+    const availablePerformancesForDate = useMemo(() => {
+        if (!selectedDate) return [];
+        return performances.filter(p => isSameDay(new Date(p.PerformanceDateTime), selectedDate)).sort((a, b) => new Date(a.PerformanceDateTime).getTime() - new Date(b.PerformanceDateTime).getTime());
+    }, [selectedDate, performances]);
+
     const handleBuy = () => {
         if (!selectedPerformanceId) return;
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
@@ -49,16 +69,8 @@ export default function Show({ event }: Props) {
             <Head title={`${event.title} - Boletea`} />
 
             {/* Navbar Placeholder (Should likely be a layout) */}
-            <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-black/80 dark:border-white/5">
-                <div className="container mx-auto flex h-20 items-center justify-between px-6">
-                    <div className="flex items-center gap-2">
-                        <a href="/" className="flex items-center gap-2">
-                            <div className="size-8 rounded-full bg-gradient-to-br from-[#c90000] to-orange-600"></div>
-                            <span className="text-lg font-bold tracking-tight">Boletea</span>
-                        </a>
-                    </div>
-                </div>
-            </header>
+            {/* Navbar Placeholder (Should likely be a layout) */}
+            <PublicHeader />
 
             <main className="pt-20">
                 {/* Hero / Header Section */}
@@ -134,54 +146,87 @@ export default function Show({ event }: Props) {
                             <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
                             <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                        Selecciona una función
-                                    </label>
-                                    <Select
-                                        value={selectedPerformanceId}
-                                        onValueChange={setSelectedPerformanceId}
-                                    >
-                                        <SelectTrigger className="w-full h-12 text-base">
-                                            <SelectValue placeholder="Elige fecha y hora" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {performances.map((perf) => (
-                                                <SelectItem key={perf.PerformanceID} value={perf.PerformanceID.toString()}>
-                                                    <div className="flex flex-col items-start text-left">
-                                                        <span className="font-semibold">
-                                                            {perf.PerformanceDateTime}
-                                                        </span>
-                                                        <span className="text-xs text-muted-foreground">{perf.VenueName}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                {performances.length > 1 ? (
+                                    <div className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Selecciona una fecha
+                                            </label>
+                                            <div className="flex justify-center">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={selectedDate}
+                                                    onSelect={setSelectedDate}
+                                                    disabled={(date) => {
+                                                        const dateString = format(date, 'yyyy-MM-dd');
+                                                        return !performanceDates.has(dateString);
+                                                    }}
+                                                    defaultMonth={performances.length > 0 ? new Date(performances[0].PerformanceDateTime) : undefined}
+                                                    className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-gray-800"
+                                                    locale={es}
+                                                />
+                                            </div>
+                                        </div>
 
-                                <div className="rounded-xl bg-gray-50 p-4 dark:bg-white/5">
-                                    <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
-                                        <Calendar className="size-5 text-[#c90000]" />
-                                        <p>
-                                            {selectedPerformanceId
-                                                ? 'Función seleccionada. ¡Listo para comprar!'
-                                                : 'Selecciona una fecha para ver disponibilidad.'}
-                                        </p>
+                                        {selectedDate && (
+                                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    Horarios disponibles
+                                                </label>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {availablePerformancesForDate.map((perf) => (
+                                                        <button
+                                                            key={perf.PerformanceID}
+                                                            onClick={() => setSelectedPerformanceId(perf.PerformanceID.toString())}
+                                                            className={`
+                                                                px-4 py-2 text-sm font-medium rounded-md border transition-all
+                                                                ${selectedPerformanceId === perf.PerformanceID.toString()
+                                                                    ? 'bg-[#c90000] text-white border-[#c90000] shadow-md'
+                                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-[#222] dark:text-gray-300 dark:border-gray-700'
+                                                                }
+                                                            `}
+                                                        >
+                                                            {format(new Date(perf.PerformanceDateTime), 'h:mm a')}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                            Selecciona una función
+                                        </label>
+                                        <Select
+                                            value={selectedPerformanceId}
+                                            onValueChange={setSelectedPerformanceId}
+                                        >
+                                            <SelectTrigger className="w-full h-12 text-base">
+                                                <SelectValue placeholder="Elige fecha y hora" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {performances.map((perf) => (
+                                                    <SelectItem key={perf.PerformanceID} value={perf.PerformanceID.toString()}>
+                                                        {format(new Date(perf.PerformanceDateTime), "d 'de' MMMM - h:mm a", { locale: es })}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
 
                                 <Button
-                                    className="w-full h-12 text-base font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
-                                    size="lg"
+                                    className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
                                     onClick={handleBuy}
                                     disabled={!selectedPerformanceId}
                                 >
+                                    <Ticket className="mr-2 h-5 w-5" />
                                     Comprar Boletos
                                 </Button>
 
-                                <p className="text-center text-xs text-gray-400">
-                                    Compra segura procesada por Boletea.
+                                <p className="text-xs text-center text-gray-400">
+                                    Pagos procesados de forma segura
                                 </p>
                             </div>
                         </div>

@@ -5,14 +5,24 @@ export default function GlobalLoader() {
     const [isLoading, setIsLoading] = useState(true); // Default to true for initial load
 
     useEffect(() => {
+        // Initial check - if we are already in admin, don't show loader
+        if (window.location.pathname.startsWith('/admin')) {
+            setIsLoading(false);
+            return;
+        }
+
         // Initial load timeout
         const timer = setTimeout(() => {
             setIsLoading(false);
         }, 1500);
 
         // Inertia event listeners
-        const startListener = router.on('start', () => {
-            setIsLoading(true);
+        const startListener = router.on('start', (event) => {
+            // Don't show loader if navigating to admin
+            const url = new URL(event.detail.visit.url);
+            if (!url.pathname.startsWith('/admin')) {
+                setIsLoading(true);
+            }
         });
 
         const finishListener = router.on('finish', () => {
@@ -27,7 +37,7 @@ export default function GlobalLoader() {
         };
     }, []);
 
-    if (!isLoading) return null;
+    if (!isLoading || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-black transition-opacity duration-500 ease-in-out">
