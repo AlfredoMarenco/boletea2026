@@ -1,9 +1,17 @@
 import { Head } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, MapPin, Ticket } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
 import PublicHeader from '@/components/public-header';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO } from 'date-fns';
@@ -14,7 +22,7 @@ interface Performance {
     PerformanceName: string;
     PerformanceDateTime: string;
     VenueName: string;
-    // Add other fields from API if needed
+    PerformancePrices: string;
 }
 
 interface ExternalEvent {
@@ -31,6 +39,11 @@ interface ExternalEvent {
 
 interface Props {
     event: ExternalEvent;
+}
+
+interface PricingItem {
+    label: string;
+    price: string;
 }
 
 export default function Show({ event }: Props) {
@@ -59,6 +72,66 @@ export default function Show({ event }: Props) {
         return performances.filter(p => isSameDay(new Date(p.PerformanceDateTime), selectedDate)).sort((a, b) => new Date(a.PerformanceDateTime).getTime() - new Date(b.PerformanceDateTime).getTime());
     }, [selectedDate, performances]);
 
+    // Pricing Logic
+    const [prices, setPrices] = useState<PricingItem[]>([]);
+
+    const selectedPerformance = useMemo(() =>
+        performances.find(p => p.PerformanceID.toString() === selectedPerformanceId),
+        [selectedPerformanceId, performances]);
+
+    useEffect(() => {
+        if (!selectedPerformance?.PerformancePrices) {
+            setPrices([]);
+            return;
+        }
+
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(selectedPerformance.PerformancePrices, "text/xml");
+            const categories = xmlDoc.querySelectorAll("PerformanceSeatCategory");
+            const parsedPrices: PricingItem[] = [];
+
+            categories.forEach((cat) => {
+                let currentLabel = "";
+
+                cat.childNodes.forEach((node) => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        const text = node.textContent?.trim();
+                        if (text) currentLabel = text;
+                    } else if (node.nodeType === Node.ELEMENT_NODE && (node as Element).tagName === "PerformancePricingCode") {
+                        const elem = node as Element;
+                        const price = elem.querySelector("PerformancePrice")?.textContent || "0";
+                        let code = "";
+
+                        // Extract code from text nodes of PricingCode
+                        elem.childNodes.forEach(child => {
+                            if (child.nodeType === Node.TEXT_NODE) {
+                                const t = child.textContent?.trim();
+                                if (t) code = t;
+                            }
+                        });
+
+                        const finalLabel = code && code !== "REG" && code !== "CDV"
+                            ? `${currentLabel} (${code})`
+                            : currentLabel;
+
+                        // Filter out zero prices if needed, or keep them. 
+                        // Assuming we show all valid price points.
+                        if (price !== "0" && price !== "0.00") {
+                            parsedPrices.push({ label: finalLabel, price });
+                        }
+                    }
+                });
+            });
+
+            setPrices(parsedPrices);
+        } catch (e) {
+            console.error("Error parsing prices XML", e);
+            setPrices([]);
+        }
+
+    }, [selectedPerformance]);
+
     const handleBuy = () => {
         if (!selectedPerformanceId) return;
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
@@ -68,7 +141,6 @@ export default function Show({ event }: Props) {
         <div className="min-h-screen bg-white text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans">
             <Head title={`${event.title} - Boletea`} />
 
-            {/* Navbar Placeholder (Should likely be a layout) */}
             {/* Navbar Placeholder (Should likely be a layout) */}
             <PublicHeader />
 
@@ -124,6 +196,38 @@ export default function Show({ event }: Props) {
                                 dangerouslySetInnerHTML={{ __html: event.description || 'Sin descripción disponible.' }}
                             />
                         </section>
+
+                        {/* Prices Table */}
+                        {prices.length > 0 && (
+                            <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h3 className="mb-4 text-xl font-bold">Precios</h3>
+                                <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-[#111] overflow-hidden">
+                                    <Table>
+                                        <TableHeader className="bg-gray-50 dark:bg-gray-900">
+                                            <TableRow>
+                                                <TableHead className="w-[60%] font-bold text-gray-700 dark:text-gray-200">Sección</TableHead>
+                                                <TableHead className="text-right font-bold text-gray-700 dark:text-gray-200">Precio</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {prices.map((item, idx) => (
+                                                <TableRow key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                                                    <TableCell className="font-medium text-gray-900 dark:text-gray-100">
+                                                        {item.label}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold text-[#c90000]">
+                                                        ${parseFloat(item.price).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                <p className="mt-2 text-xs text-gray-400">
+                                    * Los precios pueden estar sujetos a cambios sin previo aviso. Cargos por servicio no incluidos.
+                                </p>
+                            </section>
+                        )}
 
                         {/* Sales Centers */}
                         {event.sales_centers && event.sales_centers.length > 0 && (
