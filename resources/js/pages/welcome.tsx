@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import { ModeToggle } from '@/components/mode-toggle';
 
 interface ExternalEvent {
     id: number;
@@ -26,9 +27,8 @@ export default function Welcome({ canRegister, events }: Props) {
             <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-black/80 dark:border-white/5">
                 <div className="container mx-auto flex h-20 items-center justify-between px-6">
                     <div className="flex items-center gap-2">
-                        {/* Logo Placeholder */}
-                        <div className="size-10 rounded-full bg-gradient-to-br from-[#c90000] to-orange-600 shadow-lg shadow-red-500/20"></div>
-                        <span className="text-xl font-bold tracking-tight">Boletea</span>
+                        {/* Logo */}
+                        <img src="https://boletea.com/img/logoBoletea.png" alt="Boletea" className="h-10 w-auto" />
                     </div>
                     <nav className="hidden items-center gap-8 md:flex">
                         <a href="#" className="text-sm font-medium hover:text-[#c90000] transition-colors">Eventos</a>
@@ -36,6 +36,7 @@ export default function Welcome({ canRegister, events }: Props) {
                         <a href="#" className="text-sm font-medium hover:text-[#c90000] transition-colors">Contacto</a>
                     </nav>
                     <div className="flex items-center gap-4">
+                        <ModeToggle />
                         <Link
                             href={route('login')}
                             className="rounded-full px-6 py-2 text-sm font-semibold transition-all hover:bg-gray-100 dark:hover:bg-white/10"
