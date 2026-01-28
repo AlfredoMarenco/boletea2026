@@ -38,23 +38,23 @@ export default function Welcome({ canRegister, events }: Props) {
 
             <main>
                 {/* Hero Section */}
-                <section className="relative pt-32 pb-20 overflow-hidden">
+                <section className="relative pt-24 pb-16 lg:pt-28 overflow-hidden">
                     {/* Background Gradients */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#c90000] opacity-[0.08] blur-[120px] rounded-full pointer-events-none"></div>
 
                     <div className="container mx-auto px-6">
-                        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+                        <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-10 xl:gap-16">
                             {/* Left Column: Text & Search */}
                             <div className="text-center lg:text-left">
-                                <h1 className="mb-6 text-5xl font-extrabold tracking-tight md:text-7xl lg:text-8xl">
+                                <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">
                                     Vive la <span className="text-[#c90000]">experiencia</span>.
                                 </h1>
-                                <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-600 dark:text-gray-400 md:text-xl lg:mx-0">
+                                <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400 lg:mx-0 lg:text-lg xl:text-xl">
                                     Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad.
                                     Tu entrada a momentos inolvidables.
                                 </p>
 
-                                <div className="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
+                                <div className="flex flex-col items-center justify-center gap-3 sm:flex-row lg:justify-start">
                                     <input
                                         type="text"
                                         placeholder="Buscar evento..."
@@ -125,7 +125,7 @@ export default function Welcome({ canRegister, events }: Props) {
                 </section>
 
                 {/* Events Grid Section */}
-                <section className="py-20 bg-gray-50 dark:bg-[#0a0a0a]">
+                <section className="py-16 bg-gray-50 dark:bg-[#0a0a0a]">
                     <div className="container mx-auto px-6">
                         <div className="flex items-end justify-between mb-12">
                             <div>

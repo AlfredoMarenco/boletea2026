@@ -93,7 +93,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
 
             <main className="pt-20">
                 {/* Hero / Header Section */}
-                <div className="relative h-[60vh] md:h-[70vh] w-full overflow-hidden bg-gray-900">
+                <div className="relative min-h-[50vh] flex flex-col justify-end w-full overflow-hidden bg-gray-900">
                     {/* Background Image with Overlay */}
                     <div className="absolute inset-0 z-0">
                         {event.image_path ? (
@@ -108,24 +108,24 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent" />
                     </div>
 
-                    <div className="container relative z-10 mx-auto flex h-full flex-col justify-end px-6 pb-12 md:pb-24">
-                        <div className="flex flex-col md:flex-row items-end justify-between gap-8">
-                            <div className="flex flex-col items-start gap-4 md:max-w-4xl">
+                    <div className="container relative z-10 mx-auto flex h-full flex-col justify-end px-6 pb-8 md:pb-12 lg:pb-16">
+                        <div className="flex flex-col md:flex-row items-end justify-between gap-6">
+                            <div className="flex flex-col items-start gap-3 md:max-w-4xl">
                                 {event.category && (
-                                    <Badge className="bg-[#c90000] text-white hover:bg-[#a00000] border-none text-sm px-3 py-1">
+                                    <Badge className="bg-[#c90000] text-white hover:bg-[#a00000] border-none text-xs px-2.5 py-0.5">
                                         {event.category}
                                     </Badge>
                                 )}
-                                <h1 className="text-4xl font-black leading-tight tracking-tight text-white md:text-6xl lg:text-7xl">
+                                <h1 className="text-2xl font-black leading-tight tracking-tight text-white md:text-3xl lg:text-5xl xl:text-6xl">
                                     {event.title}
                                 </h1>
-                                <div className="flex flex-wrap gap-6 text-sm font-medium text-gray-300 md:text-base">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="size-5 text-[#c90000]" />
+                                <div className="flex flex-wrap gap-4 text-xs font-medium text-gray-300 md:text-sm">
+                                    <div className="flex items-center gap-1.5">
+                                        <MapPin className="size-4 text-[#c90000]" />
                                         <span>{event.city || 'Ubicación por confirmar'}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Ticket className="size-5 text-[#c90000]" />
+                                    <div className="flex items-center gap-1.5">
+                                        <Ticket className="size-4 text-[#c90000]" />
                                         <span>{performances.length} Funciones Disponibles</span>
                                     </div>
                                 </div>
@@ -137,7 +137,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                                     <img
                                         src={event.secondary_image_path}
                                         alt={`Poster ${event.title}`}
-                                        className="h-auto w-100 rounded-xl border-[6px] border-white/10 object-cover shadow-2xl backdrop-blur-sm"
+                                        className="h-auto w-56 rounded-lg border-[4px] border-white/10 object-cover mt-10 shadow-xl backdrop-blur-sm lg:w-72"
                                     />
                                 </div>
                             )}
@@ -145,12 +145,12 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                     </div>
                 </div>
 
-                <div className="container mx-auto grid grid-cols-1 gap-12 px-6 py-12 lg:grid-cols-3">
+                <div className="container mx-auto grid grid-cols-1 gap-8 px-6 py-8 lg:grid-cols-3 lg:gap-10 lg:py-10">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-12">
+                    <div className="lg:col-span-2 space-y-8 lg:space-y-10">
                         {/* Description */}
                         <section>
-                            <h2 className="mb-6 text-2xl font-bold md:text-3xl">Acerca del Evento</h2>
+                            <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del Evento</h2>
                             <div
                                 className="prose prose-lg dark:prose-invert text-gray-600 dark:text-gray-300 max-w-none"
                                 dangerouslySetInnerHTML={{
@@ -172,7 +172,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                         {/* Sales Centers */}
                         {salesCentersDetails && salesCentersDetails.length > 0 && (
                             <section>
-                                <h3 className="mb-6 text-2xl font-bold md:text-3xl">Puntos de Venta Autorizados</h3>
+                                <h3 className="mb-4 text-2xl font-bold lg:text-3xl">Puntos de Venta Autorizados</h3>
                                 <div className="flex flex-wrap gap-8 items-center">
                                     {salesCentersDetails.map((center, index) => (
                                         <Tooltip key={index}>
