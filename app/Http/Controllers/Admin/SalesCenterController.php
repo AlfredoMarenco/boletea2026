@@ -31,13 +31,17 @@ class SalesCenterController extends Controller
             'logo_path' => 'nullable|image|max:2048', // 2MB max
             'address' => 'required|string',
             'google_map_url' => 'nullable|url',
-            'opening_hours' => 'nullable|array', // JSON/Array of hours
+            'opening_hours' => 'nullable', // Can be array or JSON string
             'is_active' => 'boolean'
         ]);
 
         if ($request->hasFile('logo_path')) {
             $path = $request->file('logo_path')->store('sales_centers', 'public');
-            $validated['logo_path'] = Storage::disk('public')->url($path);
+            $validated['logo_path'] = '/storage/' . $path;
+        }
+
+        if (isset($validated['opening_hours']) && is_string($validated['opening_hours'])) {
+            $validated['opening_hours'] = json_decode($validated['opening_hours'], true);
         }
 
         SalesCenter::create($validated);
@@ -59,16 +63,20 @@ class SalesCenterController extends Controller
             'logo_path' => 'nullable', // allow string (existing) or file (new)
             'address' => 'required|string',
             'google_map_url' => 'nullable|string', // URL validation might fail on strict map embeds sometimes
-            'opening_hours' => 'nullable|array',
+            'opening_hours' => 'nullable',
             'is_active' => 'boolean'
         ]);
 
         if ($request->hasFile('logo_path')) {
-            // Delete old logo if exists and not default?
-            // if ($salesCenter->logo_path) ... (optional cleanup)
-
             $path = $request->file('logo_path')->store('sales_centers', 'public');
-            $validated['logo_path'] = Storage::disk('public')->url($path);
+            $validated['logo_path'] = '/storage/' . $path;
+        } else {
+            // If no new file uploaded, do not overwrite existing path with null
+            unset($validated['logo_path']);
+        }
+
+        if (isset($validated['opening_hours']) && is_string($validated['opening_hours'])) {
+            $validated['opening_hours'] = json_decode($validated['opening_hours'], true);
         }
 
         $salesCenter->update($validated);

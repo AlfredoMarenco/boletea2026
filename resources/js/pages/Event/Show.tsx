@@ -9,6 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Performance {
     PerformanceID: number;
@@ -37,6 +38,7 @@ interface SalesCenterDetail {
     id?: number;
     name: string;
     address?: string;
+    logo_path?: string;
     google_map_url?: string;
     opening_hours?: string[];
     is_legacy?: boolean;
@@ -170,42 +172,61 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                         {/* Sales Centers */}
                         {salesCentersDetails && salesCentersDetails.length > 0 && (
                             <section>
-                                <h3 className="mb-4 text-xl font-bold">Puntos de Venta</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <h3 className="mb-6 text-2xl font-bold md:text-3xl">Puntos de Venta Autorizados</h3>
+                                <div className="flex flex-wrap gap-8 items-center">
                                     {salesCentersDetails.map((center, index) => (
-                                        <div key={index} className="flex flex-col p-4 rounded-lg border bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
-                                            <div className="flex items-start justify-between">
-                                                <div>
-                                                    <h4 className="font-bold text-base">{center.name}</h4>
+                                        <Tooltip key={index}>
+                                            <TooltipTrigger asChild>
+                                                <a
+                                                    href={center.google_map_url || '#'}
+                                                    target={center.google_map_url ? "_blank" : "_self"}
+                                                    rel="noopener noreferrer"
+                                                    className={`
+                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-white/5
+                                                        ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/30'}
+                                                    `}
+                                                >
+                                                    {center.is_legacy ? (
+                                                        <div className="flex flex-col items-center gap-2 text-center">
+                                                            <MapPin className="size-6 text-gray-400 group-hover:text-[#c90000] transition-colors" />
+                                                            <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300 line-clamp-2">
+                                                                {center.name}
+                                                            </span>
+                                                        </div>
+                                                    ) : (center.logo_path ? (
+                                                        <img
+                                                            src={center.logo_path}
+                                                            alt={center.name}
+                                                            className="h-full w-full object-contain p-2"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <MapPin className="size-6 text-[#c90000]" />
+                                                            <span className="text-xs font-bold text-center line-clamp-2">{center.name}</span>
+                                                        </div>
+                                                    ))}
+                                                </a>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-xl z-50">
+                                                <div className="space-y-2">
+                                                    <p className="font-bold text-base">{center.name}</p>
                                                     {center.address && (
-                                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                                            {center.address}
-                                                        </p>
+                                                        <div className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                            <MapPin className="size-4 shrink-0 mt-0.5" />
+                                                            <span>{center.address}</span>
+                                                        </div>
+                                                    )}
+                                                    {center.opening_hours && Array.isArray(center.opening_hours) && center.opening_hours.length > 0 && (
+                                                        <div className="pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
+                                                            <p className="text-xs font-semibold mb-1 text-gray-500">Horario</p>
+                                                            <ul className="text-xs space-y-0.5">
+                                                                {center.opening_hours.map((h, i) => <li key={i}>{h}</li>)}
+                                                            </ul>
+                                                        </div>
                                                     )}
                                                 </div>
-                                                {!center.is_legacy && center.google_map_url && (
-                                                    <a
-                                                        href={center.google_map_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-white hover:text-white bg-[#c90000] hover:bg-[#a00000] p-2 rounded-full transition-colors"
-                                                        title="Ver en mapa"
-                                                    >
-                                                        <MapPin className="size-4" />
-                                                    </a>
-                                                )}
-                                            </div>
-                                            {center.opening_hours && Array.isArray(center.opening_hours) && center.opening_hours.length > 0 && (
-                                                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                                    <p className="text-xs font-semibold text-gray-500 mb-1">Horario:</p>
-                                                    <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                                                        {center.opening_hours.map((hour, idx) => (
-                                                            <li key={idx}>{hour}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
-                                        </div>
+                                            </TooltipContent>
+                                        </Tooltip>
                                     ))}
                                 </div>
                             </section>

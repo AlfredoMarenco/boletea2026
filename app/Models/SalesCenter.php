@@ -21,4 +21,9 @@ class SalesCenter extends Model
         'opening_hours' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function externalEvents()
+    {
+        return $this->belongsToMany(ExternalEvent::class, 'external_event_sales_center');
+    }
 }

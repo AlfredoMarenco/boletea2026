@@ -16,14 +16,18 @@ class ExternalEvent extends Model
         'secondary_image_path',
         'sales_start_date',
         'button_text',
-        'sales_centers',
+        'button_text',
         'status',
         'raw_data',
     ];
 
     protected $casts = [
-        'sales_centers' => 'array',
         'raw_data' => 'array',
         'sales_start_date' => 'datetime',
     ];
+
+    public function salesCenters()
+    {
+        return $this->belongsToMany(SalesCenter::class, 'external_event_sales_center');
+    }
 }

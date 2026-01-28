@@ -38,7 +38,7 @@ export default function Edit({ salesCenter }: { salesCenter: SalesCenter }) {
     // Merge default with existing to ensure all keys exist
     const initialHours = { ...defaultSchedule, ...salesCenter.opening_hours };
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, transform, processing, errors } = useForm({
         _method: 'put',
         name: salesCenter.name || '',
         address: salesCenter.address || '',
@@ -60,6 +60,10 @@ export default function Edit({ salesCenter }: { salesCenter: SalesCenter }) {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        transform((data) => ({
+            ...data,
+            opening_hours: JSON.stringify(data.opening_hours),
+        }));
         post(route('admin.sales-centers.update', salesCenter.id));
     };
 

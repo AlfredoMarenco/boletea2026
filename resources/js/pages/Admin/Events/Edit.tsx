@@ -25,7 +25,7 @@ interface ExternalEvent {
     sales_start_date: string | null;
     button_text: string | null;
     description: string | null;
-    sales_centers: string[] | number[] | null;
+    sales_centers: number[] | null;
 }
 
 interface SalesCenter {
@@ -50,7 +50,7 @@ export default function Edit({ event, salesCenters = [] }: Props) {
         button_text: event.button_text || '',
         description: event.description || '',
         status: event.status,
-        sales_centers: event.sales_centers || [],
+        sales_centers: (event.sales_centers as number[]) || [],
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -213,19 +213,16 @@ export default function Edit({ event, salesCenters = [] }: Props) {
                                         <div key={center.id} className="flex items-center space-x-2">
                                             <Checkbox
                                                 id={`center-${center.id}`}
-                                                checked={data.sales_centers?.some(c => String(c) === String(center.id))}
+                                                checked={data.sales_centers?.some(c => Number(c) === center.id)}
                                                 onCheckedChange={(checked) => {
                                                     const current = data.sales_centers || [];
-                                                    const centerId = String(center.id);
+                                                    const centerId = center.id;
                                                     if (checked) {
-                                                        // Ensure we're pushing string version to match state type if mixed
-                                                        // or better yet, keep everything normalized.
-                                                        // let's stick to storing IDs if possible, but existing data might be strings.
-                                                        if (!current.some(c => String(c) === centerId)) {
-                                                            setData('sales_centers', [...current, centerId] as string[]);
+                                                        if (!current.some(c => Number(c) === centerId)) {
+                                                            setData('sales_centers', [...current, centerId]);
                                                         }
                                                     } else {
-                                                        setData('sales_centers', current.filter(c => String(c) !== centerId) as string[]);
+                                                        setData('sales_centers', current.filter(c => Number(c) !== centerId));
                                                     }
                                                 }}
                                             />

@@ -21,6 +21,9 @@ class ExternalEventController extends Controller
     public function edit(ExternalEvent $event)
     {
         $salesCenters = \App\Models\SalesCenter::where('is_active', true)->get();
+        // Load relationship IDs for the form
+        $event->sales_centers = $event->salesCenters()->pluck('sales_centers.id');
+
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
             'salesCenters' => $salesCenters
@@ -46,7 +49,12 @@ class ExternalEventController extends Controller
             $validated['secondary_image_path'] = '/storage/' . $path;
         }
 
+        // Separate sales_centers for relationship sync
+        $salesCenterIds = $validated['sales_centers'] ?? [];
+        unset($validated['sales_centers']);
+
         $event->update($validated);
+        $event->salesCenters()->sync($salesCenterIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }

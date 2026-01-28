@@ -12,30 +12,8 @@ class EventController extends Controller
     {
         $event = ExternalEvent::findOrFail($id);
 
-        $salesCentersDetails = [];
-        if (!empty($event->sales_centers)) {
-            $ids = [];
-            $legacyNames = [];
-
-            foreach ($event->sales_centers as $center) {
-                if (is_numeric($center)) {
-                    $ids[] = $center;
-                } else {
-                    $legacyNames[] = $center;
-                }
-            }
-
-            if (!empty($ids)) {
-                $models = \App\Models\SalesCenter::whereIn('id', $ids)->get();
-                foreach ($models as $model) {
-                    $salesCentersDetails[] = $model;
-                }
-            }
-
-            foreach ($legacyNames as $name) {
-                $salesCentersDetails[] = ['name' => $name, 'is_legacy' => true];
-            }
-        }
+        // Eager load sales centers
+        $salesCentersDetails = $event->salesCenters()->get();
 
         return Inertia::render('Event/Show', [
             'event' => $event,

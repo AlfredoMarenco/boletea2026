@@ -25,7 +25,7 @@ export default function Create() {
         return acc;
     }, {} as any);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, transform, processing, errors } = useForm({
         name: '',
         address: '',
         google_map_url: '',
@@ -46,6 +46,10 @@ export default function Create() {
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
+        transform((data) => ({
+            ...data,
+            opening_hours: JSON.stringify(data.opening_hours),
+        }));
         post(route('admin.sales-centers.store'));
     };
 
