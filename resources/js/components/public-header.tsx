@@ -59,7 +59,7 @@ export default function PublicHeader({ canRegister = false }: Props) {
                         Bolepay
                     </a>
                     <a
-                        href={route('static.centrosdeventa')}
+                        href={route('sales-centers.public')}
                         className="text-sm font-medium hover:text-[#c90000] transition-colors"
                     >
                         Centros de Venta

@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ExternalEvent {
     id: number;
@@ -20,19 +21,33 @@ interface ExternalEvent {
     category: string | null;
     status: 'draft' | 'published';
     image_path: string | null;
+    secondary_image_path: string | null;
+    sales_start_date: string | null;
+    button_text: string | null;
     description: string | null;
-    sales_centers: string[] | null;
+    sales_centers: string[] | number[] | null;
+}
+
+interface SalesCenter {
+    id: number;
+    name: string;
+    is_active: boolean;
 }
 
 interface Props {
     event: ExternalEvent;
+    salesCenters?: SalesCenter[];
 }
 
-export default function Edit({ event }: Props) {
-    const { data, setData, put, processing, errors } = useForm({
+export default function Edit({ event, salesCenters = [] }: Props) {
+    const { data, setData, post, processing, errors } = useForm({
+        _method: 'put',
         city: event.city || '',
         category: event.category || '',
         image_path: event.image_path || '',
+        secondary_image_path: event.secondary_image_path || '',
+        sales_start_date: event.sales_start_date || '',
+        button_text: event.button_text || '',
         description: event.description || '',
         status: event.status,
         sales_centers: event.sales_centers || [],
@@ -40,7 +55,19 @@ export default function Edit({ event }: Props) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        put(route('admin.events.update', event.id));
+        // Use post with _method: put for file uploads to work
+        post(route('admin.events.update', event.id));
+    };
+
+    // Helper to render preview
+    const renderSecondaryPreview = () => {
+        if (typeof data.secondary_image_path === 'string' && data.secondary_image_path) {
+            return <img src={data.secondary_image_path} alt="Preview" className="w-[79px] h-[108px] object-cover rounded border" />;
+        }
+        if ((data.secondary_image_path as any) instanceof File) {
+            return <img src={URL.createObjectURL(data.secondary_image_path as any)} alt="Preview" className="w-[79px] h-[108px] object-cover rounded border" />;
+        }
+        return null;
     };
 
     return (
@@ -56,7 +83,7 @@ export default function Edit({ event }: Props) {
                         Editar: {event.title}
                     </h1>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label htmlFor="city">Ciudad</Label>
@@ -79,21 +106,71 @@ export default function Edit({ event }: Props) {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="image_path">URL de la Imagen (500x400)</Label>
-                            <Input
-                                id="image_path"
-                                value={data.image_path}
-                                onChange={(e) => setData('image_path', e.target.value)}
-                                placeholder="https://example.com/image.jpg"
-                            />
-                            {errors.image_path && <p className="text-red-500 text-sm">{errors.image_path}</p>}
-                            {data.image_path && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="image_path">Imagen Principal (URL 500x400)</Label>
+                                <Input
+                                    id="image_path"
+                                    value={data.image_path}
+                                    onChange={(e) => setData('image_path', e.target.value)}
+                                    placeholder="https://example.com/image.jpg"
+                                />
+                                {errors.image_path && <p className="text-red-500 text-sm">{errors.image_path}</p>}
+                                {data.image_path && (
+                                    <div className="mt-2">
+                                        <p className="text-xs text-gray-500 mb-1">Vista Previa:</p>
+                                        <img src={data.image_path} alt="Preview" className="w-[125px] h-[100px] object-cover rounded border" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="secondary_image_path">Imagen Secundaria (Archivo 315x430)</Label>
+                                <Input
+                                    id="secondary_image_path"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            // @ts-ignore
+                                            setData('secondary_image_path', e.target.files[0]);
+                                        }
+                                    }}
+                                />
+                                {/* @ts-ignore */}
+                                {errors.secondary_image_path && <p className="text-red-500 text-sm">{errors.secondary_image_path}</p>}
                                 <div className="mt-2">
                                     <p className="text-xs text-gray-500 mb-1">Vista Previa:</p>
-                                    <img src={data.image_path} alt="Preview" className="w-[250px] h-[200px] object-cover rounded border" />
+                                    {renderSecondaryPreview()}
                                 </div>
-                            )}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="sales_start_date">Inicio de Venta</Label>
+                                <Input
+                                    id="sales_start_date"
+                                    type="datetime-local"
+                                    value={data.sales_start_date}
+                                    onChange={(e) => setData('sales_start_date', e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500">Dejar vacío para venta inmediata.</p>
+                                {/* @ts-ignore */}
+                                {errors.sales_start_date && <p className="text-red-500 text-sm">{errors.sales_start_date}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="button_text">Texto del Botón de Compra</Label>
+                                <Input
+                                    id="button_text"
+                                    value={data.button_text}
+                                    onChange={(e) => setData('button_text', e.target.value)}
+                                    placeholder="Ej. Comprar Boletos (Default)"
+                                />
+                                {/* @ts-ignore */}
+                                {errors.button_text && <p className="text-red-500 text-sm">{errors.button_text}</p>}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -125,7 +202,47 @@ export default function Edit({ event }: Props) {
                                 </SelectContent>
                             </Select>
                             {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
+                            {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
                         </div>
+
+                        {salesCenters && salesCenters.length > 0 && (
+                            <div className="space-y-4 border-t pt-4">
+                                <Label>Centros de Venta Disponibles</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {salesCenters.map((center) => (
+                                        <div key={center.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`center-${center.id}`}
+                                                checked={data.sales_centers?.some(c => String(c) === String(center.id))}
+                                                onCheckedChange={(checked) => {
+                                                    const current = data.sales_centers || [];
+                                                    const centerId = String(center.id);
+                                                    if (checked) {
+                                                        // Ensure we're pushing string version to match state type if mixed
+                                                        // or better yet, keep everything normalized.
+                                                        // let's stick to storing IDs if possible, but existing data might be strings.
+                                                        if (!current.some(c => String(c) === centerId)) {
+                                                            setData('sales_centers', [...current, centerId] as string[]);
+                                                        }
+                                                    } else {
+                                                        setData('sales_centers', current.filter(c => String(c) !== centerId) as string[]);
+                                                    }
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor={`center-${center.id}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                            >
+                                                {center.name}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    Selecciona los centros de venta físicos donde estarán disponibles los boletos para este evento.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="flex justify-end gap-4 pt-4 border-t">
                             <Button type="button" variant="ghost" asChild>

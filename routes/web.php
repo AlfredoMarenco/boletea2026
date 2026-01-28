@@ -34,9 +34,7 @@ Route::get('/bolepay', function () {
     return Inertia::render('Static/Bolepay');
 })->name('static.bolepay');
 
-Route::get('/centros-de-venta', function () {
-    return Inertia::render('Static/SalesCenters');
-})->name('static.centrosdeventa');
+Route::get('/puntos-de-venta', [App\Http\Controllers\SalesCenterController::class, 'index'])->name('sales-centers.public');
 
 
 require __DIR__ . '/settings.php';

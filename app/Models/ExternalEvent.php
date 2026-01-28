@@ -13,6 +13,9 @@ class ExternalEvent extends Model
         'category',
         'description',
         'image_path',
+        'secondary_image_path',
+        'sales_start_date',
+        'button_text',
         'sales_centers',
         'status',
         'raw_data',
@@ -21,5 +24,6 @@ class ExternalEvent extends Model
     protected $casts = [
         'sales_centers' => 'array',
         'raw_data' => 'array',
+        'sales_start_date' => 'datetime',
     ];
 }

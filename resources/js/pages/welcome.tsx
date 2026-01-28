@@ -2,6 +2,14 @@ import { Head, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { ModeToggle } from '@/components/mode-toggle';
 import PublicHeader from '@/components/public-header';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 interface ExternalEvent {
     id: number;
@@ -34,24 +42,84 @@ export default function Welcome({ canRegister, events }: Props) {
                     {/* Background Gradients */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#c90000] opacity-[0.08] blur-[120px] rounded-full pointer-events-none"></div>
 
-                    <div className="container mx-auto px-6 text-center">
-                        <h1 className="mb-6 text-5xl font-extrabold tracking-tight md:text-7xl lg:text-8xl">
-                            Vive la <span className="text-[#c90000]">experiencia</span>.
-                        </h1>
-                        <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-600 dark:text-gray-400 md:text-xl">
-                            Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad.
-                            Tu entrada a momentos inolvidables.
-                        </p>
+                    <div className="container mx-auto px-6">
+                        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+                            {/* Left Column: Text & Search */}
+                            <div className="text-center lg:text-left">
+                                <h1 className="mb-6 text-5xl font-extrabold tracking-tight md:text-7xl lg:text-8xl">
+                                    Vive la <span className="text-[#c90000]">experiencia</span>.
+                                </h1>
+                                <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-600 dark:text-gray-400 md:text-xl lg:mx-0">
+                                    Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad.
+                                    Tu entrada a momentos inolvidables.
+                                </p>
 
-                        <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                            <input
-                                type="text"
-                                placeholder="Buscar evento..."
-                                className="w-full max-w-sm rounded-full border border-gray-200 bg-white/50 px-6 py-3 text-sm backdrop-blur-sm focus:border-[#c90000] focus:ring-2 focus:ring-[#c90000]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
-                            />
-                            <button className="rounded-full bg-[#c90000] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition-transform hover:scale-105 active:scale-95">
-                                Buscar
-                            </button>
+                                <div className="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar evento..."
+                                        className="w-full max-w-sm rounded-full border border-gray-200 bg-white/50 px-6 py-3 text-sm backdrop-blur-sm focus:border-[#c90000] focus:ring-2 focus:ring-[#c90000]/20 dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                    />
+                                    <button className="rounded-full bg-[#c90000] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/30 transition-transform hover:scale-105 active:scale-95">
+                                        Buscar
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Image Slider */}
+                            <div className="relative mx-auto w-full max-w-[500px] lg:mx-0 lg:max-w-none">
+                                <div className="relative aspect-[5/4] overflow-hidden rounded-2xl shadow-2xl shadow-red-900/20">
+                                    <Carousel
+                                        opts={{
+                                            loop: true,
+                                        }}
+                                        plugins={[
+                                            Autoplay({
+                                                delay: 4000,
+                                            }),
+                                        ]}
+                                        className="h-full w-full"
+                                    >
+                                        <CarouselContent className="h-full">
+                                            {events.length > 0 ? (
+                                                events.slice(0, 5).map((event) => (
+                                                    <CarouselItem key={event.id} className="h-full w-full">
+                                                        <Link href={route('event.show', event.id)} className="group relative block h-full w-full cursor-pointer">
+                                                            {event.image_path ? (
+                                                                <img
+                                                                    src={event.image_path}
+                                                                    alt={event.title}
+                                                                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                                                    <span className="text-gray-400">Sin Imagen</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+                                                            <div className="absolute bottom-0 left-0 right-0 p-6 text-white opacity-0 transition-all duration-300 translate-y-4 group-hover:translate-y-0 group-hover:opacity-100">
+                                                                <h3 className="line-clamp-2 text-2xl font-bold">{event.title}</h3>
+                                                                <p className="mt-1 text-sm text-gray-300">{event.city}</p>
+                                                            </div>
+                                                        </Link>
+                                                    </CarouselItem>
+                                                ))
+                                            ) : (
+                                                <CarouselItem className="h-full w-full">
+                                                    <div className="flex h-full w-full items-center justify-center bg-gray-100 dark:bg-gray-800">
+                                                        <span className="text-gray-400">No hay eventos destacados</span>
+                                                    </div>
+                                                </CarouselItem>
+                                            )}
+                                        </CarouselContent>
+                                        {/* Optional buttons */}
+                                        {/* <CarouselPrevious className="left-4 bg-white/10 hover:bg-white/20 text-white border-0" /> */}
+                                        {/* <CarouselNext className="right-4 bg-white/10 hover:bg-white/20 text-white border-0" /> */}
+                                    </Carousel>
+                                </div>
+                                {/* Decorative elements behind slider */}
+                                <div className="absolute -top-10 -right-10 -z-10 h-[300px] w-[300px] rounded-full bg-[#c90000] opacity-20 blur-[100px]"></div>
+                            </div>
                         </div>
                     </div>
                 </section>

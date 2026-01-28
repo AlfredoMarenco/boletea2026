@@ -20,8 +20,10 @@ class ExternalEventController extends Controller
 
     public function edit(ExternalEvent $event)
     {
+        $salesCenters = \App\Models\SalesCenter::where('is_active', true)->get();
         return Inertia::render('Admin/Events/Edit', [
-            'event' => $event
+            'event' => $event,
+            'salesCenters' => $salesCenters
         ]);
     }
 
@@ -29,12 +31,20 @@ class ExternalEventController extends Controller
     {
         $validated = $request->validate([
             'image_path' => 'nullable|string',
+            'secondary_image_path' => 'nullable|image|max:2048', // Validate as image
+            'sales_start_date' => 'nullable|date',
+            'button_text' => 'nullable|string',
             'city' => 'nullable|string',
             'category' => 'nullable|string',
             'description' => 'nullable|string',
             'sales_centers' => 'nullable|array',
             'status' => 'required|in:draft,published',
         ]);
+
+        if ($request->hasFile('secondary_image_path')) {
+            $path = $request->file('secondary_image_path')->store('events', 'public');
+            $validated['secondary_image_path'] = '/storage/' . $path;
+        }
 
         $event->update($validated);
 

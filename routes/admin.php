@@ -12,3 +12,7 @@ Route::get('/events', [ExternalEventController::class, 'index'])->name('events.i
 Route::get('/events/{event}/edit', [ExternalEventController::class, 'edit'])->name('events.edit');
 Route::put('/events/{event}', [ExternalEventController::class, 'update'])->name('events.update');
 Route::post('/events/sync', [ExternalEventController::class, 'sync'])->name('events.sync');
+
+use App\Http\Controllers\Admin\SalesCenterController;
+
+Route::resource('sales-centers', SalesCenterController::class);

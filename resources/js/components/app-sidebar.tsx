@@ -1,5 +1,6 @@
+import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, MapPin } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -12,21 +13,24 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes/admin';
-import events from '@/routes/admin/events';
 import type { NavItem } from '@/types';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: route('admin.dashboard'),
         icon: LayoutGrid,
     },
     {
         title: 'Eventos',
-        href: events.index(),
-        icon: BookOpen, // Using BookOpen strictly as it is already imported. Ideally should use Calendar but not imported.
+        href: route('admin.events.index'),
+        icon: BookOpen,
+    },
+    {
+        title: 'Puntos de Venta',
+        href: route('admin.sales-centers.index'),
+        icon: MapPin,
     },
 ];
 
@@ -50,7 +54,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href={route('admin.dashboard')} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
