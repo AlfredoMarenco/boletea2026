@@ -21,7 +21,10 @@ class SalesCenterController extends Controller
 
     public function create()
     {
-        return Inertia::render('Admin/SalesCenters/Create');
+        $states = \App\Models\State::orderBy('name')->get();
+        return Inertia::render('Admin/SalesCenters/Create', [
+            'states' => $states
+        ]);
     }
 
     public function store(Request $request)
@@ -32,7 +35,9 @@ class SalesCenterController extends Controller
             'address' => 'required|string',
             'google_map_url' => 'nullable|url',
             'opening_hours' => 'nullable', // Can be array or JSON string
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'states' => 'nullable|array',
+            'states.*' => 'exists:states,id'
         ]);
 
         if ($request->hasFile('logo_path')) {
@@ -44,15 +49,24 @@ class SalesCenterController extends Controller
             $validated['opening_hours'] = json_decode($validated['opening_hours'], true);
         }
 
-        SalesCenter::create($validated);
+        // Extract states
+        $states = $validated['states'] ?? [];
+        unset($validated['states']);
+
+        $salesCenter = SalesCenter::create($validated);
+        $salesCenter->states()->sync($states);
 
         return redirect()->route('admin.sales-centers.index')->with('success', 'Punto de venta creado correctamente.');
     }
 
     public function edit(SalesCenter $salesCenter)
     {
+        $states = \App\Models\State::orderBy('name')->get();
+        $salesCenter->load('states');
+        
         return Inertia::render('Admin/SalesCenters/Edit', [
-            'salesCenter' => $salesCenter
+            'salesCenter' => $salesCenter,
+            'states' => $states
         ]);
     }
 
@@ -64,7 +78,9 @@ class SalesCenterController extends Controller
             'address' => 'required|string',
             'google_map_url' => 'nullable|string', // URL validation might fail on strict map embeds sometimes
             'opening_hours' => 'nullable',
-            'is_active' => 'boolean'
+            'is_active' => 'boolean',
+            'states' => 'nullable|array',
+            'states.*' => 'exists:states,id'
         ]);
 
         if ($request->hasFile('logo_path')) {
@@ -79,7 +95,12 @@ class SalesCenterController extends Controller
             $validated['opening_hours'] = json_decode($validated['opening_hours'], true);
         }
 
+        // Extract states
+        $states = $validated['states'] ?? [];
+        unset($validated['states']);
+
         $salesCenter->update($validated);
+        $salesCenter->states()->sync($states);
 
         return redirect()->route('admin.sales-centers.index')->with('success', 'Punto de venta actualizado.');
     }

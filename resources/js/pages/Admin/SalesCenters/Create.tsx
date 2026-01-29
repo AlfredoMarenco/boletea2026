@@ -19,7 +19,12 @@ const DAYS = [
     { key: 'sunday', label: 'Domingo' },
 ];
 
-export default function Create() {
+interface State {
+    id: number;
+    name: string;
+}
+
+export default function Create({ states }: { states: State[] }) {
     const defaultSchedule = DAYS.reduce((acc, day) => {
         acc[day.key] = { open: '09:00', close: '18:00', closed: false };
         return acc;
@@ -32,6 +37,7 @@ export default function Create() {
         logo_path: null as File | null,
         is_active: true,
         opening_hours: defaultSchedule,
+        states: [] as number[],
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -119,6 +125,29 @@ export default function Create() {
                         </div>
                     </div>
 
+                    {/* States */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Estados Relacionados</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-card/50">
+                            {states.map((state) => (
+                                <div key={state.id} className="flex items-center space-x-2">
+                                    <Switch
+                                        id={`state-${state.id}`}
+                                        checked={data.states.includes(state.id)}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setData('states', [...data.states, state.id]);
+                                            } else {
+                                                setData('states', data.states.filter((id: number) => id !== state.id));
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor={`state-${state.id}`}>{state.name}</Label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Schedule */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold">Horarios de Atención</h3>
@@ -176,7 +205,7 @@ export default function Create() {
                         </Button>
                     </div>
                 </form>
-            </div>
-        </AppLayout>
+            </div >
+        </AppLayout >
     );
 }

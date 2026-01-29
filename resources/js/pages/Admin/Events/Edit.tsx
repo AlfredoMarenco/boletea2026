@@ -1,6 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,6 +27,7 @@ interface ExternalEvent {
     button_text: string | null;
     description: string | null;
     sales_centers: number[] | null;
+    sales_center_groups?: number[] | null;
 }
 
 interface SalesCenter {
@@ -34,23 +36,45 @@ interface SalesCenter {
     is_active: boolean;
 }
 
+interface State {
+    id: number;
+    name: string;
+}
+
+interface City {
+    id: number;
+    name: string;
+    state_id: number;
+}
+
+interface SalesCenterGroup {
+    id: number;
+    name: string;
+}
+
 interface Props {
     event: ExternalEvent;
     salesCenters?: SalesCenter[];
+    salesCenterGroups?: SalesCenterGroup[];
+    states: State[];
+    cities: City[];
 }
 
-export default function Edit({ event, salesCenters = [] }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
+export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [] }: Props) {
+    const { data, setData, post, processing, errors } = useForm<any>({
         _method: 'put',
         city: event.city || '',
+        state_id: (event as any).state_id,
+        city_id: (event as any).city_id,
         category: event.category || '',
         image_path: event.image_path || '',
         secondary_image_path: event.secondary_image_path || '',
-        sales_start_date: event.sales_start_date || '',
+        sales_start_date: event.sales_start_date ? format(new Date(event.sales_start_date), "yyyy-MM-dd'T'HH:mm") : '',
         button_text: event.button_text || '',
         description: event.description || '',
         status: event.status,
         sales_centers: (event.sales_centers as number[]) || [],
+        sales_center_groups: ((event as any).sales_center_groups as number[]) || [],
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -86,7 +110,52 @@ export default function Edit({ event, salesCenters = [] }: Props) {
                     <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label htmlFor="city">Ciudad</Label>
+                                <Label htmlFor="state_id">Estado</Label>
+                                <Select
+                                    value={data.state_id ? String(data.state_id) : ""}
+                                    onValueChange={(value) => {
+                                        setData((data: any) => ({ ...data, state_id: Number(value), city_id: '' }));
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un estado" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {states.map((state) => (
+                                            <SelectItem key={state.id} value={String(state.id)}>
+                                                {state.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.state_id && <p className="text-red-500 text-sm">{errors.state_id}</p>}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="city_id">Ciudad</Label>
+                                <Select
+                                    value={data.city_id ? String(data.city_id) : ""}
+                                    onValueChange={(value) => setData('city_id', Number(value))}
+                                    disabled={!data.state_id}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona una ciudad" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {cities
+                                            .filter((city) => city.state_id === data.state_id)
+                                            .map((city) => (
+                                                <SelectItem key={city.id} value={String(city.id)}>
+                                                    {city.name}
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.city_id && <p className="text-red-500 text-sm">{errors.city_id}</p>}
+                            </div>
+
+                            <div className="space-y-2 hidden">
+                                <Label htmlFor="city">Ciudad (Texto Legacy)</Label>
                                 <Input
                                     id="city"
                                     value={data.city}
@@ -213,16 +282,16 @@ export default function Edit({ event, salesCenters = [] }: Props) {
                                         <div key={center.id} className="flex items-center space-x-2">
                                             <Checkbox
                                                 id={`center-${center.id}`}
-                                                checked={data.sales_centers?.some(c => Number(c) === center.id)}
+                                                checked={data.sales_centers?.some((c: number) => Number(c) === center.id)}
                                                 onCheckedChange={(checked) => {
                                                     const current = data.sales_centers || [];
                                                     const centerId = center.id;
                                                     if (checked) {
-                                                        if (!current.some(c => Number(c) === centerId)) {
+                                                        if (!current.some((c: number) => Number(c) === centerId)) {
                                                             setData('sales_centers', [...current, centerId]);
                                                         }
                                                     } else {
-                                                        setData('sales_centers', current.filter(c => Number(c) !== centerId));
+                                                        setData('sales_centers', current.filter((c: number) => Number(c) !== centerId));
                                                     }
                                                 }}
                                             />
@@ -241,7 +310,43 @@ export default function Edit({ event, salesCenters = [] }: Props) {
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-4 pt-4 border-t">
+                        {salesCenterGroups && salesCenterGroups.length > 0 && (
+                            <div className="space-y-4 border-t pt-4">
+                                <Label>Grupos de Centros de Venta</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {salesCenterGroups.map((group) => (
+                                        <div key={group.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`group-${group.id}`}
+                                                checked={data.sales_center_groups?.some((g: number) => Number(g) === group.id)}
+                                                onCheckedChange={(checked) => {
+                                                    const current = data.sales_center_groups || [];
+                                                    const groupId = group.id;
+                                                    if (checked) {
+                                                        if (!current.some((g: number) => Number(g) === groupId)) {
+                                                            setData('sales_center_groups', [...current, groupId]);
+                                                        }
+                                                    } else {
+                                                        setData('sales_center_groups', current.filter((g: number) => Number(g) !== groupId));
+                                                    }
+                                                }}
+                                            />
+                                            <label
+                                                htmlFor={`group-${group.id}`}
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                            >
+                                                {group.name}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    Selecciona grupos predefinidos de puntos de venta.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end space-x-4 pt-4 border-t">
                             <Button type="button" variant="ghost" asChild>
                                 <Link href={route('admin.events.index')}>Cancelar</Link>
                             </Button>

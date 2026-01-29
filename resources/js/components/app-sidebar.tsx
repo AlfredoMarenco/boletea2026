@@ -1,6 +1,6 @@
 import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, MapPin } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -31,6 +31,21 @@ const mainNavItems: NavItem[] = [
         title: 'Puntos de Venta',
         href: route('admin.sales-centers.index'),
         icon: MapPin,
+    },
+    {
+        title: 'Grupos de Ventas',
+        href: route('admin.sales-center-groups.index'),
+        icon: Users,
+    },
+    {
+        title: 'Estados',
+        href: route('admin.states.index'),
+        icon: Map,
+    },
+    {
+        title: 'Ciudades',
+        href: route('admin.cities.index'),
+        icon: Building,
     },
 ];
 

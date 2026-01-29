@@ -7,7 +7,7 @@ export default function AppLogo() {
             <img
                 src="https://boletea.com/img/logoBoletea.png"
                 alt="Boletea Logo"
-                className="h-auto w-32 mx-auto bg-white"
+                className="h-auto w-30 p-4 mx-auto bg-white"
             />
 
         </>

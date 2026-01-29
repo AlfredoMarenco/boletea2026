@@ -40,7 +40,7 @@ export default function GlobalLoader() {
     if (!isLoading || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-black transition-opacity duration-500 ease-in-out">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-black transition-opacity duration-500 ease-in-out opacity-85">
             <div className="relative flex flex-col items-center">
                 <img
                     src="https://boletea.com/img/logoBoletea.png"

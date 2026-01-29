@@ -1,5 +1,5 @@
 import { Head } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, MapPin, Ticket } from 'lucide-react';
@@ -79,6 +79,18 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
         performances.find(p => p.PerformanceID.toString() === selectedPerformanceId),
         [selectedPerformanceId, performances]);
 
+    // Sales Open State Logic
+    const [isSalesOpen, setIsSalesOpen] = useState(
+        !event.sales_start_date || new Date(event.sales_start_date) <= new Date()
+    );
+
+    // Initial check on mount just in case
+    useEffect(() => {
+        if (event.sales_start_date && new Date(event.sales_start_date) <= new Date()) {
+            setIsSalesOpen(true);
+        }
+    }, [event.sales_start_date]);
+
     const handleBuy = () => {
         if (!selectedPerformanceId) return;
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
@@ -150,7 +162,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                     <div className="lg:col-span-2 space-y-8 lg:space-y-10">
                         {/* Description */}
                         <section>
-                            <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del Evento</h2>
+                            <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
                             <div
                                 className="prose prose-lg dark:prose-invert text-gray-600 dark:text-gray-300 max-w-none"
                                 dangerouslySetInnerHTML={{
@@ -172,7 +184,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                         {/* Sales Centers */}
                         {salesCentersDetails && salesCentersDetails.length > 0 && (
                             <section>
-                                <h3 className="mb-4 text-2xl font-bold lg:text-3xl">Puntos de Venta Autorizados</h3>
+                                <h3 className="mb-4 text-2xl font-bold lg:text-3xl">Puntos de venta autorizados</h3>
                                 <div className="flex flex-wrap gap-8 items-center">
                                     {salesCentersDetails.map((center, index) => (
                                         <Tooltip key={index}>
@@ -239,8 +251,8 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                             <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
                             {/* SALES START DATE CHECK */}
-                            {event.sales_start_date && new Date(event.sales_start_date) > new Date() ? (
-                                <div className="space-y-6 text-center">
+                            {!isSalesOpen && event.sales_start_date ? (
+                                <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4">
                                     <div className="rounded-xl bg-[#c90000]/5 p-6 border border-[#c90000]/10">
                                         <h4 className="text-lg font-bold text-[#c90000] mb-2">Próximamente a la venta</h4>
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -251,9 +263,10 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                                         </p>
 
                                         <div className="grid grid-cols-4 gap-2 text-center">
-                                            {/* Countdown Logic can be added here with separate component or inline state */}
-                                            {/* For now showing static date info is a good first step, user requested countdown specifically */}
-                                            <Countdown targetDate={event.sales_start_date} />
+                                            <Countdown
+                                                targetDate={event.sales_start_date}
+                                                onComplete={() => setIsSalesOpen(true)}
+                                            />
                                         </div>
                                     </div>
                                     <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600">
@@ -319,7 +332,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                                                     <CalendarIcon className="size-6" />
                                                 </div>
                                                 <div>
-                                                    <p className="font-bold text-gray-900 dark:text-white capitalize">
+                                                    <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
                                                         {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
                                                     </p>
                                                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -340,7 +353,7 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                                         disabled={!selectedPerformanceId}
                                     >
                                         <Ticket className="mr-2 h-5 w-5" />
-                                        {event.button_text}
+                                        {event.button_text || 'Comprar Boletos'}
                                     </Button>
 
                                     <p className="text-xs text-center text-gray-400">

@@ -21,12 +21,20 @@ class ExternalEventController extends Controller
     public function edit(ExternalEvent $event)
     {
         $salesCenters = \App\Models\SalesCenter::where('is_active', true)->get();
+        $salesCenterGroups = \App\Models\SalesCenterGroup::orderBy('name')->get();
+        $states = \App\Models\State::orderBy('name')->get();
+        $cities = \App\Models\City::orderBy('name')->get();
+
         // Load relationship IDs for the form
         $event->sales_centers = $event->salesCenters()->pluck('sales_centers.id');
+        $event->sales_center_groups = $event->salesCenterGroups()->pluck('sales_center_groups.id');
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
-            'salesCenters' => $salesCenters
+            'salesCenters' => $salesCenters,
+            'salesCenterGroups' => $salesCenterGroups,
+            'states' => $states,
+            'cities' => $cities,
         ]);
     }
 
@@ -34,27 +42,39 @@ class ExternalEventController extends Controller
     {
         $validated = $request->validate([
             'image_path' => 'nullable|string',
-            'secondary_image_path' => 'nullable|image|max:2048', // Validate as image
             'sales_start_date' => 'nullable|date',
             'button_text' => 'nullable|string',
-            'city' => 'nullable|string',
+            'city' => 'nullable|string', // Keep legacy for now
+            'state_id' => 'nullable|exists:states,id',
+            'city_id' => 'nullable|exists:cities,id',
             'category' => 'nullable|string',
             'description' => 'nullable|string',
             'sales_centers' => 'nullable|array',
+            'sales_center_groups' => 'nullable|array',
             'status' => 'required|in:draft,published',
         ]);
 
         if ($request->hasFile('secondary_image_path')) {
+             $request->validate([
+                'secondary_image_path' => 'image|max:2048',
+             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
             $validated['secondary_image_path'] = '/storage/' . $path;
+        } else {
+            // If not uploading a new file, do not update this field
+            unset($validated['secondary_image_path']);
         }
 
-        // Separate sales_centers for relationship sync
+        // Separate relationships for sync
         $salesCenterIds = $validated['sales_centers'] ?? [];
+        $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
+        
         unset($validated['sales_centers']);
+        unset($validated['sales_center_groups']);
 
         $event->update($validated);
         $event->salesCenters()->sync($salesCenterIds);
+        $event->salesCenterGroups()->sync($salesCenterGroupIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }

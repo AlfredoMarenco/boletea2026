@@ -14,5 +14,11 @@ Route::put('/events/{event}', [ExternalEventController::class, 'update'])->name(
 Route::post('/events/sync', [ExternalEventController::class, 'sync'])->name('events.sync');
 
 use App\Http\Controllers\Admin\SalesCenterController;
+use App\Http\Controllers\Admin\StateController;
+use App\Http\Controllers\Admin\CityController;
 
 Route::resource('sales-centers', SalesCenterController::class);
+Route::resource('states', StateController::class);
+Route::resource('cities', CityController::class);
+use App\Http\Controllers\Admin\SalesCenterGroupController;
+Route::resource('sales-center-groups', SalesCenterGroupController::class);

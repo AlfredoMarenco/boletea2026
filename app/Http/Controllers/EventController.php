@@ -10,10 +10,15 @@ class EventController extends Controller
 {
     public function show($id)
     {
-        $event = ExternalEvent::findOrFail($id);
+        $event = ExternalEvent::with(['salesCenters', 'salesCenterGroups.salesCenters'])->findOrFail($id);
 
-        // Eager load sales centers
-        $salesCentersDetails = $event->salesCenters()->get();
+        $directSalesCenters = $event->salesCenters;
+        $groupSalesCenters = $event->salesCenterGroups->flatMap(function ($group) {
+            return $group->salesCenters;
+        });
+
+        // Merge and unique by ID, re-index values
+        $salesCentersDetails = $directSalesCenters->merge($groupSalesCenters)->unique('id')->values();
 
         return Inertia::render('Event/Show', [
             'event' => $event,

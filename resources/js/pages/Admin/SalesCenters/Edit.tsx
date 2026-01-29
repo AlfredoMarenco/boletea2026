@@ -19,6 +19,11 @@ const DAYS = [
     { key: 'sunday', label: 'Domingo' },
 ];
 
+interface State {
+    id: number;
+    name: string;
+}
+
 interface SalesCenter {
     id: number;
     name: string;
@@ -27,9 +32,10 @@ interface SalesCenter {
     logo_path: string;
     opening_hours: any;
     is_active: boolean;
+    states: State[];
 }
 
-export default function Edit({ salesCenter }: { salesCenter: SalesCenter }) {
+export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter, states: State[] }) {
     const defaultSchedule = DAYS.reduce((acc, day) => {
         acc[day.key] = { open: '09:00', close: '18:00', closed: false };
         return acc;
@@ -46,6 +52,7 @@ export default function Edit({ salesCenter }: { salesCenter: SalesCenter }) {
         logo_path: null as File | null,
         is_active: Boolean(salesCenter.is_active),
         opening_hours: initialHours,
+        states: salesCenter.states ? salesCenter.states.map(s => s.id) : [],
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -131,6 +138,29 @@ export default function Edit({ salesCenter }: { salesCenter: SalesCenter }) {
                                 onChange={e => setData('google_map_url', e.target.value)}
                             />
                             {errors.google_map_url && <span className="text-red-500 text-sm">{errors.google_map_url}</span>}
+                        </div>
+                    </div>
+
+                    {/* States */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">Estados Relacionados</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-card/50">
+                            {states.map((state) => (
+                                <div key={state.id} className="flex items-center space-x-2">
+                                    <Switch
+                                        id={`state-${state.id}`}
+                                        checked={data.states.includes(state.id)}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setData('states', [...data.states, state.id]);
+                                            } else {
+                                                setData('states', data.states.filter((id: number) => id !== state.id));
+                                            }
+                                        }}
+                                    />
+                                    <Label htmlFor={`state-${state.id}`}>{state.name}</Label>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

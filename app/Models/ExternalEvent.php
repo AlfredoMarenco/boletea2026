@@ -16,7 +16,8 @@ class ExternalEvent extends Model
         'secondary_image_path',
         'sales_start_date',
         'button_text',
-        'button_text',
+        'state_id',
+        'city_id',
         'status',
         'raw_data',
     ];
@@ -29,5 +30,20 @@ class ExternalEvent extends Model
     public function salesCenters()
     {
         return $this->belongsToMany(SalesCenter::class, 'external_event_sales_center');
+    }
+
+    public function salesCenterGroups()
+    {
+        return $this->belongsToMany(SalesCenterGroup::class, 'external_event_sales_center_group');
+    }
+
+    public function state()
+    {
+        return $this->belongsTo(State::class);
+    }
+
+    public function cityLocation()
+    {
+        return $this->belongsTo(City::class, 'city_id');
     }
 }

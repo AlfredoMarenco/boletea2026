@@ -7,7 +7,7 @@ interface TimeLeft {
     seconds?: number;
 }
 
-export default function Countdown({ targetDate }: { targetDate: string }) {
+export default function Countdown({ targetDate, onComplete }: { targetDate: string; onComplete?: () => void }) {
     const calculateTimeLeft = (): TimeLeft => {
         const difference = +new Date(targetDate) - +new Date();
         let timeLeft: TimeLeft = {};
@@ -19,16 +19,29 @@ export default function Countdown({ targetDate }: { targetDate: string }) {
                 minutes: Math.floor((difference / 1000 / 60) % 60),
                 seconds: Math.floor((difference / 1000) % 60),
             };
+        } else if (onComplete) {
+            // Ensure onComplete is called only once effectively by checking if it was already expired or handling correctly in parent
+            // But since this runs every second, we should be careful. 
+            // Better to handle "just finished" logic.
         }
 
         return timeLeft;
     };
 
     const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+    const [hasFinished, setHasFinished] = useState(false);
 
     useEffect(() => {
+        if (hasFinished) return;
+
         const timer = setTimeout(() => {
-            setTimeLeft(calculateTimeLeft());
+            const newTimeLeft = calculateTimeLeft();
+            setTimeLeft(newTimeLeft);
+
+            if (Object.keys(newTimeLeft).length === 0) {
+                setHasFinished(true);
+                if (onComplete) onComplete();
+            }
         }, 1000);
 
         return () => clearTimeout(timer);

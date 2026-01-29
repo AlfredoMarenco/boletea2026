@@ -26,4 +26,14 @@ class SalesCenter extends Model
     {
         return $this->belongsToMany(ExternalEvent::class, 'external_event_sales_center');
     }
+
+    public function states()
+    {
+        return $this->belongsToMany(State::class, 'sales_center_state');
+    }
+
+    public function groups()
+    {
+        return $this->belongsToMany(SalesCenterGroup::class, 'sales_center_group_sales_center');
+    }
 }
