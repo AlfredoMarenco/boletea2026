@@ -17,10 +17,10 @@ export default function AppSidebarLayout({
 
     useEffect(() => {
         if (flash?.success) {
-            toast.success(flash.success);
+            toast.success(flash.success, { id: flash.success });
         }
         if (flash?.error) {
-            toast.error(flash.error);
+            toast.error(flash.error, { id: flash.error });
         }
     }, [flash]);
 
