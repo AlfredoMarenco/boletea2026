@@ -13,13 +13,22 @@ export default function PublicHeader({ canRegister = false }: Props) {
             <div className="container mx-auto flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-2">
                     {/* Logo */}
-                    <Link href="/">
-                        <img
-                            src="https://boletea.com/img/logoBoletea.png"
-                            alt="Boletea"
-                            className="h-10 w-auto"
-                        />
-                    </Link>
+                    <div className="flex items-center gap-2 hover:gap-4 transition-all duration-300">
+                        <Link href={route('home')}>
+                            <img
+                                src="https://boletea.com/img/logoBoletea.png"
+                                alt="Boletea"
+                                className="h-10 w-auto hover:h-12 transition-all duration-300"
+                            />
+                        </Link>
+                        <Link href={route('static.bolepay')}>
+                            <img
+                                src="./images/LOGOBOLEPAY.png"
+                                alt="Bolepay"
+                                className="h-14 w-auto hover:h-16 transition-all duration-300"
+                            />
+                        </Link>
+                    </div>
                 </div>
                 <nav className="hidden items-center gap-6 md:flex">
                     <a
@@ -52,12 +61,12 @@ export default function PublicHeader({ canRegister = false }: Props) {
                     >
                         Ticket Assist
                     </a>
-                    <a
+                    {/* <a
                         href={route('static.bolepay')}
                         className="text-sm font-medium hover:text-[#c90000] transition-colors"
                     >
                         Bolepay
-                    </a>
+                    </a> */}
                     <a
                         href={route('sales-centers.public')}
                         className="text-sm font-medium hover:text-[#c90000] transition-colors"

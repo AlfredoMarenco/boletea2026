@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { ModeToggle } from '@/components/mode-toggle';
 import PublicHeader from '@/components/public-header';
+import PublicFooter from '@/components/public-footer';
 import {
     Carousel,
     CarouselContent,
@@ -32,7 +33,6 @@ export default function Welcome({ canRegister, events }: Props) {
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
             <Head title="Inicio - Boletea" />
 
-            {/* Navbar / Header */}
             {/* Navbar / Header */}
             <PublicHeader canRegister={canRegister} />
 
@@ -205,14 +205,10 @@ export default function Welcome({ canRegister, events }: Props) {
                         </div>
                     </div>
                 </section>
-
-                {/* Footer simple */}
-                <footer className="border-t border-gray-200 bg-white py-12 dark:border-white/5 dark:bg-black">
-                    <div className="container mx-auto px-6 text-center text-sm text-gray-500">
-                        &copy; 2026 Boletea. Todos los derechos reservados.
-                    </div>
-                </footer>
             </main>
+
+            {/* Unified Footer */}
+            <PublicFooter />
         </div>
     );
 }
