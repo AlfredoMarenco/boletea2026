@@ -11,6 +11,10 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
+import { GeolocationProvider, useGeolocation } from '@/contexts/GeolocationProvider';
+import { router } from '@inertiajs/react';
+import { useEffect } from 'react';
+import { MapPin } from 'lucide-react';
 
 interface ExternalEvent {
     id: number;
@@ -21,6 +25,7 @@ interface ExternalEvent {
     image_path: string | null;
     sales_centers: string[] | null;
     description: string | null;
+    distance_km?: number | null;
 }
 
 interface Props {
@@ -28,7 +33,30 @@ interface Props {
     events: ExternalEvent[];
 }
 
-export default function Welcome({ canRegister, events }: Props) {
+export default function Welcome({ canRegister, events: initialEvents }: Props) {
+    return (
+        <GeolocationProvider>
+            <WelcomeContent canRegister={canRegister} events={initialEvents} />
+        </GeolocationProvider>
+    );
+}
+
+function WelcomeContent({ canRegister, events }: Props) {
+    const { city, latitude, longitude, isLoading } = useGeolocation();
+
+    // Reload events with user location when coordinates are available
+    useEffect(() => {
+        if (latitude !== null && longitude !== null) {
+            router.reload({
+                data: {
+                    lat: latitude,
+                    lng: longitude,
+                },
+                only: ['events'],
+            });
+        }
+    }, [latitude, longitude]);
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
             <Head title="Inicio - Boletea" />
@@ -129,7 +157,9 @@ export default function Welcome({ canRegister, events }: Props) {
                     <div className="container mx-auto px-6">
                         <div className="flex items-end justify-between mb-12">
                             <div>
-                                <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Próximos Eventos</h2>
+                                <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+                                    {city ? `Próximos Eventos cerca de ${city}` : 'Próximos Eventos'}
+                                </h2>
                                 <p className="mt-2 text-gray-500 dark:text-gray-400">Explora lo que está por suceder.</p>
                             </div>
                             <Link href="#" className="hidden text-sm font-medium text-[#c90000] hover:underline md:block">
@@ -166,6 +196,12 @@ export default function Welcome({ canRegister, events }: Props) {
                                                 {event.category && (
                                                     <span className="inline-flex px-3 py-1 rounded-full bg-white/90 backdrop-blur-md text-xs font-bold text-black shadow-sm">
                                                         {event.category}
+                                                    </span>
+                                                )}
+                                                {event.distance_km !== undefined && event.distance_km !== null && (
+                                                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#c90000]/90 backdrop-blur-md text-xs font-bold text-white shadow-sm">
+                                                        <MapPin className="w-3 h-3" />
+                                                        {event.distance_km} km
                                                     </span>
                                                 )}
                                             </div>

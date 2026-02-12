@@ -12,6 +12,8 @@ class SalesCenter extends Model
         'name',
         'logo_path',
         'address',
+        'latitude',
+        'longitude',
         'google_map_url',
         'opening_hours',
         'is_active',
@@ -20,6 +22,8 @@ class SalesCenter extends Model
     protected $casts = [
         'opening_hours' => 'array',
         'is_active' => 'boolean',
+        'latitude' => 'double',
+        'longitude' => 'double',
     ];
 
     public function externalEvents()

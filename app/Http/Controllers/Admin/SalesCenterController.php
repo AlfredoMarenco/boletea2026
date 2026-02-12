@@ -33,6 +33,8 @@ class SalesCenterController extends Controller
             'name' => 'required|string|max:255',
             'logo_path' => 'nullable|image|max:2048', // 2MB max
             'address' => 'required|string',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'google_map_url' => 'nullable|url',
             'opening_hours' => 'nullable', // Can be array or JSON string
             'is_active' => 'boolean',
@@ -63,7 +65,7 @@ class SalesCenterController extends Controller
     {
         $states = \App\Models\State::orderBy('name')->get();
         $salesCenter->load('states');
-        
+
         return Inertia::render('Admin/SalesCenters/Edit', [
             'salesCenter' => $salesCenter,
             'states' => $states
@@ -76,6 +78,8 @@ class SalesCenterController extends Controller
             'name' => 'required|string|max:255',
             'logo_path' => 'nullable', // allow string (existing) or file (new)
             'address' => 'required|string',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'google_map_url' => 'nullable|string', // URL validation might fail on strict map embeds sometimes
             'opening_hours' => 'nullable',
             'is_active' => 'boolean',

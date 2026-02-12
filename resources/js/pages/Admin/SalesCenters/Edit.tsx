@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
+import LocationPicker from '@/components/LocationPicker';
 
 const DAYS = [
     { key: 'monday', label: 'Lunes' },
@@ -33,9 +34,14 @@ interface SalesCenter {
     opening_hours: any;
     is_active: boolean;
     states: State[];
+    latitude?: number;
+    longitude?: number;
 }
 
 export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter, states: State[] }) {
+    const [searchQuery, setSearchQuery] = useState(salesCenter.address || '');
+    const [mapSearchQuery, setMapSearchQuery] = useState('');
+
     const defaultSchedule = DAYS.reduce((acc, day) => {
         acc[day.key] = { open: '09:00', close: '18:00', closed: false };
         return acc;
@@ -48,11 +54,12 @@ export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter
         _method: 'put',
         name: salesCenter.name || '',
         address: salesCenter.address || '',
-        google_map_url: salesCenter.google_map_url || '',
         logo_path: null as File | null,
         is_active: Boolean(salesCenter.is_active),
         opening_hours: initialHours,
         states: salesCenter.states ? salesCenter.states.map(s => s.id) : [],
+        latitude: salesCenter.latitude || null,
+        longitude: salesCenter.longitude || null,
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -120,26 +127,55 @@ export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter
                             {errors.logo_path && <span className="text-red-500 text-sm">{errors.logo_path}</span>}
                         </div>
 
+                        {/* ... inside form ... */}
+
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="address">Dirección</Label>
-                            <Textarea
-                                id="address"
-                                value={data.address}
-                                onChange={e => setData('address', e.target.value)}
-                            />
+                            <div className="flex gap-2">
+                                <Textarea
+                                    id="address"
+                                    value={data.address}
+                                    onChange={e => {
+                                        setData('address', e.target.value);
+                                        setSearchQuery(e.target.value);
+                                    }}
+                                    placeholder="Calle, Número, Colonia, Ciudad..."
+                                />
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => setMapSearchQuery(searchQuery)}
+                                    title="Buscar en el mapa"
+                                    className="h-auto"
+                                >
+                                    <MapPin className="h-4 w-4 mr-2" />
+                                    Buscar en Mapa
+                                </Button>
+                            </div>
                             {errors.address && <span className="text-red-500 text-sm">{errors.address}</span>}
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="map">URL Google Maps</Label>
-                            <Input
-                                id="map"
-                                value={data.google_map_url}
-                                onChange={e => setData('google_map_url', e.target.value)}
+                            <Label>Ubicación en Mapa</Label>
+                            <LocationPicker
+                                initialLatitude={salesCenter.latitude}
+                                initialLongitude={salesCenter.longitude}
+                                searchQuery={mapSearchQuery}
+                                onLocationChange={(lat, lng) => {
+                                    setData(data => ({ ...data, latitude: lat, longitude: lng }));
+                                }}
+                                onAddressFound={(address) => {
+                                    setData(data => ({ ...data, address: address }));
+                                    setSearchQuery(address);
+                                }}
                             />
-                            {errors.google_map_url && <span className="text-red-500 text-sm">{errors.google_map_url}</span>}
+                            <p className="text-sm text-gray-500 mt-2">
+                                Haz clic en el mapa para ajustar la ubicación exacta.
+                            </p>
                         </div>
+
                     </div>
+
 
                     {/* States */}
                     <div className="space-y-4">
@@ -221,7 +257,7 @@ export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter
                         </Button>
                     </div>
                 </form>
-            </div>
-        </AppLayout>
+            </div >
+        </AppLayout >
     );
 }

@@ -46,4 +46,9 @@ class ExternalEvent extends Model
     {
         return $this->belongsTo(City::class, 'city_id');
     }
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class);
+    }
 }

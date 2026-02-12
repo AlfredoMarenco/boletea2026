@@ -23,7 +23,7 @@ export default function PublicHeader({ canRegister = false }: Props) {
                         </Link>
                         <Link href={route('static.bolepay')}>
                             <img
-                                src="./images/LOGOBOLEPAY.png"
+                                src="/images/LOGOBOLEPAY.png"
                                 alt="Bolepay"
                                 className="h-14 w-auto hover:h-16 transition-all duration-300"
                             />

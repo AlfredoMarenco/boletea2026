@@ -3,6 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ExternalEventController;
 use Inertia\Inertia;
+use App\Http\Controllers\Admin\SalesCenterController;
+use App\Http\Controllers\Admin\StateController;
+use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\SalesCenterGroupController;
+use App\Http\Controllers\Admin\CategoryController;
 
 Route::get('/', function () {
     return Inertia::render('dashboard');
@@ -13,12 +18,8 @@ Route::get('/events/{event}/edit', [ExternalEventController::class, 'edit'])->na
 Route::put('/events/{event}', [ExternalEventController::class, 'update'])->name('events.update');
 Route::post('/events/sync', [ExternalEventController::class, 'sync'])->name('events.sync');
 
-use App\Http\Controllers\Admin\SalesCenterController;
-use App\Http\Controllers\Admin\StateController;
-use App\Http\Controllers\Admin\CityController;
-
 Route::resource('sales-centers', SalesCenterController::class);
 Route::resource('states', StateController::class);
 Route::resource('cities', CityController::class);
-use App\Http\Controllers\Admin\SalesCenterGroupController;
 Route::resource('sales-center-groups', SalesCenterGroupController::class);
+Route::resource('categories', CategoryController::class);

@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import PublicHeader from '@/components/public-header';
 import { MapPin, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import LocationPicker from '@/components/LocationPicker';
 
 interface SalesCenter {
     id: number;
@@ -10,6 +11,8 @@ interface SalesCenter {
     logo_path: string | null;
     google_map_url: string | null;
     opening_hours: Record<string, { open: string; close: string; closed: boolean }>;
+    latitude?: number;
+    longitude?: number;
 }
 
 const DAYS_MAP: Record<string, string> = {
@@ -68,11 +71,11 @@ export default function SalesCenters({ salesCenters }: { salesCenters: SalesCent
                 {salesCenters.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {salesCenters.map((center) => (
-                            <div key={center.id} className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-md transition-shadow">
+                            <div key={center.id} className="bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-md hover:scale-105 transition-all duration-300">
                                 <div className="p-6">
-                                    <div className="flex items-center gap-4 mb-6">
+                                    <div className="mb-6">
                                         {center.logo_path ? (
-                                            <div className="h-16 w-16 rounded-xl border bg-gray-50 dark:border-gray-700/50 dark:bg-gray-800 p-2 flex items-center justify-center">
+                                            <div className="h-36 w-36 mx-auto flex items-center justify-center">
                                                 <img src={center.logo_path} alt={center.name} className="max-h-full max-w-full object-contain" />
                                             </div>
                                         ) : (
@@ -106,15 +109,29 @@ export default function SalesCenters({ salesCenters }: { salesCenters: SalesCent
                                     </div>
                                 </div>
 
-                                {center.google_map_url && (
-                                    <a
-                                        href={center.google_map_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="block w-full bg-gray-50 dark:bg-white/5 p-3 text-center text-sm font-medium text-[#c90000] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border-t border-gray-100 dark:border-gray-800"
-                                    >
-                                        Ver ubicación en Google Maps
-                                    </a>
+                                {center.latitude && center.longitude ? (
+                                    <div className="w-full">
+                                        <LocationPicker
+                                            initialLatitude={center.latitude}
+                                            initialLongitude={center.longitude}
+                                            readonly={true}
+                                            clickToGoogleMaps={true}
+                                            hideControls={true}
+                                            zoom={16}
+                                            useGoogleTiles={true}
+                                        />
+                                    </div>
+                                ) : (
+                                    center.google_map_url && (
+                                        <a
+                                            href={center.google_map_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="block w-full bg-gray-50 dark:bg-white/5 p-3 text-center text-sm font-medium text-[#c90000] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border-t border-gray-100 dark:border-gray-800"
+                                        >
+                                            Ver ubicación en Google Maps
+                                        </a>
+                                    )
                                 )}
                             </div>
                         ))}

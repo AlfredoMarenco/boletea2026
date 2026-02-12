@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
+import LocationPicker from '@/components/LocationPicker';
 
 const DAYS = [
     { key: 'monday', label: 'Lunes' },
@@ -25,6 +26,9 @@ interface State {
 }
 
 export default function Create({ states }: { states: State[] }) {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [mapSearchQuery, setMapSearchQuery] = useState('');
+
     const defaultSchedule = DAYS.reduce((acc, day) => {
         acc[day.key] = { open: '09:00', close: '18:00', closed: false };
         return acc;
@@ -33,11 +37,12 @@ export default function Create({ states }: { states: State[] }) {
     const { data, setData, post, transform, processing, errors } = useForm({
         name: '',
         address: '',
-        google_map_url: '',
         logo_path: null as File | null,
         is_active: true,
         opening_hours: defaultSchedule,
         states: [] as number[],
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -101,27 +106,50 @@ export default function Create({ states }: { states: State[] }) {
                             {errors.logo_path && <span className="text-red-500 text-sm">{errors.logo_path}</span>}
                         </div>
 
+                        {/* ... inside form ... */}
+
                         <div className="space-y-2 md:col-span-2">
                             <Label htmlFor="address">Dirección</Label>
-                            <Textarea
-                                id="address"
-                                value={data.address}
-                                onChange={e => setData('address', e.target.value)}
-                                placeholder="Calle, Número, Colonia, Ciudad..."
-                            />
+                            <div className="flex gap-2">
+                                <Textarea
+                                    id="address"
+                                    value={data.address}
+                                    onChange={e => {
+                                        setData('address', e.target.value);
+                                        setSearchQuery(e.target.value);
+                                    }}
+                                    placeholder="Calle, Número, Colonia, Ciudad..."
+                                />
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    onClick={() => setMapSearchQuery(searchQuery)}
+                                    title="Buscar en el mapa"
+                                    className="h-auto"
+                                >
+                                    <MapPin className="h-4 w-4 mr-2" />
+                                    Buscar en Mapa
+                                </Button>
+                            </div>
                             {errors.address && <span className="text-red-500 text-sm">{errors.address}</span>}
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
-                            <Label htmlFor="map">URL Google Maps</Label>
-                            <Input
-                                id="map"
-                                value={data.google_map_url}
-                                onChange={e => setData('google_map_url', e.target.value)}
-                                placeholder="https://maps.google.com/..."
+                            <Label>Ubicación en Mapa</Label>
+                            <LocationPicker
+                                searchQuery={mapSearchQuery}
+                                onLocationChange={(lat, lng) => {
+                                    setData(data => ({ ...data, latitude: lat, longitude: lng }));
+                                }}
+                                onAddressFound={(address) => {
+                                    setData(data => ({ ...data, address: address }));
+                                    setSearchQuery(address);
+                                }}
                             />
-                            <p className="text-xs text-muted-foreground">Copia el enlace de 'Compartir' en Google Maps.</p>
-                            {errors.google_map_url && <span className="text-red-500 text-sm">{errors.google_map_url}</span>}
+                            {/* Hidden inputs to ensure data is submitted if needed, though useForm handles it */}
+                            <p className="text-sm text-gray-500">
+                                Haz clic en el mapa para seleccionar la ubicación exacta o usa el botón "Buscar en Mapa" con la dirección ingresada.
+                            </p>
                         </div>
                     </div>
 

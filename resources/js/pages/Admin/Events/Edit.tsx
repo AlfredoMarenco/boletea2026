@@ -28,6 +28,7 @@ interface ExternalEvent {
     description: string | null;
     sales_centers: number[] | null;
     sales_center_groups?: number[] | null;
+    categories?: number[] | null;
 }
 
 interface SalesCenter {
@@ -52,15 +53,22 @@ interface SalesCenterGroup {
     name: string;
 }
 
+interface Category {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface Props {
     event: ExternalEvent;
     salesCenters?: SalesCenter[];
     salesCenterGroups?: SalesCenterGroup[];
     states: State[];
     cities: City[];
+    categories?: Category[];
 }
 
-export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [] }: Props) {
+export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [], categories = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm<any>({
         _method: 'put',
         city: event.city || '',
@@ -75,6 +83,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
         status: event.status,
         sales_centers: (event.sales_centers as number[]) || [],
         sales_center_groups: ((event as any).sales_center_groups as number[]) || [],
+        categories: ((event as any).categories as number[]) || [],
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -164,7 +173,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-2 hidden">
                                 <Label htmlFor="category">Categoría</Label>
                                 <Input
                                     id="category"
@@ -345,6 +354,100 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 </p>
                             </div>
                         )}
+
+                        {categories && categories.length > 0 && (
+                            <div className="space-y-4 border-t pt-4">
+                                <Label>Categorías del Evento</Label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Available Categories - Left Panel */}
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Disponibles
+                                        </div>
+                                        <div className="border rounded-lg bg-gray-50 dark:bg-gray-800 h-64 overflow-y-auto">
+                                            {categories
+                                                .filter(cat => !data.categories?.includes(cat.id))
+                                                .map((category) => (
+                                                    <div
+                                                        key={category.id}
+                                                        onClick={() => {
+                                                            const current = data.categories || [];
+                                                            setData('categories', [...current, category.id]);
+                                                        }}
+                                                        className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors flex items-center justify-between group"
+                                                    >
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                            {category.name}
+                                                        </span>
+                                                        <svg
+                                                            className="w-4 h-4 text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                    </div>
+                                                ))}
+                                            {categories.filter(cat => !data.categories?.includes(cat.id)).length === 0 && (
+                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+                                                    No hay categorías disponibles
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Haz clic para agregar →
+                                        </p>
+                                    </div>
+
+                                    {/* Selected Categories - Right Panel */}
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            Seleccionadas
+                                        </div>
+                                        <div className="border rounded-lg bg-green-50 dark:bg-green-900/10 h-64 overflow-y-auto">
+                                            {data.categories?.map((categoryId: number) => {
+                                                const category = categories.find(c => c.id === categoryId);
+                                                if (!category) return null;
+                                                return (
+                                                    <div
+                                                        key={category.id}
+                                                        onClick={() => {
+                                                            setData('categories', data.categories?.filter((c: number) => c !== category.id) || []);
+                                                        }}
+                                                        className="px-4 py-2.5 border-b border-green-200 dark:border-green-800 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors flex items-center justify-between group"
+                                                    >
+                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                            {category.name}
+                                                        </span>
+                                                        <svg
+                                                            className="w-4 h-4 text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            viewBox="0 0 24 24"
+                                                        >
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </div>
+                                                );
+                                            })}
+                                            {(!data.categories || data.categories.length === 0) && (
+                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+                                                    No hay categorías seleccionadas
+                                                </div>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-500">
+                                            Haz clic para remover ✕
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 italic">
+                                    Las categorías seleccionadas se asignarán a este evento.
+                                </p>
+                            </div>
+                        )}
+
 
                         <div className="flex justify-end space-x-4 pt-4 border-t">
                             <Button type="button" variant="ghost" asChild>
