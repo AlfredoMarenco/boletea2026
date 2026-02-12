@@ -305,6 +305,32 @@ export default function Bolepay() {
                                                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
                                                     2
                                                 </div>
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Aplica el código BOLEPAY</h3>
+                                            </div>
+                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-4">
+                                                Aplica el código <span className="font-bold text-[#2563eb]">BOLEPAY</span> para habilitar la opción de comprar tus boletos en pagos.
+                                            </p>
+                                            <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-[2px] rounded-xl inline-block">
+                                                <div className="bg-white dark:bg-[#1a1a1a] px-6 py-3 rounded-xl">
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Código promocional</p>
+                                                    <p className="text-2xl font-black text-[#2563eb]">BOLEPAY</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                                                Con BOLEPAY pagas <span className="font-bold text-[#2563eb]">25% del costo del boleto + cargo por servicio</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </FadeIn>
+
+                                {/* Step 3: Aplica el código BOLEPAY */}
+                                <FadeIn delay={300}>
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                        <div className="order-2 md:order-1">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
+                                                    3
+                                                </div>
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Procede a realizar el pago inicial</h3>
                                             </div>
                                             <div className="space-y-3 text-gray-600 dark:text-gray-400">
@@ -321,32 +347,6 @@ export default function Bolepay() {
                                                     <p><span className="font-bold text-gray-900 dark:text-white">Pago inicial:</span> Solo 25% del costo + cargo por servicio</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </FadeIn>
-
-                                {/* Step 3: Aplica el código BOLEPAY */}
-                                <FadeIn delay={300}>
-                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
-                                        <div className="order-2 md:order-1">
-                                            <div className="flex items-center gap-4 mb-4">
-                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
-                                                    3
-                                                </div>
-                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Aplica el código BOLEPAY</h3>
-                                            </div>
-                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-4">
-                                                Aplica el código <span className="font-bold text-[#2563eb]">BOLEPAY</span> para habilitar la opción de comprar tus boletos en pagos.
-                                            </p>
-                                            <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-[2px] rounded-xl inline-block">
-                                                <div className="bg-white dark:bg-[#1a1a1a] px-6 py-3 rounded-xl">
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Código promocional</p>
-                                                    <p className="text-2xl font-black text-[#2563eb]">BOLEPAY</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-                                                Con BOLEPAY pagas <span className="font-bold text-[#2563eb]">25% del costo del boleto + cargo por servicio</span>
-                                            </p>
                                         </div>
                                         <div className="order-1 md:order-2 flex justify-center">
                                             <img
