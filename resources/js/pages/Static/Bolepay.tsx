@@ -86,6 +86,7 @@ function FadeIn({ children, delay = 0, className = "", direction = 'up' }: FadeI
 
 export default function Bolepay() {
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [activeMode, setActiveMode] = useState<'taquilla' | 'website'>('taquilla');
 
     const toggleFaq = (index: number) => {
         setOpenFaq(openFaq === index ? null : index);
@@ -209,43 +210,190 @@ export default function Bolepay() {
 
                         <FadeIn delay={200}>
                             <div className="flex justify-center mb-16 gap-4">
-                                <button className="flex items-center gap-2 px-6 py-3 bg-[#2563eb] text-white rounded-full font-bold shadow-lg shadow-blue-600/30 hover:bg-[#1d4ed8] transition-colors hover:scale-105 active:scale-95 transform duration-200">
+                                <button
+                                    onClick={() => setActiveMode('taquilla')}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transition-all hover:scale-105 active:scale-95 transform duration-200 ${activeMode === 'taquilla'
+                                        ? 'bg-[#2563eb] text-white shadow-blue-600/30 hover:bg-[#1d4ed8]'
+                                        : 'bg-white dark:bg-[#222] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800'
+                                        }`}
+                                >
                                     <Ticket className="w-5 h-5" />
                                     Taquilla/Físico
                                 </button>
-                                <button disabled className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-[#222] text-gray-400 rounded-full font-bold border border-gray-200 dark:border-gray-800 cursor-not-allowed">
-                                    <span className="opacity-50">Website</span>
-                                    <span className="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full">Próximamente</span>
+                                <button
+                                    onClick={() => setActiveMode('website')}
+                                    className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transition-all hover:scale-105 active:scale-95 transform duration-200 ${activeMode === 'website'
+                                        ? 'bg-[#2563eb] text-white shadow-blue-600/30 hover:bg-[#1d4ed8]'
+                                        : 'bg-white dark:bg-[#222] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800'
+                                        }`}
+                                >
+                                    <CreditCard className="w-5 h-5" />
+                                    Website
                                 </button>
                             </div>
                         </FadeIn>
 
-                        <div className="max-w-4xl mx-auto space-y-6">
-                            {[
-                                { number: 1, title: "Escoge tu evento", desc: "Dirígete a taquillas autorizadas", action: { text: "Ubica tu taquilla", link: route('sales-centers.public'), icon: MapPin } },
-                                { number: 2, title: "Paga con Bolepay", desc: "Abona solo el 25% inicial" },
-                                { number: 3, title: "Conoce tus fechas", desc: "Montos de pago restantes" },
-                                { number: 4, title: "Recibe tu boleto", desc: "Una vez que terminas de pagar (tienes 10 días previo a tu evento para liquidar)" },
-                            ].map((step, i) => (
-                                <FadeIn key={i} delay={i * 150} direction="left">
-                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5 hover:border-[#2563eb]/30 transition-all hover:shadow-lg">
-                                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
-                                            {step.number}
+                        {/* Taquilla/Físico Process */}
+                        {activeMode === 'taquilla' && (
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                {[
+                                    { number: 1, title: "Escoge tu evento", desc: "Dirígete a taquillas autorizadas", action: { text: "Ubica tu taquilla", link: route('sales-centers.public'), icon: MapPin } },
+                                    { number: 2, title: "Paga con Bolepay", desc: "Abona solo el 25% inicial" },
+                                    { number: 3, title: "Conoce tus fechas", desc: "Montos de pago restantes" },
+                                    { number: 4, title: "Recibe tu boleto", desc: "Una vez que terminas de pagar (tienes 10 días previo a tu evento para liquidar)" },
+                                ].map((step, i) => (
+                                    <FadeIn key={i} delay={i * 150} direction="left">
+                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5 hover:border-[#2563eb]/30 transition-all hover:shadow-lg">
+                                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
+                                                {step.number}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">{step.title}</h3>
+                                                <p className="text-gray-600 dark:text-gray-400">{step.desc}</p>
+                                            </div>
+                                            {step.action && (
+                                                <Link href={step.action.link} className="mt-4 md:mt-0 px-6 py-2 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm hover:scale-105 transform duration-200">
+                                                    <step.action.icon className="w-4 h-4" />
+                                                    {step.action.text}
+                                                </Link>
+                                            )}
                                         </div>
-                                        <div className="flex-grow">
-                                            <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">{step.title}</h3>
-                                            <p className="text-gray-600 dark:text-gray-400">{step.desc}</p>
+                                    </FadeIn>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Website Process */}
+                        {activeMode === 'website' && (
+                            <div className="max-w-6xl mx-auto space-y-12">
+                                {/* Step 1: Selecciona tus lugares */}
+                                <FadeIn delay={0}>
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                        <div className="order-2 md:order-1">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
+                                                    1
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Selecciona tus lugares</h3>
+                                            </div>
+                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
+                                                Primero selecciona tus lugares pulsando sobre la zona de interés en el mapa
+                                            </p>
                                         </div>
-                                        {step.action && (
-                                            <Link href={step.action.link} className="mt-4 md:mt-0 px-6 py-2 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm hover:scale-105 transform duration-200">
-                                                <step.action.icon className="w-4 h-4" />
-                                                {step.action.text}
-                                            </Link>
-                                        )}
+                                        <div className="order-1 md:order-2 flex justify-center">
+                                            <img
+                                                src="/images/bolepay/step1.png"
+                                                alt="Selecciona tus lugares en el mapa"
+                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                            />
+                                        </div>
                                     </div>
                                 </FadeIn>
-                            ))}
-                        </div>
+
+                                {/* Step 2: Procede a realizar el pago inicial */}
+                                <FadeIn delay={150}>
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                        <div className="flex justify-center">
+                                            <img
+                                                src="/images/bolepay/step2.png"
+                                                alt="Desglose de pago"
+                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
+                                                    2
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Procede a realizar el pago inicial</h3>
+                                            </div>
+                                            <div className="space-y-3 text-gray-600 dark:text-gray-400">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-[#2563eb] mt-2 flex-shrink-0"></div>
+                                                    <p><span className="font-bold text-gray-900 dark:text-white">Total de compra:</span> Monto total de tus boletos</p>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-[#2563eb] mt-2 flex-shrink-0"></div>
+                                                    <p><span className="font-bold text-gray-900 dark:text-white">Saldo a diferir:</span> Lo que pagarás en semanas</p>
+                                                </div>
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-2 h-2 rounded-full bg-[#2563eb] mt-2 flex-shrink-0"></div>
+                                                    <p><span className="font-bold text-gray-900 dark:text-white">Pago inicial:</span> Solo 25% del costo + cargo por servicio</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </FadeIn>
+
+                                {/* Step 3: Aplica el código BOLEPAY */}
+                                <FadeIn delay={300}>
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                        <div className="order-2 md:order-1">
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
+                                                    3
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Aplica el código BOLEPAY</h3>
+                                            </div>
+                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-4">
+                                                Aplica el código <span className="font-bold text-[#2563eb]">BOLEPAY</span> para habilitar la opción de comprar tus boletos en pagos.
+                                            </p>
+                                            <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-[2px] rounded-xl inline-block">
+                                                <div className="bg-white dark:bg-[#1a1a1a] px-6 py-3 rounded-xl">
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Código promocional</p>
+                                                    <p className="text-2xl font-black text-[#2563eb]">BOLEPAY</p>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                                                Con BOLEPAY pagas <span className="font-bold text-[#2563eb]">25% del costo del boleto + cargo por servicio</span>
+                                            </p>
+                                        </div>
+                                        <div className="order-1 md:order-2 flex justify-center">
+                                            <img
+                                                src="/images/bolepay/step3.png"
+                                                alt="Aplica el código BOLEPAY"
+                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                            />
+                                        </div>
+                                    </div>
+                                </FadeIn>
+
+                                {/* Step 4: Recuerda */}
+                                <FadeIn delay={450}>
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-gradient-to-br from-[#2563eb]/5 to-purple-500/5 dark:from-[#2563eb]/10 dark:to-purple-500/10 border-2 border-[#2563eb]/20">
+                                        <div className="flex justify-center">
+                                            <img
+                                                src="/images/bolepay/step4.png"
+                                                alt="Recuerda liquidar tu compra"
+                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-4 mb-4">
+                                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black">
+                                                    ¡
+                                                </div>
+                                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white">¡RECUERDA!</h3>
+                                            </div>
+                                            <div className="space-y-4">
+                                                <div className="bg-white dark:bg-[#1a1a1a] p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                                                    <p className="text-gray-900 dark:text-white font-bold mb-2">Tus boletos serán enviados hasta liquidar el saldo pendiente.</p>
+                                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                                        Recibirás tus boletos digitales una vez que completes todos los pagos programados.
+                                                    </p>
+                                                </div>
+                                                <div className="bg-white dark:bg-[#1a1a1a] p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                                                    <p className="text-gray-900 dark:text-white font-bold mb-2">Tienes hasta 8 días antes del evento para liquidar tu compra.</p>
+                                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                                        Si no liquidas el total, tu orden se cancelará automáticamente.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </FadeIn>
+                            </div>
+                        )}
                     </div>
                 </section>
 
