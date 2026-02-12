@@ -134,7 +134,7 @@ export default function Bolepay() {
                     <div className="container mx-auto px-6 relative z-10 text-center">
                         <div className="flex justify-center mb-8">
                             <FadeIn delay={0} direction="down">
-                                <img src="/images/LOGOBOLEPAYNEGRO.png" alt="Bolepay" className="h-24 md:h-34 drop-shadow-sm brightness-0 invert" />
+                                <img src="/images/LOGOBOLEPAYNEGRO.png" alt="Bolepay" className="h-16 sm:h-20 md:h-28 lg:h-32 drop-shadow-sm" />
                             </FadeIn>
                         </div>
 
