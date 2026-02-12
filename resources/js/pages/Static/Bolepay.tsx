@@ -123,31 +123,30 @@ export default function Bolepay() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans selection:bg-[#2563eb] selection:text-white overflow-x-hidden">
+        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-['Instrument_Sans'] selection:bg-[#2563eb] selection:text-white overflow-x-hidden">
             <Head title="Bolepay - Boletea" />
             <PublicHeader />
 
             <main>
                 {/* Hero Section */}
-                <section className="relative pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden">
-                    {/* Background Gradients (Blue Blob) - Animated Pulse */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#2563eb] opacity-[0.08] blur-[120px] rounded-full pointer-events-none animate-pulse"></div>
-
+                <section className="relative min-h-screen flex flex-col justify-center overflow-hidden bg-[linear-gradient(135deg,#2563eb_0%,var(--color-red-hex)_100%)] text-white">
                     <div className="container mx-auto px-6 relative z-10 text-center">
                         <div className="flex justify-center mb-8">
                             <FadeIn delay={0} direction="down">
-                                <img src="/images/LOGOBOLEPAY.png" alt="Bolepay" className="h-20 md:h-28 drop-shadow-sm dark:brightness-0 dark:invert" />
+                                <img src="/images/LOGOBOLEPAYNEGRO.png" alt="Bolepay" className="h-24 md:h-34 drop-shadow-sm brightness-0 invert" />
                             </FadeIn>
                         </div>
 
                         <FadeIn delay={200}>
-                            <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-7xl">
-                                ¡Vive tus eventos <span className="text-[#2563eb]">favoritos</span> y págalos a tu ritmo!
+                            <h1 className="mb-6 text-4xl font-black md:text-6xl lg:text-7xl text-white leading-tight">
+                                ¡Vive tus eventos <br />
+                                <span className="text-white">favoritos</span> y págalos a tu <br />
+                                ritmo!
                             </h1>
                         </FadeIn>
 
                         <FadeIn delay={400}>
-                            <p className="mx-auto mb-10 max-w-3xl text-lg text-gray-600 dark:text-gray-400 font-medium leading-relaxed">
+                            <p className="mx-auto mb-10 max-w-3xl text-lg text-white/90 font-medium leading-relaxed">
                                 Divide tu pago en semanas sin necesidad de tarjeta de crédito.
                             </p>
                         </FadeIn>
