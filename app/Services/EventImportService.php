@@ -26,7 +26,7 @@ class EventImportService
 
             if ($response->failed()) {
                 Log::error('Failed to fetch events from Boletea API', ['status' => $response->status()]);
-                return 0;
+                return ['success' => false, 'count' => 0, 'message' => 'Error al conectar con la API de Boletea. Status: ' . $response->status()];
             }
 
             $body = $response->body();
@@ -44,7 +44,7 @@ class EventImportService
                 $body = mb_convert_encoding($body, 'UTF-8', 'ISO-8859-1');
                 $data = json_decode($body, true);
                 if (json_last_error() !== JSON_ERROR_NONE) {
-                    return 0;
+                    return ['success' => false, 'count' => 0, 'message' => 'Error decodificando JSON: ' . json_last_error_msg()];
                 }
             }
 
@@ -151,11 +151,11 @@ class EventImportService
                 $count++;
             }
 
-            return $count;
+            return ['success' => true, 'count' => $count, 'message' => "Se han sincronizado $count eventos."];
         }
         catch (\Exception $e) {
             Log::error('Error importing events: ' . $e->getMessage());
-            return 0;
+            return ['success' => false, 'count' => 0, 'message' => 'Error durante la importación: ' . $e->getMessage()];
         }
     }
 }

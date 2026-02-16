@@ -11,9 +11,15 @@ Artisan::command('events:sync', function (\App\Services\EventImportService $serv
     $this->info('Iniciando sincronización de eventos...');
 
     try {
-        $count = $service->importEvents();
-        $this->info("Sincronización completada. Eventos procesados: {$count}");
-    } catch (\Exception $e) {
+        $result = $service->importEvents();
+        if ($result['success']) {
+            $this->info($result['message']);
+        }
+        else {
+            $this->error($result['message']);
+        }
+    }
+    catch (\Exception $e) {
         $this->error("Error durante la sincronización: " . $e->getMessage());
     }
 })->purpose('Sincronizar eventos desde la API externa');

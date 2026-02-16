@@ -98,7 +98,13 @@ class ExternalEventController extends Controller
 
     public function sync(EventImportService $service)
     {
-        $count = $service->importEvents();
-        return redirect()->back()->with('success', "Se han sincronizado $count eventos.");
+        $result = $service->importEvents();
+
+        if ($result['success']) {
+            return redirect()->back()->with('success', $result['message']);
+        }
+        else {
+            return redirect()->back()->with('error', $result['message']); // Ensure your HandleInertiaRequests middleware shares 'error'
+        }
     }
 }
