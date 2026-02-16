@@ -52,6 +52,11 @@ const mainNavItems: NavItem[] = [
         href: route('admin.categories.index'),
         icon: Puzzle,
     },
+    {
+        title: 'Recintos',
+        href: route('admin.venues.index'),
+        icon: Building,
+    },
 ];
 
 const footerNavItems: NavItem[] = [

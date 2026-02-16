@@ -31,6 +31,8 @@ class CityController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'state_id' => 'required|exists:states,id',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         City::create($validated);
@@ -52,6 +54,8 @@ class CityController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'state_id' => 'required|exists:states,id',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $city->update($validated);

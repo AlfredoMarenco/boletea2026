@@ -49,16 +49,6 @@ export default function Edit({ city, states }: { city: City, states: State[] }) 
                 <form onSubmit={submit} className="space-y-8 bg-card p-6 rounded-xl border shadow-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Nombre</Label>
-                            <Input
-                                id="name"
-                                value={data.name}
-                                onChange={e => setData('name', e.target.value)}
-                            />
-                            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
-                        </div>
-
-                        <div className="space-y-2">
                             <Label htmlFor="state_id">Estado</Label>
                             <Select onValueChange={(val) => setData('state_id', val)} defaultValue={data.state_id}>
                                 <SelectTrigger>
@@ -73,6 +63,16 @@ export default function Edit({ city, states }: { city: City, states: State[] }) 
                                 </SelectContent>
                             </Select>
                             {errors.state_id && <span className="text-red-500 text-sm">{errors.state_id}</span>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nombre</Label>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={e => setData('name', e.target.value)}
+                            />
+                            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
                         </div>
                     </div>
 

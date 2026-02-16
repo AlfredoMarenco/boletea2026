@@ -26,6 +26,8 @@ class StateController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:states,name',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         State::create($validated);
@@ -44,6 +46,8 @@ class StateController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:states,name,' . $state->id,
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
         ]);
 
         $state->update($validated);

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class State extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'latitude', 'longitude'];
 
     public function cities(): HasMany
     {
@@ -17,7 +17,7 @@ class State extends Model
 
     public function salesCenters(): BelongsToMany
     {
-        return $this->belongsToMany(SalesCenter::class, 'sales_center_state');
+        return $this->belongsToMany(SalesCenter::class , 'sales_center_state');
     }
 
     public function externalEvents(): HasMany

@@ -11,28 +11,8 @@ import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-interface Performance {
-    PerformanceID: number;
-    PerformanceName: string;
-    PerformanceDateTime: string;
-    VenueName: string;
-    PerformancePrices: string;
-}
-
-interface ExternalEvent {
-    id: number;
-    title: string;
-    city: string | null;
-    category: string | null;
-    description: string | null;
-    image_path: string | null;
-    secondary_image_path: string | null;
-    sales_start_date: string | null;
-    button_text: string | null;
-    status: 'draft' | 'published';
-    sales_centers: string[] | null;
-    raw_data: Performance[] | Performance | null; // Can be array of performances or single obj or null
-}
+// ExternalEvent imported from '@/types/event'
+import { ExternalEvent, Performance } from '@/types/event';
 
 interface SalesCenterDetail {
     id?: number;
@@ -122,23 +102,36 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
 
                     <div className="container relative z-10 mx-auto flex h-full flex-col justify-end px-6 pb-8 md:pb-12 lg:pb-16">
                         <div className="flex flex-col md:flex-row items-end justify-between gap-6">
-                            <div className="flex flex-col items-start gap-3 md:max-w-4xl">
+                            <div className="flex flex-col items-start gap-4 md:max-w-4xl">
                                 {event.category && (
                                     <Badge className="bg-[#c90000] text-white hover:bg-[#a00000] border-none text-xs px-2.5 py-0.5">
                                         {event.category}
                                     </Badge>
                                 )}
-                                <h1 className="text-2xl font-black leading-tight tracking-tight text-white md:text-3xl lg:text-5xl xl:text-6xl">
-                                    {event.title}
+                                <h1 className="text-3xl font-black leading-tight tracking-tight text-white md:text-5xl lg:text-6xl xl:text-7xl">
+                                    {event.title.replace(/^[A-Z0-9]+\s+/, '')}
                                 </h1>
-                                <div className="flex flex-wrap gap-4 text-xs font-medium text-gray-300 md:text-sm">
-                                    <div className="flex items-center gap-1.5">
-                                        <MapPin className="size-4 text-[#c90000]" />
-                                        <span>{event.city || 'Ubicación por confirmar'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Ticket className="size-4 text-[#c90000]" />
-                                        <span>{performances.length} Funciones Disponibles</span>
+
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-center gap-3">
+                                        {performances.length > 0 && (
+                                            <div className="flex flex-col items-center justify-center bg-white rounded-xl p-2 min-w-[60px] shadow-lg">
+                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
+                                                    {format(new Date(performances[0].PerformanceDateTime), 'MMM', { locale: es }).replace('.', '')}
+                                                </span>
+                                                <span className="text-2xl font-extrabold text-[#c90000] leading-none">
+                                                    {format(new Date(performances[0].PerformanceDateTime), 'dd')}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col text-white">
+                                            <div className="flex items-center gap-2 text-lg font-bold">
+                                                <MapPin className="size-5 text-[#c90000]" />
+                                                <span>{event.venue?.name || event.city || 'Ubicación por confirmar'}</span>
+                                            </div>
+                                            <span className="text-sm text-gray-300 ml-7">{event.city}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

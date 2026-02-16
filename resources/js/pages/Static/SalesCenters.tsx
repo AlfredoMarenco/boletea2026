@@ -32,22 +32,53 @@ export default function SalesCenters({ salesCenters }: { salesCenters: SalesCent
     // Function to group hours: e.g. Lun - Vie: 9:00 - 18:00
     const formatHours = (hours: SalesCenter['opening_hours']) => {
         if (!hours) return null;
-        // This is a simple display, displaying all days.
-        // A more complex grouper could be added later.
+
+        const groups: { start: string; end: string; schedule: any }[] = [];
+        let currentGroup: { start: string; end: string; schedule: any } | null = null;
+
+        ORDERED_DAYS.forEach((day) => {
+            const schedule = hours[day];
+            if (!schedule) return;
+
+            const scheduleStr = schedule.closed
+                ? 'Cerrado'
+                : `${schedule.open} - ${schedule.close}`;
+
+            if (currentGroup) {
+                const currentScheduleStr = currentGroup.schedule.closed
+                    ? 'Cerrado'
+                    : `${currentGroup.schedule.open} - ${currentGroup.schedule.close}`;
+
+                if (currentScheduleStr === scheduleStr) {
+                    currentGroup.end = day;
+                } else {
+                    groups.push(currentGroup);
+                    currentGroup = { start: day, end: day, schedule };
+                }
+            } else {
+                currentGroup = { start: day, end: day, schedule };
+            }
+        });
+
+        if (currentGroup) {
+            groups.push(currentGroup);
+        }
+
         return (
             <div className="text-sm space-y-1">
-                {ORDERED_DAYS.map(day => {
-                    const schedule = hours[day];
-                    if (!schedule) return null;
+                {groups.map((group, index) => {
+                    const label = group.start === group.end
+                        ? DAYS_MAP[group.start]
+                        : `${DAYS_MAP[group.start]} - ${DAYS_MAP[group.end]}`;
 
                     return (
-                        <div key={day} className="flex justify-between gap-4">
-                            <span className="font-medium w-20 text-gray-500 dark:text-gray-400">{DAYS_MAP[day]}</span>
-                            <span className="text-gray-900 dark:text-gray-200">
-                                {schedule.closed ? 'Cerrado' : `${schedule.open} - ${schedule.close}`}
+                        <div key={index} className="flex justify-between gap-4">
+                            <span className="font-medium w-fit min-w-[120px] text-gray-500 dark:text-gray-400">{label}</span>
+                            <span className="text-gray-900 dark:text-gray-200 text-right">
+                                {group.schedule.closed ? 'Cerrado' : `${group.schedule.open} - ${group.schedule.close}`}
                             </span>
                         </div>
-                    )
+                    );
                 })}
             </div>
         );

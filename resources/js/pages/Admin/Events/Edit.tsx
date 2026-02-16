@@ -19,6 +19,7 @@ interface ExternalEvent {
     id: number;
     title: string;
     city: string | null;
+    venue_id: number | null; // Added venue_id
     category: string | null;
     status: 'draft' | 'published';
     image_path: string | null;
@@ -35,6 +36,11 @@ interface SalesCenter {
     id: number;
     name: string;
     is_active: boolean;
+}
+
+interface Venue {
+    id: number;
+    name: string;
 }
 
 interface State {
@@ -66,14 +72,16 @@ interface Props {
     states: State[];
     cities: City[];
     categories?: Category[];
+    venues?: Venue[];
 }
 
-export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [], categories = [] }: Props) {
+export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [], categories = [], venues = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm<any>({
         _method: 'put',
         city: event.city || '',
         state_id: (event as any).state_id,
         city_id: (event as any).city_id,
+        venue_id: event.venue_id || '', // Added venue_id
         category: event.category || '',
         image_path: event.image_path || '',
         secondary_image_path: event.secondary_image_path || '',
@@ -118,6 +126,26 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
 
                     <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="venue_id">Recinto (Venue)</Label>
+                                <Select
+                                    value={data.venue_id ? String(data.venue_id) : ""}
+                                    onValueChange={(value) => setData('venue_id', Number(value))}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Selecciona un recinto" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {venues.map((venue) => (
+                                            <SelectItem key={venue.id} value={String(venue.id)}>
+                                                {venue.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {errors.venue_id && <p className="text-red-500 text-sm">{errors.venue_id}</p>}
+                            </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="state_id">Estado</Label>
                                 <Select
@@ -169,6 +197,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                     id="city"
                                     value={data.city}
                                     onChange={(e) => setData('city', e.target.value)}
+                                    disabled
                                 />
                                 {errors.city && <p className="text-red-500 text-sm">{errors.city}</p>}
                             </div>
@@ -179,6 +208,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                     id="category"
                                     value={data.category}
                                     onChange={(e) => setData('category', e.target.value)}
+                                    disabled
                                 />
                                 {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
                             </div>

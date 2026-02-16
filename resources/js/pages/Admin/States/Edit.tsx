@@ -39,19 +39,21 @@ export default function Edit({ state }: { state: State }) {
                 </div>
 
                 <form onSubmit={submit} className="space-y-8 bg-card p-6 rounded-xl border shadow-sm">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Nombre</Label>
-                        <Input
-                            id="name"
-                            value={data.name}
-                            onChange={e => setData('name', e.target.value)}
-                        />
-                        {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+                    <div className="grid grid-cols-1 gap-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="name">Nombre</Label>
+                            <Input
+                                id="name"
+                                value={data.name}
+                                onChange={e => setData('name', e.target.value)}
+                            />
+                            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-end pt-4 border-t">
                         <Button type="submit" disabled={processing}>
-                            {processing ? 'Guardando...' : 'Actualizar Estado'}
+                            {processing ? 'Guardando...' : 'Guardar Cambios'}
                         </Button>
                     </div>
                 </form>

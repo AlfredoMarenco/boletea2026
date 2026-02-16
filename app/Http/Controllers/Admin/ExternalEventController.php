@@ -5,6 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\ExternalEvent;
+use App\Models\SalesCenter;
+use App\Models\SalesCenterGroup;
+use App\Models\State;
+use App\Models\City;
+use App\Models\Category;
+use App\Models\Venue;
 use App\Services\EventImportService;
 use Inertia\Inertia;
 
@@ -12,7 +18,7 @@ class ExternalEventController extends Controller
 {
     public function index()
     {
-        $events = ExternalEvent::orderBy('created_at', 'desc')->paginate(10);
+        $events = ExternalEvent::orderBy('start_date', 'asc')->paginate(10);
         return Inertia::render('Admin/Events/Index', [
             'events' => $events
         ]);
@@ -20,11 +26,12 @@ class ExternalEventController extends Controller
 
     public function edit(ExternalEvent $event)
     {
-        $salesCenters = \App\Models\SalesCenter::where('is_active', true)->get();
-        $salesCenterGroups = \App\Models\SalesCenterGroup::orderBy('name')->get();
-        $states = \App\Models\State::orderBy('name')->get();
-        $cities = \App\Models\City::orderBy('name')->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
+        $salesCenters = SalesCenter::where('is_active', true)->get();
+        $salesCenterGroups = SalesCenterGroup::orderBy('name')->get();
+        $states = State::orderBy('name')->get();
+        $cities = City::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
+        $venues = Venue::orderBy('name')->get();
 
         // Load relationship IDs for the form
         $event->sales_centers = $event->salesCenters()->pluck('sales_centers.id');
@@ -38,6 +45,7 @@ class ExternalEventController extends Controller
             'states' => $states,
             'cities' => $cities,
             'categories' => $categories,
+            'venues' => $venues,
         ]);
     }
 
@@ -50,6 +58,7 @@ class ExternalEventController extends Controller
             'city' => 'nullable|string', // Keep legacy for now
             'state_id' => 'nullable|exists:states,id',
             'city_id' => 'nullable|exists:cities,id',
+            'venue_id' => 'nullable|exists:venues,id',
             'category' => 'nullable|string',
             'description' => 'nullable|string',
             'sales_centers' => 'nullable|array',
@@ -64,7 +73,8 @@ class ExternalEventController extends Controller
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
             $validated['secondary_image_path'] = '/storage/' . $path;
-        } else {
+        }
+        else {
             // If not uploading a new file, do not update this field
             unset($validated['secondary_image_path']);
         }

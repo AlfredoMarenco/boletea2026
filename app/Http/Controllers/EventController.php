@@ -10,7 +10,7 @@ class EventController extends Controller
 {
     public function show($id)
     {
-        $event = ExternalEvent::with(['salesCenters', 'salesCenterGroups.salesCenters'])->findOrFail($id);
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters'])->findOrFail($id);
 
         $directSalesCenters = $event->salesCenters;
         $groupSalesCenters = $event->salesCenterGroups->flatMap(function ($group) {

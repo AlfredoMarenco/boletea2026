@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\ExternalEvent;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use App\Models\Category;
+use App\Models\Venue;
 
 class EventImportService
 {
@@ -57,7 +60,8 @@ class EventImportService
                 $eventData = $item['Event'][0];
                 $eventId = $eventData['EventID'] ?? null;
 
-                if (!$eventId) continue;
+                if (!$eventId)
+                    continue;
 
                 if (!isset($groupedEvents[$eventId])) {
                     $groupedEvents[$eventId] = [
@@ -82,30 +86,74 @@ class EventImportService
                 if (!empty($eventData['PerformanceDateTime'])) {
                     try {
                         $startDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceDateTime'])->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        // ignore
+                    }
+                    catch (\Exception $e) {
+                    // ignore
                     }
                 }
 
-                ExternalEvent::firstOrCreate(
-                    ['external_id' => $eventId],
+                $endDate = null;
+                if (!empty($eventData['PerformanceEndDateTime'])) {
+                    try {
+                        $endDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceEndDateTime'])->format('Y-m-d H:i:s');
+                    }
+                    catch (\Exception $e) {
+                    // ignore
+                    }
+                }
+
+                // Sync Venue
+                $venueName = $eventData['VenueName'] ?? null;
+                $venueId = null;
+                if (!empty($venueName)) {
+                    $venue = \App\Models\Venue::firstOrCreate(
+                    ['name' => $venueName],
                     [
-                        'title' => $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title',
-                        'description' => !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? ''),
-                        'city' => $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '',
-                        'category' => $eventData['EventCategory'] ?? 'General',
-                        'image_path' => isset($eventData['EventImage']) ? preg_replace('/N\d+X\d+/', 'N500X400', $eventData['EventImage']) : '',
-                        'start_date' => $startDate,
-                        'sales_centers' => ['Boletea', $eventData['VenueName'] ?? 'Taquilla'],
-                        'status' => $eventData['PerformanceStatus'] ?? 'draft',
-                        'raw_data' => $performances, // Store all performances here
+                        // 'city' => $eventData['VenueCity'] ?? null,  // Removed as per user request
+                        // 'state' => $eventData['VenueStateProvince'] ?? null, // Removed as per user request
+                        'external_id' => $eventData['VenueId'] ?? null,
                     ]
-                );
+                    );
+                    $venueId = $venue->id;
+                }
+
+                $externalEvent = ExternalEvent::firstOrNew(['external_id' => $eventId]);
+
+                // Always update system/logistics fields
+                $externalEvent->venue_id = $venueId;
+                $externalEvent->start_date = $startDate;
+                $externalEvent->end_date = $endDate;
+                $externalEvent->raw_data = $performances;
+
+                // Only update content fields if new (preserve manual edits)
+                if (!$externalEvent->exists) {
+                    $externalEvent->title = $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title';
+                    $externalEvent->description = !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? '');
+                    $externalEvent->city = $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '';
+                    $externalEvent->image_path = isset($eventData['EventImage']) ? preg_replace('/N\d+X\d+/', 'N500X400', $eventData['EventImage']) : '';
+                    $externalEvent->sales_centers = ['Boletea', $eventData['VenueName'] ?? 'Taquilla'];
+                    $externalEvent->status = $eventData['PerformanceStatus'] ?? 'draft';
+                }
+
+                $externalEvent->save();
+
+                // Sync Category
+                $categoryName = $eventData['EventCategory'] ?? null;
+                if (!empty($categoryName)) {
+                    $category = \App\Models\Category::firstOrCreate(
+                    ['name' => $categoryName],
+                    ['slug' => Str::slug($categoryName)]
+                    );
+
+                    // Sync the relationship (using syncWithoutDetaching to avoid duplicates if run multiple times)
+                    $externalEvent->categories()->syncWithoutDetaching([$category->id]);
+                }
                 $count++;
             }
 
             return $count;
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             Log::error('Error importing events: ' . $e->getMessage());
             return 0;
         }

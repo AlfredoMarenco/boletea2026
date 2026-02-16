@@ -13,13 +13,14 @@ Route::get('/', function () {
     return Inertia::render('dashboard');
 })->name('dashboard');
 
-Route::get('/events', [ExternalEventController::class, 'index'])->name('events.index');
-Route::get('/events/{event}/edit', [ExternalEventController::class, 'edit'])->name('events.edit');
-Route::put('/events/{event}', [ExternalEventController::class, 'update'])->name('events.update');
-Route::post('/events/sync', [ExternalEventController::class, 'sync'])->name('events.sync');
+Route::get('/events', [ExternalEventController::class , 'index'])->name('events.index');
+Route::get('/events/{event}/edit', [ExternalEventController::class , 'edit'])->name('events.edit');
+Route::put('/events/{event}', [ExternalEventController::class , 'update'])->name('events.update');
+Route::post('/events/sync', [ExternalEventController::class , 'sync'])->name('events.sync');
 
 Route::resource('sales-centers', SalesCenterController::class);
 Route::resource('states', StateController::class);
 Route::resource('cities', CityController::class);
 Route::resource('sales-center-groups', SalesCenterGroupController::class);
 Route::resource('categories', CategoryController::class);
+Route::resource('venues', \App\Http\Controllers\Admin\VenueController::class);
