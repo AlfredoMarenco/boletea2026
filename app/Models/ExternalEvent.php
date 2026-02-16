@@ -23,10 +23,12 @@ class ExternalEvent extends Model
         'venue_id',
         'status',
         'raw_data',
+        'sales_centers',
     ];
 
     protected $casts = [
         'raw_data' => 'array',
+        'sales_centers' => 'array',
         'sales_start_date' => 'datetime',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
