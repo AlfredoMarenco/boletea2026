@@ -52,7 +52,7 @@ function Calendar({
                 today: "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-white font-bold",
                 outside:
                     "day-outside text-gray-300 opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30 dark:text-gray-600",
-                disabled: "text-gray-200 opacity-30 dark:text-gray-700",
+                disabled: "text-gray-800 opacity-30 dark:text-gray-700",
                 range_middle:
                     "aria-selected:bg-accent aria-selected:text-accent-foreground",
                 hidden: "invisible",

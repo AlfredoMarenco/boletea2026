@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,15 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import Footer from '@/components/footer';
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 // ExternalEvent imported from '@/types/event'
 import { ExternalEvent, Performance } from '@/types/event';
@@ -27,9 +37,10 @@ interface SalesCenterDetail {
 interface Props {
     event: ExternalEvent;
     salesCentersDetails?: SalesCenterDetail[];
+    relatedEvents?: ExternalEvent[];
 }
 
-export default function Show({ event, salesCentersDetails = [] }: Props) {
+export default function Show({ event, salesCentersDetails = [], relatedEvents = [] }: Props) {
     // Normalize performances from raw_data
     const performances: Performance[] = Array.isArray(event.raw_data)
         ? event.raw_data
@@ -236,7 +247,11 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                                 </div>
                             </section>
                         )}
+
+
                     </div>
+
+
 
                     {/* Booking Sidebar */}
                     <div className="relative">
@@ -357,7 +372,96 @@ export default function Show({ event, salesCentersDetails = [] }: Props) {
                         </div>
                     </div>
                 </div>
+
+                {/* Related Events Section (Mobile Slider / Desktop Grid) */}
+                {
+                    relatedEvents && relatedEvents.length > 0 && (
+                        <section className="bg-gray-50 py-12 dark:bg-[#111] border-t border-gray-200 dark:border-gray-800">
+                            <div className="container mx-auto px-6">
+                                <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
+                                    Eventos que te podrían interesar
+                                </h3>
+
+                                <Carousel
+                                    opts={{
+                                        align: "start",
+                                        loop: true,
+                                    }}
+                                    plugins={[
+                                        Autoplay({
+                                            delay: 4000,
+                                        }),
+                                    ]}
+                                    className="w-full"
+                                >
+                                    <CarouselContent className="-ml-4 md:-ml-6">
+                                        {relatedEvents.map((relatedEvent) => (
+                                            <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3">
+                                                <a
+                                                    href={route('event.show', relatedEvent.id)}
+                                                    className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-gray-800 dark:bg-[#0a0a0a]"
+                                                >
+                                                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                                        {relatedEvent.image_path ? (
+                                                            <img
+                                                                src={relatedEvent.image_path}
+                                                                alt={relatedEvent.title}
+                                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center text-gray-400">
+                                                                <Ticket className="h-10 w-10 opacity-20" />
+                                                            </div>
+                                                        )}
+
+                                                        {relatedEvent.start_date && (
+                                                            <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-gray-900 backdrop-blur-sm shadow-sm dark:bg-black/80 dark:text-white">
+                                                                <span className="block text-xl leading-none text-[#c90000]">
+                                                                    {format(new Date(relatedEvent.start_date), 'dd')}
+                                                                </span>
+                                                                <span className="block uppercase leading-none text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                    {format(new Date(relatedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex flex-1 flex-col p-5">
+                                                        <div className="mb-3">
+                                                            {relatedEvent.category && (
+                                                                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                                    {relatedEvent.category}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <h4 className="mb-2 text-lg font-bold leading-tight text-gray-900 dark:text-white line-clamp-2 group-hover:text-[#c90000] transition-colors">
+                                                            {relatedEvent.title}
+                                                        </h4>
+
+                                                        <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                            <MapPin className="h-4 w-4 text-[#c90000]" />
+                                                            <span className="line-clamp-1 font-medium">
+                                                                {relatedEvent.venue?.name || relatedEvent.city}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            </CarouselItem>
+                                        ))}
+                                    </CarouselContent>
+                                    <div className="hidden md:block">
+                                        <CarouselPrevious />
+                                        <CarouselNext />
+                                    </div>
+                                </Carousel>
+                            </div>
+                        </section>
+                    )
+                }
             </main>
+            <Footer />
         </div>
     );
 }
