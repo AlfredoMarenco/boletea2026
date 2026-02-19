@@ -57,6 +57,11 @@ const mainNavItems: NavItem[] = [
         href: route('admin.venues.index'),
         icon: Building,
     },
+    {
+        title: 'Usuarios',
+        href: route('admin.users.index'),
+        icon: Users,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
