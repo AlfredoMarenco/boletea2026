@@ -69,7 +69,7 @@ class ExternalEventController extends Controller
 
         if ($request->hasFile('secondary_image_path')) {
             $request->validate([
-                'secondary_image_path' => 'image|max:2048',
+                'secondary_image_path' => 'image|max:10240', // 10MB
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
             $validated['secondary_image_path'] = '/storage/' . $path;
