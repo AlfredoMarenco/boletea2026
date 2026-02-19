@@ -18,6 +18,8 @@ import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
+import { DateRange } from "react-day-picker";
+
 interface FilterBarProps {
     filters: {
         search?: string;
@@ -40,8 +42,11 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
         city: filters.city || '',
         venue_id: filters.venue_id || '',
         category: filters.category || '',
-        date_start: filters.date_start ? new Date(filters.date_start) : undefined,
-        date_end: filters.date_end ? new Date(filters.date_end) : undefined,
+    });
+
+    const [dateRange, setDateRange] = useState<DateRange | undefined>({
+        from: filters.date_start ? new Date(filters.date_start) : undefined,
+        to: filters.date_end ? new Date(filters.date_end) : undefined,
     });
 
     const [isPending, setIsPending] = useState(false);
@@ -61,10 +66,10 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
         const query: any = { ...values };
 
         // Format dates for URL
-        if (values.date_start) query.date_start = format(values.date_start, 'yyyy-MM-dd');
+        if (dateRange?.from) query.date_start = format(dateRange.from, 'yyyy-MM-dd');
         else delete query.date_start;
 
-        if (values.date_end) query.date_end = format(values.date_end, 'yyyy-MM-dd');
+        if (dateRange?.to) query.date_end = format(dateRange.to, 'yyyy-MM-dd');
         else delete query.date_end;
 
         // Clean empty values
@@ -85,9 +90,8 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
             city: '',
             venue_id: '',
             category: '',
-            date_start: undefined,
-            date_end: undefined,
         });
+        setDateRange(undefined);
         router.get(route('home'), {}, { preserveState: true });
     };
 
@@ -180,45 +184,35 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                                 <Button
                                     variant={"outline"}
                                     className={cn(
-                                        "w-[240px] justify-start text-left font-normal",
-                                        !values.date_start && "text-muted-foreground"
+                                        "w-[260px] justify-start text-left font-normal",
+                                        !dateRange && "text-muted-foreground"
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {values.date_start ? (
-                                        values.date_end ? (
+                                    {dateRange?.from ? (
+                                        dateRange.to ? (
                                             <>
-                                                {format(values.date_start, "dd/MM/y", { locale: es })} -{" "}
-                                                {format(values.date_end, "dd/MM/y", { locale: es })}
+                                                {format(dateRange.from, "dd/MM/y", { locale: es })} -{" "}
+                                                {format(dateRange.to, "dd/MM/y", { locale: es })}
                                             </>
                                         ) : (
-                                            format(values.date_start, "dd/MM/y", { locale: es })
+                                            format(dateRange.from, "dd/MM/y", { locale: es })
                                         )
                                     ) : (
-                                        <span>Fecha</span>
+                                        <span>Seleccionar Fechas</span>
                                     )}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
-                                <div className="p-3 space-y-3">
-                                    <div className="space-y-1">
-                                        <Label>Desde</Label>
-                                        <Calendar
-                                            mode="single"
-                                            selected={values.date_start}
-                                            onSelect={(date) => setValues({ ...values, date_start: date })}
-                                            initialFocus
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label>Hasta</Label>
-                                        <Calendar
-                                            mode="single"
-                                            selected={values.date_end}
-                                            onSelect={(date) => setValues({ ...values, date_end: date })}
-                                        />
-                                    </div>
-                                </div>
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    locale={es}
+                                />
                             </PopoverContent>
                         </Popover>
 

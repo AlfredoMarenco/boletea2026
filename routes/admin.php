@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\SalesCenterGroupController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VenueController;
 
 Route::get('/', function () {
     return Inertia::render('dashboard');
@@ -23,4 +25,5 @@ Route::resource('states', StateController::class);
 Route::resource('cities', CityController::class);
 Route::resource('sales-center-groups', SalesCenterGroupController::class);
 Route::resource('categories', CategoryController::class);
-Route::resource('venues', \App\Http\Controllers\Admin\VenueController::class);
+Route::resource('venues', VenueController::class);
+Route::resource('users', UserController::class);

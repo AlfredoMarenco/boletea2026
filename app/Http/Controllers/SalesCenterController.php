@@ -11,9 +11,14 @@ class SalesCenterController extends Controller
 {
     public function index()
     {
-        $salesCenters = SalesCenter::where('is_active', true)->get();
+        $states = \App\Models\State::whereHas('salesCenters', function ($query) {
+            $query->where('is_active', true);
+        })->with(['salesCenters' => function ($query) {
+            $query->where('is_active', true);
+        }])->get();
+
         return Inertia::render('Static/SalesCenters', [
-            'salesCenters' => $salesCenters
+            'states' => $states
         ]);
     }
 }

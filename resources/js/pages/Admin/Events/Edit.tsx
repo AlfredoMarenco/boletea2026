@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import RichTextEditor from '@/components/ui/rich-text-editor';
 import {
     Select,
     SelectContent,
@@ -283,11 +284,9 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
 
                         <div className="space-y-2">
                             <Label htmlFor="description">Descripción (HTML)</Label>
-                            <Textarea
-                                id="description"
+                            <RichTextEditor
                                 value={data.description}
-                                onChange={(e) => setData('description', e.target.value)}
-                                className="min-h-[200px] font-mono text-sm"
+                                onChange={(val) => setData('description', val)}
                             />
                             <p className="text-xs text-gray-500">
                                 Puedes usar HTML básico para dar formato.
