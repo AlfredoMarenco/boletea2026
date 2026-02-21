@@ -58,9 +58,14 @@ export default function Index({ events }: Props) {
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                         Eventos Externos
                     </h1>
-                    <Button onClick={handleSync} disabled={processing} variant="outline">
-                        {processing ? 'Sincronizando...' : 'Sincronizar API'}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                        <Button asChild variant="default">
+                            <Link href={route('admin.events.create')}>Crear Evento</Link>
+                        </Button>
+                        <Button onClick={handleSync} disabled={processing} variant="outline">
+                            {processing ? 'Sincronizando...' : 'Sincronizar API'}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-md shadow overflow-hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex flex-col">
@@ -69,10 +74,9 @@ export default function Index({ events }: Props) {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>ID</TableHead>
+                                    <TableHead>Imagen</TableHead>
                                     <TableHead>Título</TableHead>
                                     <TableHead>Ciudad</TableHead>
-                                    <TableHead>Categoría</TableHead>
-                                    <TableHead>Centros de Venta</TableHead>
                                     <TableHead>Estado</TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
@@ -82,12 +86,11 @@ export default function Index({ events }: Props) {
                                     events.data.map((event) => (
                                         <TableRow key={event.id}>
                                             <TableCell>{event.id}</TableCell>
+                                            <TableCell>
+                                                <img src={event.image_path} alt={event.title} className="w-20 h-20 object-contain" />
+                                            </TableCell>
                                             <TableCell className="font-medium">{event.title}</TableCell>
                                             <TableCell>{event.city || '-'}</TableCell>
-                                            <TableCell>{event.category || '-'}</TableCell>
-                                            <TableCell>
-                                                {event.sales_centers?.length || 0}
-                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant={event.status === 'published' ? 'default' : 'secondary'}>
                                                     {event.status === 'published' ? 'Publicado' : 'Borrador'}
@@ -126,8 +129,8 @@ export default function Index({ events }: Props) {
                                             key={i}
                                             href={link.url}
                                             className={`px-3 py-1 text-sm rounded-md transition-colors ${link.active
-                                                    ? 'bg-primary text-primary-foreground font-medium'
-                                                    : 'hover:bg-accent text-foreground'
+                                                ? 'bg-primary text-primary-foreground font-medium'
+                                                : 'hover:bg-accent text-foreground'
                                                 }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
                                         />

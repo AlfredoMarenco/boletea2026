@@ -19,12 +19,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface ExternalEvent {
     id: number;
     title: string;
+    performance_url: string | null;
     city: string | null;
     venue_id: number | null; // Added venue_id
     category: string | null;
     status: 'draft' | 'published';
     image_path: string | null;
     secondary_image_path: string | null;
+    start_date: string | null;
     sales_start_date: string | null;
     button_text: string | null;
     description: string | null;
@@ -77,8 +79,10 @@ interface Props {
 }
 
 export default function Edit({ event, salesCenters = [], salesCenterGroups = [], states = [], cities = [], categories = [], venues = [] }: Props) {
-    const { data, setData, post, processing, errors } = useForm<any>({
+    const { data, setData, post, processing, errors, transform } = useForm<any>({
         _method: 'put',
+        title: event.title || '',
+        performance_url: event.performance_url || '',
         city: event.city || '',
         state_id: (event as any).state_id,
         city_id: (event as any).city_id,
@@ -86,6 +90,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
         category: event.category || '',
         image_path: event.image_path || '',
         secondary_image_path: event.secondary_image_path || '',
+        start_date: event.start_date ? format(new Date(event.start_date), "yyyy-MM-dd'T'HH:mm") : '',
         sales_start_date: event.sales_start_date ? format(new Date(event.sales_start_date), "yyyy-MM-dd'T'HH:mm") : '',
         button_text: event.button_text || '',
         description: event.description || '',
@@ -95,13 +100,46 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
         categories: ((event as any).categories as number[]) || [],
     });
 
+    transform((data) => {
+        const submissionData = { ...data };
+        if (submissionData.start_date) {
+            submissionData.start_date = submissionData.start_date.replace('T', ' ');
+            if (submissionData.start_date.length === 16) {
+                submissionData.start_date += ':00';
+            }
+        } else {
+            submissionData.start_date = null;
+        }
+
+        if (submissionData.sales_start_date) {
+            submissionData.sales_start_date = submissionData.sales_start_date.replace('T', ' ');
+            if (submissionData.sales_start_date.length === 16) {
+                submissionData.sales_start_date += ':00';
+            }
+        } else {
+            submissionData.sales_start_date = null;
+        }
+        return submissionData;
+    });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Use post with _method: put for file uploads to work
-        post(route('admin.events.update', event.id));
+        post(route('admin.events.update', event.id), {
+            forceFormData: true,
+        });
     };
 
     // Helper to render preview
+    const renderPrimaryPreview = () => {
+        if (typeof data.image_path === 'string' && data.image_path) {
+            return <img src={data.image_path} alt="Preview" className="w-[125px] h-[100px] object-cover rounded border" />;
+        }
+        if ((data.image_path as any) instanceof File) {
+            return <img src={URL.createObjectURL(data.image_path as any)} alt="Preview" className="w-[125px] h-[100px] object-cover rounded border" />;
+        }
+        return null;
+    };
+
     const renderSecondaryPreview = () => {
         if (typeof data.secondary_image_path === 'string' && data.secondary_image_path) {
             return <img src={data.secondary_image_path} alt="Preview" className="w-[79px] h-[108px] object-cover rounded border" />;
@@ -126,6 +164,28 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                     </h1>
 
                     <form onSubmit={handleSubmit} className="space-y-6" encType="multipart/form-data">
+                        <div className="space-y-2">
+                            <Label htmlFor="title">Título del Evento</Label>
+                            <Input
+                                id="title"
+                                value={data.title}
+                                onChange={(e) => setData('title', e.target.value)}
+                                placeholder="Nombre comercial del evento"
+                            />
+                            {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="performance_url">Performance URL (Liga Externa)</Label>
+                            <Input
+                                id="performance_url"
+                                value={data.performance_url}
+                                onChange={(e) => setData('performance_url', e.target.value)}
+                                placeholder="https://boletea.com/... o liga de iframe"
+                            />
+                            {errors.performance_url && <p className="text-red-500 text-sm">{errors.performance_url}</p>}
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2 md:col-span-2">
                                 <Label htmlFor="venue_id">Recinto (Venue)</Label>
@@ -217,20 +277,35 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label htmlFor="image_path">Imagen Principal (URL 500x400)</Label>
+                                <Label htmlFor="start_date">Fecha y Hora del Evento</Label>
+                                <Input
+                                    id="start_date"
+                                    type="datetime-local"
+                                    value={data.start_date}
+                                    onChange={(e) => setData('start_date', e.target.value)}
+                                />
+                                {errors.start_date && <p className="text-red-500 text-sm">{errors.start_date as string}</p>}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="image_path">Imagen Principal (Archivo 500x400)</Label>
                                 <Input
                                     id="image_path"
-                                    value={data.image_path}
-                                    onChange={(e) => setData('image_path', e.target.value)}
-                                    placeholder="https://example.com/image.jpg"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        if (e.target.files && e.target.files[0]) {
+                                            setData('image_path', e.target.files[0]);
+                                        }
+                                    }}
                                 />
-                                {errors.image_path && <p className="text-red-500 text-sm">{errors.image_path}</p>}
-                                {data.image_path && (
-                                    <div className="mt-2">
-                                        <p className="text-xs text-gray-500 mb-1">Vista Previa:</p>
-                                        <img src={data.image_path} alt="Preview" className="w-[125px] h-[100px] object-cover rounded border" />
-                                    </div>
-                                )}
+                                {errors.image_path && <p className="text-red-500 text-sm">{errors.image_path as string}</p>}
+                                <div className="mt-2">
+                                    <p className="text-xs text-gray-500 mb-1">Vista Previa:</p>
+                                    {renderPrimaryPreview()}
+                                </div>
                             </div>
 
                             <div className="space-y-2">

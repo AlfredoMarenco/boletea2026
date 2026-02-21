@@ -78,22 +78,36 @@ class HomeController extends Controller
             $userLng = $userLocation['lng'] ?? null;
 
             if ($userLat && $userLng) {
-                // Get all upcoming events to filter by distance
-                // We use the base query (unfiltered)
                 $potentialNearby = (clone $baseQuery)->get();
 
-                $nearbyEvents = $potentialNearby->filter(function ($event) use ($userLat, $userLng) {
-                    // STRICT VENUE LOCATION
+                // Calculate distances for all potential events
+                $eventsWithDistance = $potentialNearby->map(function ($event) use ($userLat, $userLng) {
                     $lat = $event->venue->latitude ?? null;
                     $lng = $event->venue->longitude ?? null;
 
                     if ($lat && $lng) {
                         $distance = DistanceCalculator::haversine($userLat, $userLng, $lat, $lng);
                         $event->distance_km = round($distance, 1);
-                        return $distance <= 40; // Strict 40km radius
+                        return $event;
                     }
-                    return false;
-                })->sortBy('distance_km')->values();
+                    return null;
+                })->filter()->sortBy('distance_km')->values();
+
+                // First priority: Events strictly within 40km
+                $strictNearby = $eventsWithDistance->filter(function ($event) {
+                    return $event->distance_km <= 40;
+                });
+
+                // If we don't have 4 events, dynamically expand to take the closest 4 overall
+                // (or fewer if there are less than 4 upcoming events total)
+                if ($strictNearby->count() < 4) {
+                     $nearbyEvents = $eventsWithDistance->take(4);
+                } else {
+                     // We have 4 or more within 40km, so limit to 4 to match UI constraint
+                     // If you want to show MORE than 4 when they are within 40km, remove the take(4) here.
+                     // But the requirement says "always show 4", so let's guarantee exactly 4 if possible.
+                     $nearbyEvents = $strictNearby->take(4);
+                }
             }
         }
 

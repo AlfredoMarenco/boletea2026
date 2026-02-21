@@ -17,11 +17,17 @@ class SalesCenter extends Model
         'google_map_url',
         'opening_hours',
         'is_active',
+        'is_digital_only',
+        'payment_methods_cash',
+        'payment_methods_card',
     ];
 
     protected $casts = [
         'opening_hours' => 'array',
         'is_active' => 'boolean',
+        'is_digital_only' => 'boolean',
+        'payment_methods_cash' => 'boolean',
+        'payment_methods_card' => 'boolean',
         'latitude' => 'double',
         'longitude' => 'double',
     ];

@@ -49,11 +49,92 @@ class ExternalEventController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $salesCenters = SalesCenter::where('is_active', true)->get();
+        $salesCenterGroups = SalesCenterGroup::orderBy('name')->get();
+        $states = State::orderBy('name')->get();
+        $cities = City::orderBy('name')->get();
+        $categories = Category::orderBy('name')->get();
+        $venues = Venue::orderBy('name')->get();
+
+        return Inertia::render('Admin/Events/Create', [
+            'salesCenters' => $salesCenters,
+            'salesCenterGroups' => $salesCenterGroups,
+            'states' => $states,
+            'cities' => $cities,
+            'categories' => $categories,
+            'venues' => $venues,
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'performance_url' => 'nullable|string',
+            'image_path' => 'nullable',
+            'sales_start_date' => 'nullable|date',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+            'button_text' => 'nullable|string',
+            'city' => 'nullable|string',
+            'state_id' => 'nullable|exists:states,id',
+            'city_id' => 'nullable|exists:cities,id',
+            'venue_id' => 'nullable|exists:venues,id',
+            'category' => 'nullable|string',
+            'description' => 'nullable|string',
+            'sales_centers' => 'nullable|array',
+            'sales_center_groups' => 'nullable|array',
+            'categories' => 'nullable|array',
+            'status' => 'required|in:draft,published',
+        ]);
+
+        if ($request->hasFile('image_path')) {
+            $request->validate([
+                'image_path' => 'image|max:10240', // 10MB
+            ]);
+            $path = $request->file('image_path')->store('events', 'public');
+            $validated['image_path'] = '/storage/' . $path;
+        } elseif (isset($request->image_path) && !is_string($request->image_path)) {
+            unset($validated['image_path']);
+        }
+
+        if ($request->hasFile('secondary_image_path')) {
+            $request->validate([
+                'secondary_image_path' => 'image|max:10240', // 10MB
+            ]);
+            $path = $request->file('secondary_image_path')->store('events', 'public');
+            $validated['secondary_image_path'] = '/storage/' . $path;
+        }
+
+        $salesCenterIds = $validated['sales_centers'] ?? [];
+        $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
+        $categoryIds = $validated['categories'] ?? [];
+
+        unset($validated['sales_centers']);
+        unset($validated['sales_center_groups']);
+        unset($validated['categories']);
+        
+        $validated['external_id'] = 'MANUAL_' . uniqid();
+
+        $event = ExternalEvent::create($validated);
+        $event->salesCenters()->sync($salesCenterIds);
+        $event->salesCenterGroups()->sync($salesCenterGroupIds);
+        $event->categories()->sync($categoryIds);
+
+        return redirect()->route('admin.events.index')->with('success', 'Evento creado correctamente.');
+    }
+
     public function update(Request $request, ExternalEvent $event)
     {
         $validated = $request->validate([
-            'image_path' => 'nullable|string',
+            'title' => 'required|string|max:255',
+            'performance_url' => 'nullable|string',
+            'image_path' => 'nullable',
             'sales_start_date' => 'nullable|date',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
             'button_text' => 'nullable|string',
             'city' => 'nullable|string', // Keep legacy for now
             'state_id' => 'nullable|exists:states,id',
@@ -66,6 +147,16 @@ class ExternalEventController extends Controller
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
         ]);
+
+        if ($request->hasFile('image_path')) {
+            $request->validate([
+                'image_path' => 'image|max:10240', // 10MB
+            ]);
+            $path = $request->file('image_path')->store('events', 'public');
+            $validated['image_path'] = '/storage/' . $path;
+        } elseif (isset($request->image_path) && !is_string($request->image_path)) {
+            unset($validated['image_path']);
+        }
 
         if ($request->hasFile('secondary_image_path')) {
             $request->validate([

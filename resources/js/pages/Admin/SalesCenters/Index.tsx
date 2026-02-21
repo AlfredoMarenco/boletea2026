@@ -19,6 +19,7 @@ interface SalesCenter {
     address: string;
     logo_path: string | null;
     is_active: boolean;
+    is_digital_only?: boolean;
 }
 
 export default function Index({ salesCenters }: { salesCenters: SalesCenter[] }) {
@@ -62,7 +63,7 @@ export default function Index({ salesCenters }: { salesCenters: SalesCenter[] })
                         <TableBody>
                             {salesCenters.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                                         No hay puntos de venta registrados.
                                     </TableCell>
                                 </TableRow>

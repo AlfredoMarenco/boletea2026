@@ -16,6 +16,8 @@ Route::get('/', function () {
 })->name('dashboard');
 
 Route::get('/events', [ExternalEventController::class , 'index'])->name('events.index');
+Route::get('/events/create', [ExternalEventController::class , 'create'])->name('events.create');
+Route::post('/events', [ExternalEventController::class , 'store'])->name('events.store');
 Route::get('/events/{event}/edit', [ExternalEventController::class , 'edit'])->name('events.edit');
 Route::put('/events/{event}', [ExternalEventController::class , 'update'])->name('events.update');
 Route::post('/events/sync', [ExternalEventController::class , 'sync'])->name('events.sync');

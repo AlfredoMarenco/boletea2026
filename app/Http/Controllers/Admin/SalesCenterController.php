@@ -38,6 +38,9 @@ class SalesCenterController extends Controller
             'google_map_url' => 'nullable|url',
             'opening_hours' => 'nullable', // Can be array or JSON string
             'is_active' => 'boolean',
+            'is_digital_only' => 'boolean',
+            'payment_methods_cash' => 'boolean',
+            'payment_methods_card' => 'boolean',
             'states' => 'nullable|array',
             'states.*' => 'exists:states,id'
         ]);
@@ -83,6 +86,9 @@ class SalesCenterController extends Controller
             'google_map_url' => 'nullable|string', // URL validation might fail on strict map embeds sometimes
             'opening_hours' => 'nullable',
             'is_active' => 'boolean',
+            'is_digital_only' => 'boolean',
+            'payment_methods_cash' => 'boolean',
+            'payment_methods_card' => 'boolean',
             'states' => 'nullable|array',
             'states.*' => 'exists:states,id'
         ]);

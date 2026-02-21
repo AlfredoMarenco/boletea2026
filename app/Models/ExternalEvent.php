@@ -24,6 +24,7 @@ class ExternalEvent extends Model
         'status',
         'raw_data',
         'sales_centers',
+        'performance_url',
     ];
 
     protected $casts = [

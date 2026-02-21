@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import React from 'react';
 import PublicHeader from '@/components/public-header';
-import { MapPin, Clock } from 'lucide-react';
+import { MapPin, Clock, CreditCard, Banknote, Ticket, QrCodeIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import LocationPicker from '@/components/LocationPicker';
 import {
@@ -22,6 +22,9 @@ interface SalesCenter {
     opening_hours: Record<string, { open: string; close: string; closed: boolean }>;
     latitude?: number;
     longitude?: number;
+    is_digital_only?: boolean;
+    payment_methods_cash?: boolean;
+    payment_methods_card?: boolean;
 }
 
 interface State {
@@ -131,6 +134,42 @@ export default function SalesCenters({ states }: { states: State[] }) {
                             {center.address}
                         </p>
                     </div>
+
+                    <div className="flex flex-col gap-2 pt-2">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                            Método de entrega
+                        </p>
+                        <Badge variant={center.is_digital_only ? 'outline' : 'secondary'} className="px-3 py-1.5 text-sm font-medium gap-2 [&>svg]:!size-5 rounded-lg w-fit">
+                            {center.is_digital_only ? (
+                                <QrCodeIcon className={center.is_digital_only ? "text-gray-500" : ""} />
+                            ) : (
+                                <Ticket className={center.is_digital_only ? "text-gray-500" : ""} />
+                            )}
+                            {center.is_digital_only ? 'Boleto digital' : 'Boleto físico'}
+                        </Badge>
+                    </div>
+
+                    {(center.payment_methods_cash || center.payment_methods_card) && (
+                        <div className="flex flex-col gap-2 pt-2">
+                            <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                                Métodos de pago
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {center.payment_methods_cash && (
+                                    <Badge variant="outline" className="px-3 py-1.5 text-sm font-medium gap-2 [&>svg]:!size-5 rounded-lg text-green-700 dark:text-green-400 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/10 w-fit">
+                                        <Banknote />
+                                        Efectivo
+                                    </Badge>
+                                )}
+                                {center.payment_methods_card && (
+                                    <Badge variant="outline" className="px-3 py-1.5 text-sm font-medium gap-2 [&>svg]:!size-5 rounded-lg text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/10 w-fit">
+                                        <CreditCard />
+                                        Tarjeta
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {center.opening_hours && (
                         <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-4">

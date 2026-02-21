@@ -36,6 +36,9 @@ interface SalesCenter {
     states: State[];
     latitude?: number;
     longitude?: number;
+    is_digital_only?: boolean;
+    payment_methods_cash?: boolean;
+    payment_methods_card?: boolean;
 }
 
 export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter, states: State[] }) {
@@ -60,6 +63,9 @@ export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter
         states: salesCenter.states ? salesCenter.states.map(s => s.id) : [],
         latitude: salesCenter.latitude || null,
         longitude: salesCenter.longitude || null,
+        is_digital_only: Boolean(salesCenter.is_digital_only),
+        payment_methods_cash: Boolean(salesCenter.payment_methods_cash),
+        payment_methods_card: Boolean(salesCenter.payment_methods_card),
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -125,6 +131,37 @@ export default function Edit({ salesCenter, states }: { salesCenter: SalesCenter
                                 />
                             </div>
                             {errors.logo_path && <span className="text-red-500 text-sm">{errors.logo_path}</span>}
+                        </div>
+
+                        {/* Checkbox para mostrar que solo venden boleto digital */}
+                        <div className="space-y-2">
+                            <Label htmlFor="is_digital_only">¿Solo venden boleto digital?</Label>
+                            <p className="text-sm text-muted-foreground">Si está activo, se mostrará un mensaje en el punto de venta que indica que solo venden boletos digitales.</p>
+                            <Switch
+                                id="is_digital_only"
+                                checked={data.is_digital_only}
+                                onCheckedChange={value => setData('is_digital_only', value)}
+                            />
+                        </div>
+
+                        {/*  Checkboxes que deje seleccionar si se puede pagar con tarjeta y efectivo o segun lo que se le asigne */}
+                        <div className="space-y-2">
+                            <Label htmlFor="payment_methods">Métodos de pago</Label>
+                            <p className="text-sm text-muted-foreground">Selecciona los métodos de pago que se aceptan en el punto de venta.</p>
+                            <div className="flex gap-4">
+                                <Label htmlFor="payment_methods">Efectivo</Label>
+                                <Switch
+                                    id="payment_methods_cash"
+                                    checked={data.payment_methods_cash}
+                                    onCheckedChange={value => setData('payment_methods_cash', value)}
+                                />
+                                <Label htmlFor="payment_methods">Tarjeta</Label>
+                                <Switch
+                                    id="payment_methods_card"
+                                    checked={data.payment_methods_card}
+                                    onCheckedChange={value => setData('payment_methods_card', value)}
+                                />
+                            </div>
                         </div>
 
                         {/* ... inside form ... */}

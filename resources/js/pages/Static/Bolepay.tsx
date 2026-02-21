@@ -282,9 +282,9 @@ export default function Bolepay() {
                                         </div>
                                         <div className="order-1 md:order-2 flex justify-center">
                                             <img
-                                                src="/images/bolepay/step1.png"
+                                                src="/images/bolepay/Step-1.png"
                                                 alt="Selecciona tus lugares en el mapa"
-                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                                className="max-w-[350px] w-full drop-shadow-2xl rounded-[40px]"
                                             />
                                         </div>
                                     </div>
@@ -295,9 +295,9 @@ export default function Bolepay() {
                                     <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
                                         <div className="flex justify-center">
                                             <img
-                                                src="/images/bolepay/step2.png"
-                                                alt="Desglose de pago"
-                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                                src="/images/bolepay/Step-2.png"
+                                                alt="Aplica el código BOLEPAY"
+                                                className="max-w-[350px] w-full drop-shadow-2xl rounded-[40px]"
                                             />
                                         </div>
                                         <div>
@@ -350,9 +350,9 @@ export default function Bolepay() {
                                         </div>
                                         <div className="order-1 md:order-2 flex justify-center">
                                             <img
-                                                src="/images/bolepay/step3.png"
-                                                alt="Aplica el código BOLEPAY"
-                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                                src="/images/bolepay/Step-3.png"
+                                                alt="Desglose de pago"
+                                                className="max-w-[350px] w-full drop-shadow-2xl rounded-[40px]"
                                             />
                                         </div>
                                     </div>
@@ -365,13 +365,13 @@ export default function Bolepay() {
                                             <img
                                                 src="/images/bolepay/step4.png"
                                                 alt="Recuerda liquidar tu compra"
-                                                className="max-w-[280px] w-full drop-shadow-2xl rounded-[40px]"
+                                                className="max-w-[350px] w-full drop-shadow-2xl rounded-[40px]"
                                             />
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-4 mb-4">
                                                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb] text-white flex items-center justify-center text-xl font-black">
-                                                    ¡
+                                                    4
                                                 </div>
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">¡RECUERDA!</h3>
                                             </div>
@@ -447,7 +447,7 @@ export default function Bolepay() {
 
                         <FadeIn delay={400}>
                             <div className="flex flex-col items-center">
-                                <img src="https://boletea.com/img/logoBoletea.png" alt="Boletea" className="h-10 mb-6 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100" />
+                                <img src="images/logoBoletea.png" alt="Boletea" className="h-10 mb-6 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100" />
                                 <p className="text-gray-600 dark:text-gray-400 font-medium">
                                     "Nos respalda Boletea, boletera con presencia nacional y más de 10 años de experiencia en eventos en vivo."
                                 </p>

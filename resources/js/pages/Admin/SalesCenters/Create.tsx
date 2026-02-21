@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import LocationPicker from '@/components/LocationPicker';
+import { Checkbox } from '@radix-ui/react-checkbox';
 
 const DAYS = [
     { key: 'monday', label: 'Lunes' },
@@ -43,6 +44,9 @@ export default function Create({ states }: { states: State[] }) {
         states: [] as number[],
         latitude: null as number | null,
         longitude: null as number | null,
+        is_digital_only: false,
+        payment_methods_cash: false,
+        payment_methods_card: false,
     });
 
     const handleScheduleChange = (dayKey: string, field: string, value: any) => {
@@ -104,6 +108,37 @@ export default function Create({ states }: { states: State[] }) {
                                 onChange={e => setData('logo_path', e.target.files ? e.target.files[0] : null)}
                             />
                             {errors.logo_path && <span className="text-red-500 text-sm">{errors.logo_path}</span>}
+                        </div>
+
+                        {/* Checkbox para mostrar que solo venden boleto digital */}
+
+                        <div className="space-y-2">
+                            <Label htmlFor="is_digital_only">¿Solo venden boleto digital?</Label>
+                            <p className="text-sm text-muted-foreground">Si está activo, se mostrará un mensaje en el punto de venta que indica que solo venden boletos digitales.</p>
+                            <Switch
+                                id="is_digital_only"
+                                checked={data.is_digital_only}
+                                onCheckedChange={value => setData('is_digital_only', value)}
+                            />
+                        </div>
+                        {/*  Checkboxes que deje seleccionar si se puede pagar con tarjeta y efectivo o segun lo que se le asigne */}
+                        <div className="space-y-2">
+                            <Label htmlFor="payment_methods">Métodos de pago</Label>
+                            <p className="text-sm text-muted-foreground">Selecciona los métodos de pago que se aceptan en el punto de venta.</p>
+                            <div className="flex gap-4">
+                                <Label htmlFor="payment_methods">Efectivo</Label>
+                                <Switch
+                                    id="payment_methods_cash"
+                                    checked={data.payment_methods_cash}
+                                    onCheckedChange={value => setData('payment_methods_cash', value)}
+                                />
+                                <Label htmlFor="payment_methods">Tarjeta</Label>    
+                                <Switch
+                                    id="payment_methods_card"
+                                    checked={data.payment_methods_card}
+                                    onCheckedChange={value => setData('payment_methods_card', value)}
+                                />
+                            </div>
                         </div>
 
                         {/* ... inside form ... */}

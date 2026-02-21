@@ -121,18 +121,19 @@ class EventImportService
 
                 // Always update system/logistics fields
                 $externalEvent->venue_id = $venueId;
-                $externalEvent->start_date = $startDate;
-                $externalEvent->end_date = $endDate;
                 $externalEvent->raw_data = $performances;
 
                 // Only update content fields if new (preserve manual edits)
                 if (!$externalEvent->exists) {
+                    $externalEvent->start_date = $startDate;
+                    $externalEvent->end_date = $endDate;
                     $externalEvent->title = $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title';
                     $externalEvent->description = !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? '');
                     $externalEvent->city = $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '';
                     $externalEvent->image_path = isset($eventData['EventImage']) ? preg_replace('/N\d+X\d+/', 'N500X400', $eventData['EventImage']) : '';
                     $externalEvent->sales_centers = ['Boletea', $eventData['VenueName'] ?? 'Taquilla'];
                     $externalEvent->status = $eventData['PerformanceStatus'] ?? 'draft';
+                    $externalEvent->performance_url = $eventData['PerformanceURL'] ?? null;
                 }
 
                 $externalEvent->save();
