@@ -1,6 +1,6 @@
 import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle, Image as ImageIcon } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -62,10 +62,11 @@ const mainNavItems: NavItem[] = [
         href: route('admin.users.index'),
         icon: Users,
     },
+    
 ];
 
 const footerNavItems: NavItem[] = [
-    {
+    /* {
         title: 'Repository',
         href: 'https://github.com/laravel/react-starter-kit',
         icon: Folder,
@@ -74,6 +75,11 @@ const footerNavItems: NavItem[] = [
         title: 'Documentation',
         href: 'https://laravel.com/docs/starter-kits#react',
         icon: BookOpen,
+    }, */
+    {
+        title: 'Biblioteca de Medios',
+        href: route('admin.images.index'),
+        icon: ImageIcon,
     },
 ];
 
@@ -97,7 +103,7 @@ export function AppSidebar() {
             </SidebarContent>
 
             <SidebarFooter>
-                {/* <NavFooter items={footerNavItems} className="mt-auto" /> */}
+                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

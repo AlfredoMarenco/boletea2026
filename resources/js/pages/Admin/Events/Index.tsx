@@ -1,8 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
     Table,
     TableBody,
@@ -40,13 +42,24 @@ interface ExternalEvent {
 
 interface Props {
     events: PaginatedData<ExternalEvent>;
+    filters: {
+        show_past: boolean;
+    };
 }
 
-export default function Index({ events }: Props) {
+export default function Index({ events, filters }: Props) {
     const { post, processing } = useForm();
 
     const handleSync = () => {
         post(route('admin.events.sync'));
+    };
+
+    const handleTogglePast = (checked: boolean) => {
+        router.get(
+            route('admin.events.index'),
+            { show_past: checked },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
     return (
@@ -59,6 +72,16 @@ export default function Index({ events }: Props) {
                         Eventos Externos
                     </h1>
                     <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-gray-700 pr-6">
+                            <Switch
+                                id="show-past"
+                                checked={filters?.show_past}
+                                onCheckedChange={handleTogglePast}
+                            />
+                            <Label htmlFor="show-past" className="cursor-pointer text-sm font-medium">
+                                Mostrar pasados
+                            </Label>
+                        </div>
                         <Button asChild variant="default">
                             <Link href={route('admin.events.create')}>Crear Evento</Link>
                         </Button>
@@ -87,7 +110,7 @@ export default function Index({ events }: Props) {
                                         <TableRow key={event.id}>
                                             <TableCell>{event.id}</TableCell>
                                             <TableCell>
-                                                <img src={event.image_path} alt={event.title} className="w-20 h-20 object-contain" />
+                                                <img src={event.image_path || undefined} alt={event.title} className="w-20 h-20 object-contain" />
                                             </TableCell>
                                             <TableCell className="font-medium">{event.title}</TableCell>
                                             <TableCell>{event.city || '-'}</TableCell>

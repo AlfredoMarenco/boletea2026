@@ -16,11 +16,37 @@ use Inertia\Inertia;
 
 class ExternalEventController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $events = ExternalEvent::orderBy('start_date', 'asc')->paginate(10);
+        $showPast = $request->boolean('show_past', false);
+
+        $query = ExternalEvent::query();
+
+        if (!$showPast) {
+            // Include active/upcoming events
+            $query->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereNull('end_date')
+                       ->where('start_date', '>=', now()->startOfDay());
+                })->orWhere('end_date', '>=', now()->startOfDay());
+            });
+        } else {
+            // ONLY include past events
+            $query->where(function ($q) {
+                $q->where(function ($q2) {
+                    $q2->whereNull('end_date')
+                       ->where('start_date', '<', now()->startOfDay());
+                })->orWhere('end_date', '<', now()->startOfDay());
+            });
+        }
+
+        $events = $query->orderBy('start_date', 'asc')->paginate(10)->withQueryString();
+
         return Inertia::render('Admin/Events/Index', [
-            'events' => $events
+            'events' => $events,
+            'filters' => [
+                'show_past' => $showPast,
+            ]
         ]);
     }
 

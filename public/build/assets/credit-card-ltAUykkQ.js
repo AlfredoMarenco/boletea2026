@@ -1,0 +1,1 @@
+import{c as e}from"./button-BhJInusp.js";const c=[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["polyline",{points:"12 6 12 12 16 14",key:"68esgv"}]],i=e("Clock",c);const o=[["rect",{width:"20",height:"14",x:"2",y:"5",rx:"2",key:"ynyp8z"}],["line",{x1:"2",x2:"22",y1:"10",y2:"10",key:"1b3vmo"}]],r=e("CreditCard",o);export{i as C,r as a};

@@ -15,6 +15,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import ImageLibrary from '@/components/ImageLibrary';
 
 interface ExternalEvent {
     id: number;
@@ -276,17 +277,26 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label htmlFor="image_path">Imagen Principal (Archivo 500x400)</Label>
-                                <Input
-                                    id="image_path"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            setData('image_path', e.target.files[0]);
-                                        }
-                                    }}
-                                />
+                                <Label htmlFor="image_path">Imagen Principal (Vía archivo o Biblioteca)</Label>
+                                <div className="flex flex-col items-center">
+                                    <Input
+                                        id="image_path"
+                                        type="file"
+                                        accept="image/*"
+                                        className="flex-1"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setData('image_path', e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                    <div className="w-full mt-2">
+                                        <ImageLibrary
+                                            onSelect={(url) => setData('image_path', url)}
+                                            currentImage={typeof data.image_path === 'string' ? data.image_path : null}
+                                        />
+                                    </div>
+                                </div>
                                 {errors.image_path && <p className="text-red-500 text-sm">{errors.image_path as string}</p>}
                                 <div className="mt-2">
                                     <p className="text-xs text-gray-500 mb-1">Vista Previa:</p>
@@ -295,18 +305,27 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="secondary_image_path">Imagen Secundaria (Archivo 315x430)</Label>
-                                <Input
-                                    id="secondary_image_path"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files[0]) {
-                                            // @ts-ignore
-                                            setData('secondary_image_path', e.target.files[0]);
-                                        }
-                                    }}
-                                />
+                                <Label htmlFor="secondary_image_path">Imagen Secundaria (Vía archivo o Biblioteca)</Label>
+                                <div className="flex flex-col items-center">
+                                    <Input
+                                        id="secondary_image_path"
+                                        type="file"
+                                        accept="image/*"
+                                        className="flex-1"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                // @ts-ignore
+                                                setData('secondary_image_path', e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                    <div className="w-full mt-2">
+                                        <ImageLibrary
+                                            onSelect={(url) => setData('secondary_image_path', url)}
+                                            currentImage={typeof data.secondary_image_path === 'string' ? data.secondary_image_path : null}
+                                        />
+                                    </div>
+                                </div>
                                 {/* @ts-ignore */}
                                 {errors.secondary_image_path && <p className="text-red-500 text-sm">{errors.secondary_image_path}</p>}
                                 <div className="mt-2">

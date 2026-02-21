@@ -6,6 +6,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\Admin\SalesCenterController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\ImageController; // Added this line
 use App\Http\Controllers\Admin\SalesCenterGroupController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\UserController;
@@ -14,6 +15,11 @@ use App\Http\Controllers\Admin\VenueController;
 Route::get('/', function () {
     return Inertia::render('dashboard');
 })->name('dashboard');
+
+// --- Image Library --- //
+Route::get('images', [ImageController::class, 'index'])->name('images.index');
+Route::post('images', [ImageController::class, 'store'])->name('images.store');
+Route::delete('images/{image}', [ImageController::class, 'destroy'])->name('images.destroy');
 
 Route::get('/events', [ExternalEventController::class , 'index'])->name('events.index');
 Route::get('/events/create', [ExternalEventController::class , 'create'])->name('events.create');

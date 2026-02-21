@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class ExternalEvent extends Model
 {
@@ -35,6 +36,16 @@ class ExternalEvent extends Model
         'end_date' => 'datetime',
     ];
 
+    /**
+     * Decode HTML entities in the title automatically.
+     */
+    protected function title(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $value,
+        );
+    }
+
     public function salesCenters()
     {
         return $this->belongsToMany(SalesCenter::class , 'external_event_sales_center');
@@ -63,5 +74,10 @@ class ExternalEvent extends Model
     public function venue()
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    public function images()
+    {
+        return $this->morphMany(Image::class, 'imageable');
     }
 }
