@@ -9,6 +9,7 @@ class ExternalEvent extends Model
 {
     protected $fillable = [
         'external_id',
+        'slug',
         'title',
         'city',
         'category',

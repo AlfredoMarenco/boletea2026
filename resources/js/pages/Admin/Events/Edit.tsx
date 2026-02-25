@@ -20,6 +20,7 @@ import ImageLibrary from '@/components/ImageLibrary';
 interface ExternalEvent {
     id: number;
     title: string;
+    slug?: string | null;
     performance_url: string | null;
     city: string | null;
     venue_id: number | null; // Added venue_id
@@ -83,6 +84,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
     const { data, setData, post, processing, errors, transform } = useForm<any>({
         _method: 'put',
         title: event.title || '',
+        slug: event.slug || '',
         performance_url: event.performance_url || '',
         city: event.city || '',
         state_id: (event as any).state_id,
@@ -174,6 +176,18 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 placeholder="Nombre comercial del evento"
                             />
                             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="slug">Slug / Texto de URL (Opcional)</Label>
+                            <Input
+                                id="slug"
+                                value={data.slug}
+                                onChange={(e) => setData('slug', e.target.value)}
+                                placeholder="ej. mi-evento-espectacular"
+                            />
+                            <p className="text-xs text-gray-500">Si se deja vacío, se usará el ID del evento en la URL.</p>
+                            {errors.slug && <p className="text-red-500 text-sm">{errors.slug}</p>}
                         </div>
 
                         <div className="space-y-2">

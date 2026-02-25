@@ -98,6 +98,7 @@ class ExternalEventController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:external_events,slug',
             'performance_url' => 'nullable|string',
             'image_path' => 'nullable',
             'sales_start_date' => 'nullable|date',
@@ -156,6 +157,7 @@ class ExternalEventController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
+            'slug' => 'nullable|string|max:255|unique:external_events,slug,' . $event->id,
             'performance_url' => 'nullable|string',
             'image_path' => 'nullable',
             'sales_start_date' => 'nullable|date',

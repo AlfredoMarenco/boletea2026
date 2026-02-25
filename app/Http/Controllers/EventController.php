@@ -8,10 +8,14 @@ use Inertia\Inertia;
 
 class EventController extends Controller
 {
-    public function show($id)
+    public function show($slug)
     {
-        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters'])->findOrFail($id);
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters'])
+            ->where('slug', $slug)
+            ->orWhere('id', $slug)
+            ->firstOrFail();
 
+        $id = $event->id; // for related events logic
         $directSalesCenters = $event->salesCenters;
         $groupSalesCenters = $event->salesCenterGroups->flatMap(function ($group) {
             return $group->salesCenters;

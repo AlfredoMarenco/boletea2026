@@ -61,7 +61,7 @@ export default function EventCard({ event }: { event: ExternalEvent }) {
                     </div>
                 )}
                 <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
-                    <Link href={route('event.show', event.id)} className="block w-full rounded-xl bg-gray-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-[#c90000] dark:bg-white dark:text-black dark:hover:bg-[#c90000] dark:hover:text-white">
+                    <Link href={route('event.show', event.slug || event.id)} className="block w-full rounded-xl bg-gray-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-[#c90000] dark:bg-white dark:text-black dark:hover:bg-[#c90000] dark:hover:text-white">
                         Comprar Boletos
                     </Link>
                 </div>

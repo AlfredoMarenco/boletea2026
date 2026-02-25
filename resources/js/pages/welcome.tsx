@@ -124,7 +124,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                                     <CarouselContent>
                                         {carouselEvents && carouselEvents.map((event) => (
                                             <CarouselItem key={event.id}>
-                                                <Link href={route('event.show', event.id)} className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl">
+                                                <Link href={route('event.show', event.slug || event.id)} className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl">
                                                     {event.image_path ? (
                                                         <img src={event.image_path} alt={event.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                                     ) : (
