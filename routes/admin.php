@@ -26,6 +26,7 @@ Route::get('/events/create', [ExternalEventController::class , 'create'])->name(
 Route::post('/events', [ExternalEventController::class , 'store'])->name('events.store');
 Route::get('/events/{event}/edit', [ExternalEventController::class , 'edit'])->name('events.edit');
 Route::put('/events/{event}', [ExternalEventController::class , 'update'])->name('events.update');
+Route::delete('/events/{event}', [ExternalEventController::class , 'destroy'])->name('events.destroy');
 Route::post('/events/sync', [ExternalEventController::class , 'sync'])->name('events.sync');
 
 Route::resource('sales-centers', SalesCenterController::class);

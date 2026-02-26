@@ -119,11 +119,23 @@ export default function Index({ events, filters }: Props) {
                                                     {event.status === 'published' ? 'Publicado' : 'Borrador'}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right space-x-2">
                                                 <Button asChild size="sm" variant="ghost">
                                                     <Link href={route('admin.events.edit', event.id)}>
                                                         Editar
                                                     </Link>
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    disabled={processing}
+                                                    onClick={() => {
+                                                        if (confirm('¿Estás seguro de que deseas eliminar este evento?')) {
+                                                            router.delete(route('admin.events.destroy', event.id));
+                                                        }
+                                                    }}
+                                                >
+                                                    Eliminar
                                                 </Button>
                                             </TableCell>
                                         </TableRow>

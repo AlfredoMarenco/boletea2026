@@ -14,7 +14,7 @@ class EventImportService
     /**
      * Import events from the external API (Mocking for now).
      *
-     * @return int Count of events imported/updated
+     * @return array
      */
     public function importEvents()
     {
@@ -123,6 +123,11 @@ class EventImportService
                 $externalEvent->venue_id = $venueId;
                 $externalEvent->raw_data = $performances;
 
+                // Sync API Image if local image is empty (fallback)
+                if (empty($externalEvent->image_path) && isset($eventData['EventImage']) && !empty($eventData['EventImage'])) {
+                    $externalEvent->image_path = preg_replace('/N\d+X\d+/i', 'N500X400', $eventData['EventImage']);
+                }
+
                 // Only update content fields if new (preserve manual edits)
                 if (!$externalEvent->exists) {
                     $externalEvent->start_date = $startDate;
@@ -130,7 +135,6 @@ class EventImportService
                     $externalEvent->title = $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title';
                     $externalEvent->description = !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? '');
                     $externalEvent->city = $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '';
-                    $externalEvent->image_path = isset($eventData['EventImage']) ? preg_replace('/N\d+X\d+/', 'N500X400', $eventData['EventImage']) : '';
                     $externalEvent->sales_centers = ['Boletea', $eventData['VenueName'] ?? 'Taquilla'];
                     $externalEvent->status = $eventData['PerformanceStatus'] ?? 'draft';
                     $externalEvent->performance_url = $eventData['PerformanceURL'] ?? null;

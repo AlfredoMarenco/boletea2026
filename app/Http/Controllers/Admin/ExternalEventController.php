@@ -190,9 +190,7 @@ class ExternalEventController extends Controller
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
             $validated['secondary_image_path'] = '/storage/' . $path;
-        }
-        else {
-            // If not uploading a new file, do not update this field
+        } elseif (isset($request->secondary_image_path) && !is_string($request->secondary_image_path)) {
             unset($validated['secondary_image_path']);
         }
 
@@ -223,5 +221,23 @@ class ExternalEventController extends Controller
         else {
             return redirect()->back()->with('error', $result['message']); // Ensure your HandleInertiaRequests middleware shares 'error'
         }
+    }
+
+    public function destroy(ExternalEvent $event)
+    {
+        $event->salesCenters()->detach();
+        $event->salesCenterGroups()->detach();
+        $event->categories()->detach();
+
+        if ($event->image_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
+        }
+        if ($event->secondary_image_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->secondary_image_path));
+        }
+
+        $event->delete();
+
+        return redirect()->route('admin.events.index')->with('success', 'Evento eliminado correctamente.');
     }
 }
