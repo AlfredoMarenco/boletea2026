@@ -125,7 +125,7 @@ class EventImportService
 
                 // Sync API Image if local image is empty (fallback)
                 if (empty($externalEvent->image_path) && isset($eventData['EventImage']) && !empty($eventData['EventImage'])) {
-                    $externalEvent->image_path = preg_replace('/N\d+X\d+/i', 'N500X400', $eventData['EventImage']);
+                    $externalEvent->image_path = $eventData['EventImage'];
                 }
 
                 // Only update content fields if new (preserve manual edits)
