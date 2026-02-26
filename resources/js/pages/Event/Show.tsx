@@ -398,7 +398,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                         {relatedEvents.map((relatedEvent) => (
                                             <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3">
                                                 <a
-                                                    href={route('event.show', relatedEvent.id)}
+                                                    href={route('event.show', relatedEvent.slug || relatedEvent.id)}
                                                     className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-gray-800 dark:bg-[#0a0a0a]"
                                                 >
                                                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">

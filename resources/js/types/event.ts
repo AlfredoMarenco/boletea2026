@@ -10,6 +10,7 @@ export interface Performance {
 export interface ExternalEvent {
     id: number;
     title: string;
+    slug?: string | null;
     city: string | null;
     categories?: { id: number; name: string }[];
     category?: string | null; // Legacy single category

@@ -10,7 +10,7 @@ Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('h
 
 Route::post('/location', [\App\Http\Controllers\LocationController::class , 'store'])->name('location.store');
 
-Route::get('/event/{id}', [EventController::class , 'show'])->name('event.show');
+Route::get('/evento/{slug}', [EventController::class , 'show'])->name('event.show');
 
 Route::get('/quienessomos', function () {
     return Inertia::render('Static/About');

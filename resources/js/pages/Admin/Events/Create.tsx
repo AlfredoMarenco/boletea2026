@@ -20,6 +20,7 @@ import ImageLibrary from '@/components/ImageLibrary';
 interface ExternalEvent {
     id: number;
     title: string;
+    slug?: string | null;
     city: string | null;
     venue_id: number | null; // Added venue_id
     category: string | null;
@@ -80,6 +81,7 @@ interface Props {
 export default function Create({ salesCenters = [], salesCenterGroups = [], states = [], cities = [], categories = [], venues = [] }: Props) {
     const { data, setData, post, processing, errors, transform } = useForm<any>({
         title: '',
+        slug: '',
         performance_url: '',
         city: '',
         state_id: '',
@@ -171,6 +173,18 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 placeholder="Nombre comercial del evento"
                             />
                             {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="slug">Slug / Texto de URL (Opcional)</Label>
+                            <Input
+                                id="slug"
+                                value={data.slug}
+                                onChange={(e) => setData('slug', e.target.value)}
+                                placeholder="ej. mi-evento-espectacular"
+                            />
+                            <p className="text-xs text-gray-500">Si se deja vacío, se usará el ID del evento en la URL.</p>
+                            {errors.slug && <p className="text-red-500 text-sm">{errors.slug}</p>}
                         </div>
 
                         <div className="space-y-2">
