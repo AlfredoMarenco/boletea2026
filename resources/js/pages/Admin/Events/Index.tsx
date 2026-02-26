@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Trash2 } from 'lucide-react'; // Added import
 
 interface PaginationLink {
     url: string | null;
@@ -60,6 +61,14 @@ export default function Index({ events, filters }: Props) {
             { show_past: checked },
             { preserveState: true, preserveScroll: true }
         );
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) {
+            router.delete(route('admin.events.destroy', id), {
+                preserveScroll: true,
+            });
+        }
     };
 
     return (
@@ -120,11 +129,21 @@ export default function Index({ events, filters }: Props) {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button asChild size="sm" variant="ghost">
-                                                    <Link href={route('admin.events.edit', event.id)}>
-                                                        Editar
-                                                    </Link>
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button asChild size="sm" variant="ghost">
+                                                        <Link href={route('admin.events.edit', event.id)}>
+                                                            Editar
+                                                        </Link>
+                                                    </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                        onClick={() => handleDelete(event.id)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))

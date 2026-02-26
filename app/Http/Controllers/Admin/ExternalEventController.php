@@ -215,6 +215,18 @@ class ExternalEventController extends Controller
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }
 
+    public function destroy(ExternalEvent $event)
+    {
+        // Opt-in: you can choose to delete local images from storage here if you want:
+        // if ($event->image_path && \Storage::disk('public')->exists(str_replace('/storage/', '', $event->image_path))) {
+        //     \Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
+        // }
+
+        $event->delete();
+
+        return redirect()->route('admin.events.index')->with('success', 'Evento eliminado correctamente.');
+    }
+
     public function sync(EventImportService $service)
     {
         $result = $service->importEvents();
