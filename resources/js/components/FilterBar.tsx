@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Search, X } from 'lucide-react';
+import { CalendarIcon, Search, X, SlidersHorizontal } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -50,6 +50,7 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
     });
 
     const [isPending, setIsPending] = useState(false);
+    const [showFilters, setShowFilters] = useState(false);
 
     // Debounce search
     useEffect(() => {
@@ -98,134 +99,152 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
     return (
         <div className="w-full bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm sticky top-0 z-30">
             <div className="container mx-auto px-4 py-3">
-                <div className="flex flex-col md:flex-row gap-3 items-center">
+                <div className="flex flex-col md:flex-row gap-3 md:items-center">
 
-                    {/* Search Input */}
-                    <div className="relative w-full md:w-1/3">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                        <Input
-                            placeholder="Buscar evento, artista..."
-                            className="pl-9 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700"
-                            value={values.search}
-                            onChange={(e) => setValues({ ...values, search: e.target.value })}
-                        />
+                    {/* Top row for mobile: Search + Filter Toggle */}
+                    <div className="flex items-center gap-2 w-full md:w-1/3 shrink-0">
+                        <div className="relative w-full">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <Input
+                                placeholder="Buscar evento, artista..."
+                                className="pl-9 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-sm"
+                                value={values.search}
+                                onChange={(e) => setValues({ ...values, search: e.target.value })}
+                            />
+                        </div>
+                        {/* Mobile Filter Toggle */}
+                        <Button
+                            variant={showFilters ? "default" : "outline"}
+                            size="icon"
+                            className="md:hidden shrink-0 shadow-sm"
+                            onClick={() => setShowFilters(!showFilters)}
+                            aria-label="Toggle filters"
+                        >
+                            <SlidersHorizontal className="h-4 w-4" />
+                        </Button>
                     </div>
 
-                    {/* Filters Group */}
-                    <div className="flex flex-1 gap-2 overflow-x-auto w-full pb-1 md:pb-0 no-scrollbar">
+                    {/* Filters Group - hidden on mobile unless toggled */}
+                    <div className={cn(
+                        "flex-1 flex-col md:flex-row gap-3 w-full",
+                        showFilters ? "flex animate-in slide-in-from-top-2 fade-in duration-200" : "hidden md:flex"
+                    )}>
+                        {/* Selects Grid */}
+                        <div className="grid grid-cols-2 md:flex md:flex-1 gap-2 w-full">
 
-                        {/* City Filter */}
-                        <Select
-                            value={values.city}
-                            onValueChange={(val) => {
-                                const newValue = val === 'all' ? '' : val;
-                                setValues({ ...values, city: newValue });
-                                // Trigger filter immediately for dropdowns? Or wait for button?
-                                // Let's trigger immediately for better UX
-                                setTimeout(() => {
-                                    // We need to pass the new value because setValues is async
-                                    // Actually, let's just use a useEffect for specific fields or call applyFilters with new val
-                                    // For simplicity/safety with closure, let's use a button or make applyFilters read form state
-                                    // But ApplyFilters reads 'values' state which might be stale here.
-                                    // Better approach: update state, then use useEffect to trigger router.
-                                    // Or just call router directly here.
-                                    // Let's rely on a separate useEffect for non-text fields if we want auto-submit,
-                                    // or add an "Apply" button. The user asked for "Improve UX", usually auto-apply is nicer.
-                                    // But let's verify if we want auto-apply for dropdowns. Yes.
-                                }, 0);
-                            }}
-                        >
-                            <SelectTrigger className="w-[140px] min-w-[140px]">
-                                <SelectValue placeholder="Ciudad" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas</SelectItem>
-                                {options.cities.map((city) => (
-                                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            {/* City Filter */}
+                            <Select
+                                value={values.city}
+                                onValueChange={(val) => {
+                                    const newValue = val === 'all' ? '' : val;
+                                    setValues({ ...values, city: newValue });
+                                    // Trigger filter immediately for dropdowns? Or wait for button?
+                                    // Let's trigger immediately for better UX
+                                    setTimeout(() => {
+                                        // We need to pass the new value because setValues is async
+                                        // Actually, let's just use a useEffect for specific fields or call applyFilters with new val
+                                        // For simplicity/safety with closure, let's use a button or make applyFilters read form state
+                                        // But ApplyFilters reads 'values' state which might be stale here.
+                                        // Better approach: update state, then use useEffect to trigger router.
+                                        // Or just call router directly here.
+                                        // Let's rely on a separate useEffect for non-text fields if we want auto-submit,
+                                        // or add an "Apply" button. The user asked for "Improve UX", usually auto-apply is nicer.
+                                        // But let's verify if we want auto-apply for dropdowns. Yes.
+                                    }, 0);
+                                }}
+                            >
+                                <SelectTrigger className="w-full md:w-[140px]">
+                                    <SelectValue placeholder="Ciudad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {options.cities.map((city) => (
+                                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        {/* Categories Filter */}
-                        <Select
-                            value={values.category}
-                            onValueChange={(val) => setValues({ ...values, category: val === 'all' ? '' : val })}
-                        >
-                            <SelectTrigger className="w-[150px] min-w-[150px]">
-                                <SelectValue placeholder="Categoría" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todas</SelectItem>
-                                {options.categories.map((cat) => (
-                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            {/* Categories Filter */}
+                            <Select
+                                value={values.category}
+                                onValueChange={(val) => setValues({ ...values, category: val === 'all' ? '' : val })}
+                            >
+                                <SelectTrigger className="w-full md:w-[150px]">
+                                    <SelectValue placeholder="Categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    {options.categories.map((cat) => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        {/* Venue Filter */}
-                        <Select
-                            value={values.venue_id}
-                            onValueChange={(val) => setValues({ ...values, venue_id: val === 'all' ? '' : val })}
-                        >
-                            <SelectTrigger className="w-[160px] min-w-[160px]">
-                                <SelectValue placeholder="Recinto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Todos</SelectItem>
-                                {options.venues.map((venue) => (
-                                    <SelectItem key={venue.id} value={String(venue.id)}>{venue.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            {/* Venue Filter */}
+                            <Select
+                                value={values.venue_id}
+                                onValueChange={(val) => setValues({ ...values, venue_id: val === 'all' ? '' : val })}
+                            >
+                                <SelectTrigger className="w-full md:w-[160px]">
+                                    <SelectValue placeholder="Recinto" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos</SelectItem>
+                                    {options.venues.map((venue) => (
+                                        <SelectItem key={venue.id} value={String(venue.id)}>{venue.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        {/* Date Range Popover */}
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-[260px] justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, "dd/MM/y", { locale: es })} -{" "}
-                                                {format(dateRange.to, "dd/MM/y", { locale: es })}
-                                            </>
+                            {/* Date Range Popover */}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn(
+                                            "col-span-2 md:col-span-1 w-full md:w-[260px] justify-start text-left font-normal",
+                                            !dateRange && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>
+                                                    {format(dateRange.from, "dd/MM/y", { locale: es })} -{" "}
+                                                    {format(dateRange.to, "dd/MM/y", { locale: es })}
+                                                </>
+                                            ) : (
+                                                format(dateRange.from, "dd/MM/y", { locale: es })
+                                            )
                                         ) : (
-                                            format(dateRange.from, "dd/MM/y", { locale: es })
-                                        )
-                                    ) : (
-                                        <span>Seleccionar Fechas</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
-                                    locale={es}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                                            <span>Seleccionar Fechas</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}
+                                        locale={es}
+                                    />
+                                </PopoverContent>
+                            </Popover>
 
-                    </div>
+                        </div>
 
-                    {/* Actions */}
-                    <div className="flex gap-2 ml-auto">
-                        <Button onClick={() => applyFilters()} disabled={isPending}>
-                            {isPending ? 'Filtrando...' : 'Aplicar'}
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={handleReset} title="Limpiar Filtros">
-                            <X className="h-4 w-4" />
-                        </Button>
+                        {/* Actions */}
+                        <div className="flex gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-gray-800">
+                            <Button className="flex-1 md:flex-none" onClick={() => { applyFilters(); setShowFilters(false); }} disabled={isPending}>
+                                {isPending ? 'Filtrando...' : 'Aplicar'}
+                            </Button>
+                            <Button variant="ghost" size="icon" className="shrink-0 text-gray-400" onClick={handleReset} title="Limpiar Filtros">
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
