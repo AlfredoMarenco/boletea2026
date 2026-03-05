@@ -10,7 +10,7 @@ class EventController extends Controller
 {
     public function show($slug)
     {
-        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters'])
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories'])
             ->where('slug', $slug)
             ->orWhere('id', $slug)
             ->firstOrFail();
@@ -25,7 +25,7 @@ class EventController extends Controller
         $salesCentersDetails = $directSalesCenters->merge($groupSalesCenters)->unique('id')->values();
 
         // Related Events Logic
-        $relatedEvents = ExternalEvent::where('id', '!=', $id)
+        $relatedEvents = ExternalEvent::with(['venue', 'state', 'cityLocation', 'categories'])->where('id', '!=', $id)
             ->where('status', 'published')
             ->where(function ($query) use ($event) {
                 if ($event->category) {
@@ -42,7 +42,7 @@ class EventController extends Controller
 
         // Fallback if not enough related events
         if ($relatedEvents->count() < 3) {
-            $moreEvents = ExternalEvent::where('id', '!=', $id)
+            $moreEvents = ExternalEvent::with(['venue', 'state', 'cityLocation', 'categories'])->where('id', '!=', $id)
                 ->whereNotIn('id', $relatedEvents->pluck('id'))
                 ->where('status', 'published')
                 ->where(function ($q) {

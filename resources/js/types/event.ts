@@ -12,6 +12,8 @@ export interface ExternalEvent {
     title: string;
     slug?: string | null;
     city: string | null;
+    city_location?: { id: number; name: string } | null;
+    state?: { id: number; name: string } | null;
     categories?: { id: number; name: string }[];
     category?: string | null; // Legacy single category
     description?: string | null;

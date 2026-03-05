@@ -139,9 +139,9 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                         <div className="flex flex-col text-white">
                                             <div className="flex items-center gap-2 text-lg font-bold">
                                                 <MapPin className="size-5 text-[#c90000]" />
-                                                <span>{event.venue?.name || event.city || 'Ubicación por confirmar'}</span>
+                                                <span>{event.venue?.name || event.city_location?.name || 'Ubicación por confirmar'}</span>
                                             </div>
-                                            <span className="text-sm text-gray-300 ml-7">{event.city}</span>
+                                            <span className="text-sm text-gray-300 ml-7">{event.city_location?.name}{event.state ? `, ${event.state.name}` : ''}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -443,7 +443,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                         <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                                                             <MapPin className="h-4 w-4 text-[#c90000]" />
                                                             <span className="line-clamp-1 font-medium">
-                                                                {relatedEvent.venue?.name || relatedEvent.city}
+                                                                {relatedEvent.venue?.name || relatedEvent.city_location?.name}
                                                             </span>
                                                         </div>
                                                     </div>

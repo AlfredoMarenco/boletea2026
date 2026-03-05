@@ -49,7 +49,7 @@ export default function EventCard({ event }: { event: ExternalEvent }) {
             </div>
             <div className="flex flex-1 flex-col p-5">
                 <div className="mb-2 text-xs font-medium text-[#c90000] uppercase tracking-wide">
-                    {event.venue?.name || event.city || 'Ubicación por confirmar'}
+                    {event.venue?.name || event.city_location?.name || 'Ubicación por confirmar'}
                 </div>
                 <h3 className="mb-2 text-xl font-bold leading-tight text-gray-900 group-hover:text-[#c90000] dark:text-white transition-colors line-clamp-2">
                     {cleanTitle(event.title)}
@@ -60,6 +60,9 @@ export default function EventCard({ event }: { event: ExternalEvent }) {
                         {format(new Date(event.start_date), 'PPP', { locale: es })}
                     </div>
                 )}
+                <div className="mb-4 flex items-center text-sm text-gray-500 gap-2">
+                    {event.city_location?.name}{event.state ? `, ${event.state.name}` : ''}
+                </div>
                 <div className="mt-auto pt-4 border-t border-gray-100 dark:border-white/5">
                     <Link href={route('event.show', event.slug || event.id)} className="block w-full rounded-xl bg-gray-900 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-[#c90000] dark:bg-white dark:text-black dark:hover:bg-[#c90000] dark:hover:text-white">
                         Comprar Boletos

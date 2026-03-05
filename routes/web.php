@@ -2,13 +2,15 @@
 
 use App\Http\Controllers\SalesCenterController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LocationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 
-Route::get('/', [\App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::post('/location', [\App\Http\Controllers\LocationController::class , 'store'])->name('location.store');
+Route::post('/location', [LocationController::class , 'store'])->name('location.store');
 
 Route::get('/evento/{slug}', [EventController::class , 'show'])->name('event.show');
 

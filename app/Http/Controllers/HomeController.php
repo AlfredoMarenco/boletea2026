@@ -15,7 +15,7 @@ class HomeController extends Controller
     public function index(Request $request)
     {
         // Base query for upcoming events
-        $baseQuery = ExternalEvent::with(['venue', 'categories'])
+        $baseQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
             ->where('status', 'published')
             ->where(function ($q) {
                 $q->whereNull('end_date')
