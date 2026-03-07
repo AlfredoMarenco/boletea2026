@@ -112,7 +112,7 @@ class HomeController extends Controller
         }
 
         // Options for filters
-        $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter();
+        $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter()->values();
         $venues = Venue::select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
 
