@@ -127,6 +127,13 @@ class HomeController extends Controller
                 'venues' => $venues,
                 'categories' => $categories,
             ]
+        ])->withViewData([
+            'meta' => [
+                'title' => 'Inicio - Boletea',
+                'description' => 'Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia.',
+                'image' => asset('logo.ico'), // Default logo image
+                'url' => route('home')
+            ]
         ]);
     }
 }

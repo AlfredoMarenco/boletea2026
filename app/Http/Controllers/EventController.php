@@ -59,10 +59,21 @@ class EventController extends Controller
             $relatedEvents = $relatedEvents->merge($moreEvents);
         }
 
+        $title = trim(preg_replace('/^[A-Z0-9]+\s+/', '', $event->title));
+        $description = $event->description ? substr(strip_tags($event->description), 0, 160) . '...' : "Boletos para {$title} en Boletea.";
+        $image = $event->image_path ? asset($event->image_path) : null;
+
         return Inertia::render('Event/Show', [
             'event' => $event,
             'salesCentersDetails' => $salesCentersDetails,
             'relatedEvents' => $relatedEvents
+        ])->withViewData([
+            'meta' => [
+                'title' => $title . ' - Boletea',
+                'description' => $description,
+                'image' => $image,
+                'url' => route('event.show', $slug)
+            ]
         ]);
     }
 }

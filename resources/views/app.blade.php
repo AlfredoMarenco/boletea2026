@@ -41,6 +41,25 @@
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800,900" rel="stylesheet" />
 
 
+    @if(isset($meta))
+        <!-- Server-side SEO Meta Tags for Social Media Scrapers -->
+        <meta name="description" content="{{ $meta['description'] ?? '' }}">
+        <meta property="og:title" content="{{ $meta['title'] ?? '' }}">
+        <meta property="og:description" content="{{ $meta['description'] ?? '' }}">
+        @if(isset($meta['image']) && $meta['image'])
+            <meta property="og:image" content="{{ $meta['image'] }}">
+        @endif
+        <meta property="og:url" content="{{ $meta['url'] ?? Request::url() }}">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="Boletea">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="{{ $meta['title'] ?? '' }}">
+        <meta name="twitter:description" content="{{ $meta['description'] ?? '' }}">
+        @if(isset($meta['image']) && $meta['image'])
+            <meta name="twitter:image" content="{{ $meta['image'] }}">
+        @endif
+    @endif
+
     @viteReactRefresh
     @routes
     @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
