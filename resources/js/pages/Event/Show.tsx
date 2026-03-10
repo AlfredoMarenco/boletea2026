@@ -89,7 +89,18 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
     return (
         <div className="min-h-screen bg-white text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans">
-            <Head title={`${event.title} - Boletea`} />
+            <Head>
+                <title>{`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`}</title>
+                <meta name="description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
+                <meta property="og:title" content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`} />
+                <meta property="og:description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
+                {event.image_path && <meta property="og:image" content={event.image_path} />}
+                <meta property="og:type" content="article" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`} />
+                <meta name="twitter:description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
+                {event.image_path && <meta name="twitter:image" content={event.image_path} />}
+            </Head>
 
             {/* Navbar Placeholder (Should likely be a layout) */}
             <PublicHeader />

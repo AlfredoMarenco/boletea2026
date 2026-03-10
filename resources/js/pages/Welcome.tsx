@@ -99,7 +99,18 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
 
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
-            <Head title="Inicio - Boletea" />
+            <Head>
+                <title>Inicio - Boletea</title>
+                <meta name="description" content="Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia." />
+                <meta name="keywords" content="boletea, boletos, eventos, conciertos, teatros, festivales, tickets, mexico" />
+                <meta property="og:title" content="Inicio - Boletea" />
+                <meta property="og:description" content="Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia." />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content="Boletea" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Inicio - Boletea" />
+                <meta name="twitter:description" content="Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia." />
+            </Head>
 
             <PublicHeader canRegister={canRegister} />
 
