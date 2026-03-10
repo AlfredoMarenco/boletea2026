@@ -78,27 +78,42 @@ class EventImportService
                 $eventData = $group['meta'];
                 $performances = $group['performances'];
 
-                // Sort performances by date to find the earliest start date if needed, 
-                // or just use the meta one. But strictly speaking, an Event might just span dates.
-
-                // Parse Date (use the first one or earliest)
+                // Find earliest start date and latest end date across all performances
                 $startDate = null;
-                if (!empty($eventData['PerformanceDateTime'])) {
-                    try {
-                        $startDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceDateTime'])->format('Y-m-d H:i:s');
-                    }
-                    catch (\Exception $e) {
-                    // ignore
-                    }
-                }
-
                 $endDate = null;
-                if (!empty($eventData['PerformanceEndDateTime'])) {
-                    try {
-                        $endDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceEndDateTime'])->format('Y-m-d H:i:s');
+                $earliest = null;
+                $latest = null;
+
+                foreach ($performances as $perf) {
+                    if (!empty($perf['PerformanceDateTime'])) {
+                        try {
+                            $dt = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceDateTime']);
+                            if ($earliest === null || $dt->lt($earliest)) {
+                                $earliest = clone $dt;
+                                $startDate = $earliest->format('Y-m-d H:i:s');
+                            }
+                            // Fallback for latest if EndDateTime is missing
+                            if (empty($perf['PerformanceEndDateTime'])) {
+                                if ($latest === null || $dt->gt($latest)) {
+                                    $latest = clone $dt;
+                                    $endDate = $latest->format('Y-m-d H:i:s');
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
                     }
-                    catch (\Exception $e) {
-                    // ignore
+
+                    if (!empty($perf['PerformanceEndDateTime'])) {
+                        try {
+                            $dtEnd = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceEndDateTime']);
+                            if ($latest === null || $dtEnd->gt($latest)) {
+                                $latest = clone $dtEnd;
+                                $endDate = $latest->format('Y-m-d H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
                     }
                 }
 
@@ -128,10 +143,12 @@ class EventImportService
                     $externalEvent->image_path = $eventData['EventImage'];
                 }
 
+                // Always sync dates so multi-function events stay visible until their last performance
+                $externalEvent->start_date = $startDate;
+                $externalEvent->end_date = $endDate;
+
                 // Only update content fields if new (preserve manual edits)
                 if (!$externalEvent->exists) {
-                    $externalEvent->start_date = $startDate;
-                    $externalEvent->end_date = $endDate;
                     $externalEvent->title = $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title';
                     $externalEvent->description = !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? '');
                     $externalEvent->city = $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '';

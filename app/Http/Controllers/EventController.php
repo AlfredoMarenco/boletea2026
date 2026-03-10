@@ -15,6 +15,10 @@ class EventController extends Controller
             ->orWhere('id', $slug)
             ->firstOrFail();
 
+        if ($event->status !== 'published') {
+            return redirect()->route('home');
+        }
+
         $id = $event->id; // for related events logic
         $directSalesCenters = $event->salesCenters;
         $groupSalesCenters = $event->salesCenterGroups->flatMap(function ($group) {
