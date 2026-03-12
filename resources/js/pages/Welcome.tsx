@@ -10,7 +10,7 @@ import {
 import Autoplay from "embla-carousel-autoplay"
 import { GeolocationProvider, useGeolocation } from '@/contexts/GeolocationProvider';
 import { useEffect, useRef, useState } from 'react';
-import { MapPin, Calendar, Search } from 'lucide-react';
+import { MapPin, Calendar, Search, X } from 'lucide-react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,39 @@ export default function Welcome({ canRegister, events: initialEvents, nearbyEven
 function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, filters, options }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[] }) {
     const { city, state, country, latitude, longitude } = useGeolocation();
     const locationSentRef = useRef(false);
+    const [showBanner, setShowBanner] = useState(false); // Inicia oculto para el delay
+    const [progress, setProgress] = useState(100);
+    const bannerDuration = 10000; // 10 segundos
+    const displayDelay = 2000; // 2 segundos de retraso antes de mostrar
+
+    // Efecto para mostrar el banner después del delay
+    useEffect(() => {
+        const delayTimer = setTimeout(() => {
+            setShowBanner(true);
+        }, displayDelay);
+        
+        return () => clearTimeout(delayTimer);
+    }, []);
+
+    // Efecto para la barra de progreso y auto-cierre
+    useEffect(() => {
+        if (!showBanner) return;
+        
+        const startTime = Date.now();
+        
+        const timer = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, 100 - (elapsed / bannerDuration) * 100);
+            setProgress(remaining);
+            
+            if (remaining === 0) {
+                setShowBanner(false);
+                clearInterval(timer);
+            }
+        }, 30); // Actualiza con la suficiente frecuencia para que la barra se vea fluida
+        
+        return () => clearInterval(timer);
+    }, [showBanner]);
 
     // Update session location when coordinates are available
     useEffect(() => {
@@ -164,7 +197,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
 
                     {/* Nearby Events Section */}
                     {nearbyEvents && nearbyEvents.length > 0 && (
-                        <section className="py-12 border-b border-gray-200 dark:border-white/5">
+                        <section className="pt-4 pb-12 border-b border-gray-200 dark:border-white/5">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2">
                                     <MapPin className="text-[#c90000]" />
@@ -209,6 +242,44 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                     </section>
                 </div>
             </main>
+
+            {/* Modal / Banner Flotante - Unión Laguna */}
+            {showBanner && (
+                <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full fade-in duration-500 max-w-sm w-[calc(100%-2rem)] md:max-w-md">
+                    <div className="relative bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                        {/* Barra de progreso de cierre */}
+                        <div className="h-1.5 bg-gray-200 dark:bg-gray-800 w-full absolute top-0 left-0 z-20">
+                            <div 
+                                className="h-full bg-[#c90000]" 
+                                style={{ width: `${progress}%` }}
+                            ></div>
+                        </div>
+
+                        <button 
+                            onClick={() => setShowBanner(false)}
+                            className="absolute top-3 right-2 z-10 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                            aria-label="Cerrar banner"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                        <a 
+                            href="https://unionlaguna.boletea.com.mx/" 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="block hover:opacity-95 transition-opacity pt-1.5"
+                        >
+                            <div className="p-3 bg-gray-100 dark:bg-gray-800 text-[#c90000] dark:text-red-500 text-center text-sm font-bold uppercase tracking-wide">
+                                ¡Venta de boletos de Béisbol!
+                            </div>
+                            <img 
+                                src="/images/banners/banner_web.png" 
+                                alt="Boletos Unión Laguna" 
+                                className="w-full h-auto object-contain bg-white" 
+                            />
+                        </a>
+                    </div>
+                </div>
+            )}
 
             <PublicFooter />
         </div >

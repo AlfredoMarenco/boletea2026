@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import '../css/app.css';
 import { initializeTheme } from './hooks/use-appearance';
 import GlobalLoader from './components/global-loader';
+import CookieConsent from './components/cookie-consent';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -21,6 +22,7 @@ createInertiaApp({
         root.render(
             <StrictMode>
                 <GlobalLoader />
+                <CookieConsent />
                 <App {...props} />
             </StrictMode>,
         );
