@@ -158,7 +158,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
             <Head title="Crear Evento" />
 
             <div className="p-6 max-w-4xl mx-auto">
-                <div className="bg-white p-6 rounded-lg shadow dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white p-6 rounded-lg shadow dark:bg-background border border-gray-200 dark:border-border">
                     <h1 className="text-2xl font-bold mb-6 text-gray-800 dark:text-gray-100">
                         Crear Nuevo Evento
                     </h1>
@@ -484,10 +484,10 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Available Categories - Left Panel */}
                                     <div className="space-y-2">
-                                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <div className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
                                             Disponibles
                                         </div>
-                                        <div className="border rounded-lg bg-gray-50 dark:bg-gray-800 h-64 overflow-y-auto">
+                                        <div className="border rounded-lg bg-gray-50 dark:bg-card h-64 overflow-y-auto">
                                             {categories
                                                 .filter(cat => !data.categories?.includes(cat.id))
                                                 .map((category) => (
@@ -497,9 +497,9 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                                             const current = data.categories || [];
                                                             setData('categories', [...current, category.id]);
                                                         }}
-                                                        className="px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors flex items-center justify-between group"
+                                                        className="px-4 py-2.5 border-b border-gray-200 dark:border-border hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors flex items-center justify-between group"
                                                     >
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-sm text-gray-700 dark:text-muted-foreground">
                                                             {category.name}
                                                         </span>
                                                         <svg
@@ -513,7 +513,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                                     </div>
                                                 ))}
                                             {categories.filter(cat => !data.categories?.includes(cat.id)).length === 0 && (
-                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-muted-foreground">
                                                     No hay categorías disponibles
                                                 </div>
                                             )}
@@ -525,7 +525,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
 
                                     {/* Selected Categories - Right Panel */}
                                     <div className="space-y-2">
-                                        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        <div className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
                                             Seleccionadas
                                         </div>
                                         <div className="border rounded-lg bg-green-50 dark:bg-green-900/10 h-64 overflow-y-auto">
@@ -540,7 +540,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                                         }}
                                                         className="px-4 py-2.5 border-b border-green-200 dark:border-green-800 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors flex items-center justify-between group"
                                                     >
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                        <span className="text-sm text-gray-700 dark:text-muted-foreground">
                                                             {category.name}
                                                         </span>
                                                         <svg
@@ -555,7 +555,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                                 );
                                             })}
                                             {(!data.categories || data.categories.length === 0) && (
-                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-gray-400">
+                                                <div className="flex items-center justify-center h-full text-sm text-gray-500 dark:text-muted-foreground">
                                                     No hay categorías seleccionadas
                                                 </div>
                                             )}

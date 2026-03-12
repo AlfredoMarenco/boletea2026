@@ -97,17 +97,17 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm sticky top-0 z-30">
+        <div className="w-full bg-white dark:bg-background border-b dark:border-slate-800 shadow-sm sticky top-0 z-30">
             <div className="container mx-auto px-4 py-3">
                 <div className="flex flex-col md:flex-row gap-3 md:items-center">
 
                     {/* Top row for mobile: Search + Filter Toggle */}
                     <div className="flex items-center gap-2 w-full md:w-1/3 shrink-0">
                         <div className="relative w-full">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-muted-foreground" />
                             <Input
                                 placeholder="Buscar evento, artista..."
-                                className="pl-9 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 shadow-sm"
+                                className="pl-9 bg-gray-50 dark:bg-card border-gray-200 dark:border-slate-700 shadow-sm"
                                 value={values.search}
                                 onChange={(e) => setValues({ ...values, search: e.target.value })}
                             />
@@ -237,7 +237,7 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-gray-800">
+                        <div className="flex gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-slate-800">
                             <Button className="flex-1 md:flex-none" onClick={() => { applyFilters(); setShowFilters(false); }} disabled={isPending}>
                                 {isPending ? 'Filtrando...' : 'Aplicar'}
                             </Button>

@@ -51,7 +51,7 @@ export default function Edit({ user }: Props) {
                     </h1>
                 </div>
 
-                <div className="bg-white rounded-md shadow p-6 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white rounded-md shadow p-6 dark:bg-background border border-gray-200 dark:border-border">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre</Label>

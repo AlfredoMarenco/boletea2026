@@ -43,7 +43,7 @@ const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
     }
 
     return (
-        <div className="border rounded-md overflow-hidden bg-white dark:bg-gray-950">
+        <div className="border rounded-md overflow-hidden bg-white dark:bg-background">
             <div className="border-b bg-muted/50 p-1 flex flex-wrap gap-1">
                 <Toggle
                     size="sm"

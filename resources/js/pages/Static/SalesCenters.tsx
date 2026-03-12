@@ -91,7 +91,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
 
                     return (
                         <div key={index} className="flex justify-between gap-4">
-                            <span className="font-medium w-fit min-w-[120px] text-gray-500 dark:text-gray-400">{label}</span>
+                            <span className="font-medium w-fit min-w-[120px] text-gray-500 dark:text-muted-foreground">{label}</span>
                             <span className="text-gray-900 dark:text-gray-200 text-right">
                                 {group.schedule.closed ? 'Cerrado' : `${group.schedule.open} - ${group.schedule.close}`}
                             </span>
@@ -109,7 +109,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
         , [states, selectedStateId]);
 
     const SalesCenterCard = ({ center, className }: { center: SalesCenter, className?: string }) => (
-        <div className={cn("bg-white dark:bg-[#111] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-300 h-full flex flex-col", className)}>
+        <div className={cn("bg-white dark:bg-card rounded-2xl shadow-sm border border-gray-100 dark:border-border overflow-hidden hover:shadow-md hover:scale-[1.02] transition-all duration-300 h-full flex flex-col", className)}>
             <div className="p-6 flex-grow">
                 <div className="mb-6">
                     {center.logo_path ? (
@@ -117,7 +117,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                             <img src={center.logo_path} alt={center.name} className="max-h-full max-w-full object-contain" />
                         </div>
                     ) : (
-                        <div className="h-16 w-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <div className="h-16 w-16 rounded-xl bg-gray-100 dark:bg-card flex items-center justify-center">
                             <MapPin className="h-8 w-8 text-gray-400" />
                         </div>
                     )}
@@ -130,13 +130,13 @@ export default function SalesCenters({ states }: { states: State[] }) {
                 <div className="space-y-4">
                     <div className="flex items-start gap-3">
                         <MapPin className="h-5 w-5 text-[#c90000] shrink-0 mt-0.5" />
-                        <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        <p className="text-gray-600 dark:text-muted-foreground text-sm leading-relaxed">
                             {center.address}
                         </p>
                     </div>
 
                     <div className="flex flex-col gap-2 pt-2">
-                        <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                        <p className="text-gray-500 dark:text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                             Método de entrega
                         </p>
                         <Badge variant={center.is_digital_only ? 'outline' : 'secondary'} className="px-3 py-1.5 text-sm font-medium gap-2 [&>svg]:!size-5 rounded-lg w-fit">
@@ -151,7 +151,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
 
                     {(center.payment_methods_cash || center.payment_methods_card) && (
                         <div className="flex flex-col gap-2 pt-2">
-                            <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider">
+                            <p className="text-gray-500 dark:text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                                 Métodos de pago
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -172,7 +172,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                     )}
 
                     {center.opening_hours && (
-                        <div className="border-t border-gray-100 dark:border-gray-800 pt-4 mt-4">
+                        <div className="border-t border-gray-100 dark:border-border pt-4 mt-4">
                             <div className="flex items-center gap-2 mb-3 text-[#c90000] font-semibold text-sm">
                                 <Clock className="h-4 w-4" />
                                 <span>Horarios de Atención</span>
@@ -201,7 +201,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                         href={center.google_map_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block w-full mt-auto bg-gray-50 dark:bg-white/5 p-3 text-center text-sm font-medium text-[#c90000] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border-t border-gray-100 dark:border-gray-800"
+                        className="block w-full mt-auto bg-gray-50 dark:bg-white/5 p-3 text-center text-sm font-medium text-[#c90000] hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border-t border-gray-100 dark:border-border"
                     >
                         Ver ubicación en Google Maps
                     </a>
@@ -211,7 +211,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] font-sans">
+        <div className="min-h-screen bg-gray-50 dark:bg-background font-sans">
             <Head title="Puntos de Venta - Boletea" />
             <PublicHeader />
 
@@ -220,7 +220,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                     <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-5xl">
                         Puntos de Venta Oficiales
                     </h1>
-                    <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
+                    <p className="mt-4 text-lg text-gray-600 dark:text-muted-foreground">
                         Encuentra el punto de venta más cercano para adquirir tus boletos.
                     </p>
                 </div>
@@ -245,7 +245,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                                                     "px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap shadow-sm",
                                                     selectedStateId === state.id
                                                         ? "bg-[#c90000] text-white shadow-[#c90000]/20 shadow-lg scale-105"
-                                                        : "bg-white dark:bg-[#111] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-800"
+                                                        : "bg-white dark:bg-card text-gray-600 dark:text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-border"
                                                 )}
                                             >
                                                 {state.name}
@@ -253,8 +253,8 @@ export default function SalesCenters({ states }: { states: State[] }) {
                                         </CarouselItem>
                                     ))}
                                 </CarouselContent>
-                                <CarouselPrevious className="-left-4 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800" />
-                                <CarouselNext className="-right-4 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800" />
+                                <CarouselPrevious className="-left-4 border-gray-200 dark:border-border hover:bg-gray-100 dark:hover:bg-gray-800" />
+                                <CarouselNext className="-right-4 border-gray-200 dark:border-border hover:bg-gray-100 dark:hover:bg-gray-800" />
                             </Carousel>
                         </div>
 
@@ -270,7 +270,7 @@ export default function SalesCenters({ states }: { states: State[] }) {
                         )}
                     </div>
                 ) : (
-                    <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+                    <div className="text-center py-20 text-gray-500 dark:text-muted-foreground">
                         <MapPin className="h-16 w-16 mx-auto mb-4 text-gray-300 dark:text-gray-700" />
                         <p className="text-xl">No hay puntos de venta registrados actualmente.</p>
                     </div>

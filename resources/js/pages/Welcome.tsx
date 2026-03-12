@@ -131,7 +131,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
     // cleanTitle moved to EventCard component
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
+        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-background dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
             <Head>
                 <title>Inicio - Boletea</title>
                 <meta name="description" content="Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia." />
@@ -158,7 +158,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                                 <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">
                                     Vive la <span className="text-[#c90000]">experiencia</span>.
                                 </h1>
-                                <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-gray-400 lg:mx-0 lg:text-lg xl:text-xl">
+                                <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-muted-foreground lg:mx-0 lg:text-lg xl:text-xl">
                                     Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad.
                                 </p>
                             </div>
@@ -193,11 +193,11 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                 <FilterBar filters={filters} options={options} />
 
                 {/* Main Content Area */}
-                <div className="pb-16 bg-gray-50 dark:bg-[#0a0a0a]">
+                <div className="pb-16 bg-gray-50 dark:bg-background">
 
                     {/* Nearby Events Section */}
                     {nearbyEvents && nearbyEvents.length > 0 && (
-                        <section className="pt-4 pb-12 border-b border-gray-200 dark:border-white/5">
+                        <section className="pt-4 pb-12 border-b border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2">
                                     <MapPin className="text-[#c90000]" />
@@ -222,7 +222,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                                 <h2 className="text-3xl font-bold">
                                     {Object.keys(filters).length > 0 ? 'Resultados de tu búsqueda' : 'Todos los Eventos'}
                                 </h2>
-                                <p className="text-gray-500 dark:text-gray-400">
+                                <p className="text-gray-500 dark:text-muted-foreground">
                                     {`${events.length} resultados encontrados`}
                                 </p>
                             </div>
@@ -246,9 +246,9 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
             {/* Modal / Banner Flotante - Unión Laguna */}
             {showBanner && (
                 <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full fade-in duration-500 max-w-sm w-[calc(100%-2rem)] md:max-w-md">
-                    <div className="relative bg-white dark:bg-[#1a1a1a] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+                    <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl border border-gray-200 dark:border-border overflow-hidden">
                         {/* Barra de progreso de cierre */}
-                        <div className="h-1.5 bg-gray-200 dark:bg-gray-800 w-full absolute top-0 left-0 z-20">
+                        <div className="h-1.5 bg-gray-200 dark:bg-card w-full absolute top-0 left-0 z-20">
                             <div 
                                 className="h-full bg-[#c90000]" 
                                 style={{ width: `${progress}%` }}
@@ -268,7 +268,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                             rel="noopener noreferrer" 
                             className="block hover:opacity-95 transition-opacity pt-1.5"
                         >
-                            <div className="p-3 bg-gray-100 dark:bg-gray-800 text-[#c90000] dark:text-red-500 text-center text-sm font-bold uppercase tracking-wide">
+                            <div className="p-3 bg-gray-100 dark:bg-card text-[#c90000] dark:text-red-500 text-center text-sm font-bold uppercase tracking-wide">
                                 ¡Venta de boletos de Béisbol!
                             </div>
                             <img 

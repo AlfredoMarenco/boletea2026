@@ -6,7 +6,7 @@ export default function Footer() {
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className="border-t border-gray-200 bg-white dark:border-gray-800 dark:bg-[#0a0a0a]">
+        <footer className="border-t border-gray-200 bg-white dark:border-border dark:bg-background">
             {/* Main Content */}
             <div className="container mx-auto px-6 py-12 lg:py-16">
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -17,7 +17,7 @@ export default function Footer() {
                                 BOLETEA
                             </span>
                         </Link>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
                             La plataforma líder en venta de boletos para tus eventos favoritos. Seguridad, rapidez y confianza.
                         </p>
                         <div className="flex gap-4">
@@ -41,7 +41,7 @@ export default function Footer() {
                         <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-gray-100">
                             Empresa
                         </h3>
-                        <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
+                        <ul className="space-y-3 text-sm text-gray-500 dark:text-muted-foreground">
                             <li>
                                 <Link href="#" className="hover:text-[#c90000] transition-colors">Acerca de nosotros</Link>
                             </li>
@@ -62,7 +62,7 @@ export default function Footer() {
                         <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-gray-100">
                             Soporte
                         </h3>
-                        <ul className="space-y-3 text-sm text-gray-500 dark:text-gray-400">
+                        <ul className="space-y-3 text-sm text-gray-500 dark:text-muted-foreground">
                             <li>
                                 <Link href="#" className="hover:text-[#c90000] transition-colors">Ayuda y FAQ</Link>
                             </li>
@@ -83,14 +83,14 @@ export default function Footer() {
                         <h3 className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-gray-100">
                             Newsletter
                         </h3>
-                        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                        <p className="mb-4 text-sm text-gray-500 dark:text-muted-foreground">
                             Suscríbete para recibir noticias, promociones y preventas exclusivas.
                         </p>
                         <form className="flex gap-2">
                             <input
                                 type="email"
                                 placeholder="Tu correo electrónico"
-                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-[#c90000] focus:outline-none focus:ring-1 focus:ring-[#c90000] dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-[#c90000] focus:outline-none focus:ring-1 focus:ring-[#c90000] dark:border-border dark:bg-card dark:text-white"
                             />
                             <button
                                 type="button"
@@ -104,9 +104,9 @@ export default function Footer() {
             </div>
 
             {/* Bottom Bar */}
-            <div className="border-t border-gray-100 bg-gray-50 py-6 dark:border-gray-800 dark:bg-[#111]">
+            <div className="border-t border-gray-100 bg-gray-50 py-6 dark:border-border dark:bg-card">
                 <div className="container mx-auto px-6 flex flex-col items-center justify-between gap-4 md:flex-row">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-gray-500 dark:text-muted-foreground">
                         &copy; {currentYear} Boletea. Todos los derechos reservados.
                     </p>
                     <div className="flex gap-6">

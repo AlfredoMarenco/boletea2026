@@ -31,7 +31,7 @@ export default function CookieConsent() {
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-[100] sm:bottom-6 sm:left-6 sm:right-auto animate-in slide-in-from-bottom-5 fade-in duration-500">
-            <div className="bg-white dark:bg-[#1a1a1a] border-t sm:border border-gray-200 dark:border-white/10 sm:rounded-2xl shadow-2xl p-6 sm:p-8 max-w-[450px] relative overflow-hidden">
+            <div className="bg-white dark:bg-card border-t sm:border border-gray-200 dark:border-border sm:rounded-2xl shadow-2xl p-6 sm:p-8 max-w-[450px] relative overflow-hidden">
                 {/* Background effect */}
                 <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#c90000] opacity-[0.05] rounded-full blur-2xl"></div>
                 
@@ -44,7 +44,7 @@ export default function CookieConsent() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
                             Respetamos tu privacidad
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+                        <p className="text-sm text-gray-500 dark:text-muted-foreground mb-6 leading-relaxed">
                             Utilizamos cookies propias y de terceros para mejorar tu experiencia en nuestro sitio web, analizar el tráfico y personalizar el contenido.
                         </p>
                         
@@ -58,7 +58,7 @@ export default function CookieConsent() {
                             <Button 
                                 onClick={handleDecline}
                                 variant="outline" 
-                                className="sm:flex-1 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5"
+                                className="sm:flex-1 border-gray-200 dark:border-border hover:bg-gray-100 dark:hover:bg-white/5"
                             >
                                 Solo esenciales
                             </Button>

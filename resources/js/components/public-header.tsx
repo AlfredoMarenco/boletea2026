@@ -1,6 +1,7 @@
 import { ModeToggle } from '@/components/mode-toggle';
 import { Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import { useAppearance } from '@/hooks/use-appearance';
 import { User } from 'lucide-react';
 
 interface Props {
@@ -8,24 +9,28 @@ interface Props {
 }
 
 export default function PublicHeader({ canRegister = false }: Props) {
+    const { resolvedAppearance } = useAppearance();
+
     return (
-        <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-black/80 dark:border-white/5">
+        <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-background/80 dark:border-border">
             <div className="container mx-auto flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-2">
                     {/* Logo */}
                     <div className="flex items-center gap-2 hover:gap-4 transition-all duration-300">
                         <Link href={route('home')}>
                             <img
-                                src="https://boletea.com/img/logoBoletea.png"
+                                src={resolvedAppearance === 'dark' ? '/images/logoBoleteaDarkTheme.png' : 'https://boletea.com/img/logoBoletea.png'}
                                 alt="Boletea"
                                 className="h-10 w-auto hover:h-12 transition-all duration-300"
+                                onError={(e) => { e.currentTarget.src = 'https://boletea.com/img/logoBoletea.png'; }}
                             />
                         </Link>
                         <Link href={route('static.bolepay')}>
                             <img
-                                src="/images/LOGOBOLEPAY.png"
+                                src={resolvedAppearance === 'dark' ? '/images/LOGOBOLEPAYNEGRO.png' : '/images/LOGOBOLEPAY.png'}
                                 alt="Bolepay"
                                 className="h-14 w-auto hover:h-16 transition-all duration-300"
+                                onError={(e) => { e.currentTarget.src = '/images/LOGOBOLEPAY.png'; }}
                             />
                         </Link>
                     </div>

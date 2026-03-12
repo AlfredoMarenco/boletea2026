@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { router } from '@inertiajs/react';
+import { useAppearance } from '@/hooks/use-appearance';
 
 export default function GlobalLoader() {
     const [isLoading, setIsLoading] = useState(true); // Default to true for initial load
+    const { resolvedAppearance } = useAppearance();
 
     useEffect(() => {
         // Initial check - if we are already in admin, don't show loader
@@ -40,21 +42,22 @@ export default function GlobalLoader() {
     if (!isLoading || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-black transition-opacity duration-500 ease-in-out">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-background transition-opacity duration-500 ease-in-out">
             <div className="relative flex flex-col items-center">
                 <img
-                    src="https://boletea.com/img/logoBoletea.png"
+                    src={resolvedAppearance === 'dark' ? '/images/logoBoleteaDarkTheme.png' : 'https://boletea.com/img/logoBoletea.png'}
                     alt="Boletea Logo"
                     className="h-24 w-auto"
+                    onError={(e) => { e.currentTarget.src = 'https://boletea.com/img/logoBoletea.png'; }}
                 />
                 <div className="mt-8 flex gap-2">
                     <span className="sr-only">Cargando...</span>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce [animation-delay:-0.75s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce [animation-delay:-0.6s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce [animation-delay:-0.45s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] animate-bounce"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.75s]"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.6s]"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.45s]"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce"></div>
                 </div>
             </div>
         </div>

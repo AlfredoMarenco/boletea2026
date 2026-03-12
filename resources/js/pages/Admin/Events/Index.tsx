@@ -72,7 +72,7 @@ export default function Index({ events, filters }: Props) {
                         Eventos Externos
                     </h1>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-gray-700 pr-6">
+                        <div className="flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-border pr-6">
                             <Switch
                                 id="show-past"
                                 checked={filters?.show_past}
@@ -91,7 +91,7 @@ export default function Index({ events, filters }: Props) {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-md shadow overflow-hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex flex-col">
+                <div className="bg-white rounded-md shadow overflow-hidden dark:bg-background border border-gray-200 dark:border-border flex flex-col">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -153,7 +153,7 @@ export default function Index({ events, filters }: Props) {
 
                     {/* Pagination */}
                     {events.total > 0 && (
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <div className="p-4 border-t border-gray-200 dark:border-border flex items-center justify-between">
                             <div className="text-sm text-gray-500">
                                 Mostrando {events.from} a {events.to} de {events.total} resultados
                             </div>

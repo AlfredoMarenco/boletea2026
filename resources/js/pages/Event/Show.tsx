@@ -11,7 +11,7 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import Footer from '@/components/footer';
+import PublicFooter from '@/components/public-footer';
 import {
     Carousel,
     CarouselContent,
@@ -88,7 +88,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
     };
 
     return (
-        <div className="min-h-screen bg-white text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-sans">
+        <div className="min-h-screen bg-white text-gray-900 dark:bg-background dark:text-gray-100 font-sans">
             <Head>
                 <title>{`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`}</title>
                 <meta name="description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
@@ -179,7 +179,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         <section>
                             <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
                             <div
-                                className="prose prose-lg dark:prose-invert text-gray-600 dark:text-gray-300 max-w-none"
+                                className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
                                 dangerouslySetInnerHTML={{
                                     __html: (event.description ? (() => {
                                         try {
@@ -209,14 +209,14 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     target={center.google_map_url ? "_blank" : "_self"}
                                                     rel="noopener noreferrer"
                                                     className={`
-                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-white/5
+                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-border dark:bg-white/5
                                                         ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/30'}
                                                     `}
                                                 >
                                                     {center.is_legacy ? (
                                                         <div className="flex flex-col items-center gap-2 text-center">
                                                             <MapPin className="size-6 text-gray-400 group-hover:text-[#c90000] transition-colors" />
-                                                            <span className="text-xs font-bold leading-tight text-gray-700 dark:text-gray-300 line-clamp-2">
+                                                            <span className="text-xs font-bold leading-tight text-gray-700 dark:text-muted-foreground line-clamp-2">
                                                                 {center.name}
                                                             </span>
                                                         </div>
@@ -234,17 +234,17 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     ))}
                                                 </a>
                                             </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 shadow-xl z-50">
+                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-card text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-border shadow-xl z-50">
                                                 <div className="space-y-2">
                                                     <p className="font-bold text-base">{center.name}</p>
                                                     {center.address && (
-                                                        <div className="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                        <div className="flex items-start gap-2 text-sm text-gray-500 dark:text-muted-foreground">
                                                             <MapPin className="size-4 shrink-0 mt-0.5" />
                                                             <span>{center.address}</span>
                                                         </div>
                                                     )}
                                                     {center.opening_hours && Array.isArray(center.opening_hours) && center.opening_hours.length > 0 && (
-                                                        <div className="pt-2 border-t border-gray-100 dark:border-gray-700 mt-2">
+                                                        <div className="pt-2 border-t border-gray-100 dark:border-border mt-2">
                                                             <p className="text-xs font-semibold mb-1 text-gray-500">Horario</p>
                                                             <ul className="text-xs space-y-0.5">
                                                                 {center.opening_hours.map((h, i) => <li key={i}>{h}</li>)}
@@ -266,7 +266,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                     {/* Booking Sidebar */}
                     <div className="relative">
-                        <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-800 dark:bg-[#111]">
+                        <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
                             <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
                             {/* SALES START DATE CHECK */}
@@ -274,7 +274,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4">
                                     <div className="rounded-xl bg-[#c90000]/5 p-6 border border-[#c90000]/10">
                                         <h4 className="text-lg font-bold text-[#c90000] mb-2">Próximamente a la venta</h4>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                        <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
                                             La venta de boletos comenzará el:
                                         </p>
                                         <p className="text-xl font-bold text-gray-900 dark:text-white mb-6">
@@ -288,7 +288,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                             />
                                         </div>
                                     </div>
-                                    <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-gray-800 dark:text-gray-600">
+                                    <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-card dark:text-gray-600">
                                         Próximamente
                                     </Button>
                                 </div>
@@ -297,7 +297,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                     {performances.length > 1 ? (
                                         <div className="space-y-6">
                                             <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
                                                     Selecciona una fecha
                                                 </label>
                                                 <div className="flex justify-center">
@@ -310,7 +310,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                             return !performanceDates.has(dateString);
                                                         }}
                                                         defaultMonth={performances.length > 0 ? new Date(performances[0].PerformanceDateTime) : undefined}
-                                                        className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-[#1a1a1a] dark:border-gray-800"
+                                                        className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-card dark:border-border"
                                                         locale={es}
                                                     />
                                                 </div>
@@ -318,7 +318,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                                             {selectedDate && (
                                                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
                                                         Horarios disponibles
                                                     </label>
                                                     <div className="grid grid-cols-2 gap-2">
@@ -330,7 +330,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                                 px-4 py-2 text-sm font-medium rounded-md border transition-all
                                                                 ${selectedPerformanceId === perf.PerformanceID.toString()
                                                                         ? 'bg-[#c90000] text-white border-[#c90000] shadow-md'
-                                                                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-[#222] dark:text-gray-300 dark:border-gray-700'
+                                                                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-background dark:text-muted-foreground dark:border-border'
                                                                     }
                                                             `}
                                                             >
@@ -343,10 +343,10 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                         </div>
                                     ) : performances.length === 1 ? (
                                         <div className="space-y-3">
-                                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
                                                 Fecha y Hora del Evento
                                             </label>
-                                            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/5">
+                                            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
                                                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
                                                     <CalendarIcon className="size-6" />
                                                 </div>
@@ -354,7 +354,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
                                                         {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
                                                     </p>
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
                                                         Horario: {format(new Date(performances[0].PerformanceDateTime), "h:mm a")}
                                                     </p>
                                                 </div>
@@ -387,7 +387,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                 {/* Related Events Section (Mobile Slider / Desktop Grid) */}
                 {
                     relatedEvents && relatedEvents.length > 0 && (
-                        <section className="bg-gray-50 py-12 dark:bg-[#111] border-t border-gray-200 dark:border-gray-800">
+                        <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
                                     Eventos que te podrían interesar
@@ -410,9 +410,9 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                             <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3">
                                                 <a
                                                     href={route('event.show', relatedEvent.slug || relatedEvent.id)}
-                                                    className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-gray-800 dark:bg-[#0a0a0a]"
+                                                    className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-border dark:bg-background"
                                                 >
-                                                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                                                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-card">
                                                         {relatedEvent.image_path ? (
                                                             <img
                                                                 src={relatedEvent.image_path}
@@ -427,11 +427,11 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                         )}
 
                                                         {relatedEvent.start_date && (
-                                                            <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-gray-900 backdrop-blur-sm shadow-sm dark:bg-black/80 dark:text-white">
+                                                            <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-gray-900 backdrop-blur-sm shadow-sm dark:bg-background/80 dark:text-white">
                                                                 <span className="block text-xl leading-none text-[#c90000]">
                                                                     {format(new Date(relatedEvent.start_date), 'dd')}
                                                                 </span>
-                                                                <span className="block uppercase leading-none text-gray-500 dark:text-gray-400 mt-0.5">
+                                                                <span className="block uppercase leading-none text-gray-500 dark:text-muted-foreground mt-0.5">
                                                                     {format(new Date(relatedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
                                                                 </span>
                                                             </div>
@@ -441,7 +441,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     <div className="flex flex-1 flex-col p-5">
                                                         <div className="mb-3">
                                                             {relatedEvent.category && (
-                                                                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                                                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-card dark:text-muted-foreground">
                                                                     {relatedEvent.category}
                                                                 </span>
                                                             )}
@@ -451,7 +451,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                             {relatedEvent.title}
                                                         </h4>
 
-                                                        <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                                        <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-muted-foreground">
                                                             <MapPin className="h-4 w-4 text-[#c90000]" />
                                                             <span className="line-clamp-1 font-medium">
                                                                 {relatedEvent.venue?.name || relatedEvent.city_location?.name}
@@ -472,7 +472,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     )
                 }
             </main>
-            <Footer />
+            <PublicFooter />
         </div>
     );
 }

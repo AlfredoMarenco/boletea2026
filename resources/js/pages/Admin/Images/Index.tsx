@@ -105,12 +105,12 @@ export default function Index({ images }: Props) {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-900 dark:border-gray-700 p-6">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-background dark:border-border p-6">
                     {images.length > 0 ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {images.map((img) => (
-                                <div key={img.id} className="relative group rounded-lg overflow-hidden border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 transition-all hover:shadow-md">
-                                    <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+                                <div key={img.id} className="relative group rounded-lg overflow-hidden border bg-gray-50 dark:bg-card border-gray-200 dark:border-border transition-all hover:shadow-md">
+                                    <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-background border-b border-gray-100 dark:border-border">
                                         <a href={img.url} target="_blank" rel="noreferrer">
                                             <img
                                                 src={img.url}
@@ -120,7 +120,7 @@ export default function Index({ images }: Props) {
                                             />
                                         </a>
                                     </div>
-                                    <div className="p-2 flex justify-between items-center bg-white dark:bg-gray-800">
+                                    <div className="p-2 flex justify-between items-center bg-white dark:bg-card">
                                         <Button
                                             variant="ghost"
                                             size="sm"
@@ -144,7 +144,7 @@ export default function Index({ images }: Props) {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-20 text-gray-500 dark:text-gray-400">
+                        <div className="text-center py-20 text-gray-500 dark:text-muted-foreground">
                             <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
                             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Biblioteca vacía</h3>
                             <p>No has subido ninguna imagen todavía.</p>
