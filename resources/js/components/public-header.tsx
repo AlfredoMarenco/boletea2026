@@ -16,20 +16,21 @@ export default function PublicHeader({ canRegister = false }: Props) {
             <div className="container mx-auto flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-2">
                     {/* Logo */}
-                    <div className="flex items-center gap-2 hover:gap-4 transition-all duration-300">
-                        <Link href={route('home')}>
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <Link href={route('home')} className="group flex items-center justify-center">
                             <img
                                 src={resolvedAppearance === 'dark' ? '/images/logoBoleteaDarkTheme.png' : 'https://boletea.com/img/logoBoletea.png'}
                                 alt="Boletea"
-                                className="h-10 w-auto hover:h-12 transition-all duration-300"
+                                className="h-8 md:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => { e.currentTarget.src = 'https://boletea.com/img/logoBoletea.png'; }}
                             />
                         </Link>
-                        <Link href={route('static.bolepay')}>
+                        <div className="h-6 w-px bg-gray-200 dark:bg-border/50 hidden md:block rounded-full"></div>
+                        <Link href={route('static.bolepay')} className="group flex items-center justify-center">
                             <img
                                 src={resolvedAppearance === 'dark' ? '/images/LOGOBOLEPAYNEGRO.png' : '/images/LOGOBOLEPAY.png'}
                                 alt="Bolepay"
-                                className="h-14 w-auto hover:h-16 transition-all duration-300"
+                                className="h-9 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                                 onError={(e) => { e.currentTarget.src = '/images/LOGOBOLEPAY.png'; }}
                             />
                         </Link>

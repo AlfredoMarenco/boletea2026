@@ -206,7 +206,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                                     </h2>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
                                     {nearbyEvents.map((event) => (
                                         <EventCard key={event.id} event={event} />
                                     ))}
@@ -228,7 +228,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fil
                             </div>
 
                             {events.length > 0 ? (
-                                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
                                     {events.map((event) => (
                                         <EventCard key={event.id} event={event} />
                                     ))}

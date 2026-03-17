@@ -172,9 +172,9 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     </div>
                 </div>
 
-                <div className="container mx-auto grid grid-cols-1 gap-8 px-6 py-8 lg:grid-cols-3 lg:gap-10 lg:py-10">
+                <div className="container mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-8 lg:space-y-10">
+                    <div className="flex flex-col gap-8 lg:col-span-2 lg:gap-10">
                         {/* Description */}
                         <section>
                             <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
@@ -196,21 +196,21 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
 
 
-                        {/* Sales Centers */}
+                        {/* Desktop Sales Centers (Hidden on mobile) */}
                         {salesCentersDetails && salesCentersDetails.length > 0 && (
-                            <section>
+                            <section className="hidden lg:block">
                                 <h3 className="mb-4 text-2xl font-bold lg:text-3xl">Puntos de venta autorizados</h3>
-                                <div className="flex flex-wrap gap-8 items-center">
+                                <div className="flex flex-wrap gap-6 items-center">
                                     {salesCentersDetails.map((center, index) => (
-                                        <Tooltip key={index}>
+                                        <Tooltip key={`desktop-sc-${index}`}>
                                             <TooltipTrigger asChild>
                                                 <a
                                                     href={center.google_map_url || '#'}
                                                     target={center.google_map_url ? "_blank" : "_self"}
                                                     rel="noopener noreferrer"
                                                     className={`
-                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md dark:border-border dark:bg-white/5
-                                                        ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/30'}
+                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-200/60 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#1a1c20] dark:hover:border-white/30
+                                                        ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/40'}
                                                     `}
                                                 >
                                                     {center.is_legacy ? (
@@ -224,7 +224,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                         <img
                                                             src={center.logo_path}
                                                             alt={center.name}
-                                                            className="h-full w-full object-contain p-2"
+                                                            className="h-full w-full object-contain p-2 group-hover:scale-105 transition-transform"
                                                         />
                                                     ) : (
                                                         <div className="flex flex-col items-center gap-2">
@@ -234,20 +234,20 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     ))}
                                                 </a>
                                             </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-card text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-border shadow-xl z-50">
+                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-[#1a1c20] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-white/10 shadow-xl z-50 rounded-xl">
                                                 <div className="space-y-2">
-                                                    <p className="font-bold text-base">{center.name}</p>
+                                                    <p className="font-bold text-base text-[#c90000] dark:text-red-500">{center.name}</p>
                                                     {center.address && (
-                                                        <div className="flex items-start gap-2 text-sm text-gray-500 dark:text-muted-foreground">
+                                                        <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
                                                             <MapPin className="size-4 shrink-0 mt-0.5" />
                                                             <span>{center.address}</span>
                                                         </div>
                                                     )}
                                                     {center.opening_hours && Array.isArray(center.opening_hours) && center.opening_hours.length > 0 && (
-                                                        <div className="pt-2 border-t border-gray-100 dark:border-border mt-2">
-                                                            <p className="text-xs font-semibold mb-1 text-gray-500">Horario</p>
-                                                            <ul className="text-xs space-y-0.5">
-                                                                {center.opening_hours.map((h, i) => <li key={i}>{h}</li>)}
+                                                        <div className="pt-3 border-t border-gray-100 dark:border-white/10 mt-3">
+                                                            <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500 dark:text-gray-400">Horario</p>
+                                                            <ul className="text-xs space-y-1.5 text-gray-600 dark:text-gray-300">
+                                                                {center.opening_hours.map((h, i) => <li key={i} className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />{h}</li>)}
                                                             </ul>
                                                         </div>
                                                     )}
@@ -258,11 +258,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 </div>
                             </section>
                         )}
-
-
                     </div>
-
-
 
                     {/* Booking Sidebar */}
                     <div className="relative">
@@ -382,6 +378,71 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                             )}
                         </div>
                     </div>
+
+                    {/* Mobile Sales Centers Carousel (Hidden on desktop) */}
+                    {salesCentersDetails && salesCentersDetails.length > 0 && (
+                        <section className="block lg:hidden w-full overflow-hidden pt-2 pb-2">
+                            <h3 className="mb-6 text-xl font-bold flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-[#c90000]" />
+                                Puntos de venta autorizados
+                            </h3>
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    loop: true,
+                                }}
+                                plugins={[
+                                    Autoplay({
+                                        delay: 3500,
+                                    }),
+                                ]}
+                                className="w-full"
+                            >
+                                <CarouselContent className="-ml-3">
+                                    {salesCentersDetails.map((center, index) => (
+                                        <CarouselItem key={`mobile-sc-${index}`} className="pl-3 basis-[65%] sm:basis-[45%]">
+                                            <a
+                                                href={center.google_map_url || '#'}
+                                                target={center.google_map_url ? "_blank" : "_self"}
+                                                rel="noopener noreferrer"
+                                                className={`
+                                                    group relative flex flex-col items-center justify-center rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition-all dark:border-white/10 dark:bg-[#1a1c20] h-[140px] w-full
+                                                    ${!center.google_map_url ? 'cursor-default' : 'active:scale-95 hover:border-[#c90000]/30 dark:hover:border-white/30'}
+                                                `}
+                                            >
+                                                {center.is_legacy ? (
+                                                    <div className="flex flex-col items-center gap-3 text-center">
+                                                        <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
+                                                        <span className="text-sm font-bold leading-tight text-gray-800 dark:text-gray-200 line-clamp-2">
+                                                            {center.name}
+                                                        </span>
+                                                    </div>
+                                                ) : (center.logo_path ? (
+                                                    <div className="h-full flex items-center justify-center p-1 w-full relative">
+                                                        <img
+                                                            src={center.logo_path}
+                                                            alt={center.name}
+                                                            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-3 text-center">
+                                                        <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
+                                                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200 line-clamp-2">{center.name}</span>
+                                                    </div>
+                                                ))}
+                                                {center.address && (
+                                                    <div className="absolute bottom-3 left-0 w-full text-center px-2">
+                                                        <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 line-clamp-1">{center.address}</span>
+                                                    </div>
+                                                )}
+                                            </a>
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                            </Carousel>
+                        </section>
+                    )}
                 </div>
 
                 {/* Related Events Section (Mobile Slider / Desktop Grid) */}
