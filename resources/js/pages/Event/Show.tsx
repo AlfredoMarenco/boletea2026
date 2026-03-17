@@ -173,8 +173,8 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                 </div>
 
                 <div className="container mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start">
-                    {/* Main Content */}
-                    <div className="flex flex-col gap-8 lg:col-span-2 lg:gap-10">
+                    {/* Main Content (Acerca del Evento) */}
+                    <div className="flex flex-col gap-8 lg:col-span-2 lg:gap-10 order-2 lg:order-1">
                         {/* Description */}
                         <section>
                             <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
@@ -261,7 +261,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     </div>
 
                     {/* Booking Sidebar */}
-                    <div className="relative">
+                    <div className="relative order-1 lg:order-2">
                         <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
                             <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
@@ -381,7 +381,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                     {/* Mobile Sales Centers Carousel (Hidden on desktop) */}
                     {salesCentersDetails && salesCentersDetails.length > 0 && (
-                        <section className="block lg:hidden w-full overflow-hidden pt-2 pb-2">
+                        <section className="block lg:hidden w-full overflow-hidden pt-2 pb-2 order-3">
                             <h3 className="mb-6 text-xl font-bold flex items-center gap-2">
                                 <MapPin className="w-5 h-5 text-[#c90000]" />
                                 Puntos de venta autorizados
