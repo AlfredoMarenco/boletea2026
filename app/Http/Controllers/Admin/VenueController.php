@@ -11,7 +11,7 @@ class VenueController extends Controller
 {
     public function index()
     {
-        $venues = Venue::paginate(10);
+        $venues = Venue::latest()->get();
         return Inertia::render('Admin/Venues/Index', [
             'venues' => $venues
         ]);
