@@ -70,6 +70,16 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
         performances.find(p => p.PerformanceID.toString() === selectedPerformanceId),
         [selectedPerformanceId, performances]);
 
+    const displayDate = useMemo(() => {
+        if (performances.length > 0) {
+            return new Date(performances[0].PerformanceDateTime);
+        }
+        if (event.start_date) {
+            return new Date(event.start_date);
+        }
+        return null;
+    }, [performances, event.start_date]);
+
     // Sales Open State Logic
     const [isSalesOpen, setIsSalesOpen] = useState(
         !event.sales_start_date || new Date(event.sales_start_date) <= new Date()
@@ -136,13 +146,13 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-3">
-                                        {performances.length > 0 && (
+                                        {displayDate && (
                                             <div className="flex flex-col items-center justify-center bg-white rounded-xl p-2 min-w-[60px] shadow-lg">
                                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
-                                                    {format(new Date(performances[0].PerformanceDateTime), 'MMM', { locale: es }).replace('.', '')}
+                                                    {format(displayDate, 'MMM', { locale: es }).replace('.', '')}
                                                 </span>
                                                 <span className="text-2xl font-extrabold text-[#c90000] leading-none">
-                                                    {format(new Date(performances[0].PerformanceDateTime), 'dd')}
+                                                    {format(displayDate, 'dd')}
                                                 </span>
                                             </div>
                                         )}
@@ -353,6 +363,27 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     <p className="text-sm text-gray-500 dark:text-muted-foreground">
                                                         Horario: {format(new Date(performances[0].PerformanceDateTime), "h:mm a")}
                                                     </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : event.start_date ? (
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                Fecha del Evento
+                                            </label>
+                                            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
+                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                    <CalendarIcon className="size-6" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                        {format(new Date(event.start_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
+                                                    </p>
+                                                    {event.start_date.includes(':') && (
+                                                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                            Horario: {format(new Date(event.start_date), "h:mm a")}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
