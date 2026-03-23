@@ -26,23 +26,7 @@ class EventController extends Controller
         });
 
         // Merge and unique by ID, re-index values
-        $mergedCollection = $directSalesCenters->merge($groupSalesCenters)->unique('id')->values();
-
-        $salesCentersDetails = $mergedCollection->map(function ($center) {
-            return $center->toArray();
-        })->toArray();
-
-        // Append legacy sales centers if any exist
-        if (is_array($event->sales_centers)) {
-            foreach ($event->sales_centers as $legacyName) {
-                if (is_string($legacyName) && !empty(trim($legacyName))) {
-                    $salesCentersDetails[] = [
-                        'name' => trim($legacyName),
-                        'is_legacy' => true,
-                    ];
-                }
-            }
-        }
+        $salesCentersDetails = $directSalesCenters->merge($groupSalesCenters)->unique('id')->values();
 
         // Related Events Logic
         $relatedEvents = ExternalEvent::with(['venue', 'state', 'cityLocation', 'categories'])->where('id', '!=', $id)
