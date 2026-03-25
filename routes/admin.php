@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\SalesCenterGroupController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VenueController;
+use App\Http\Controllers\Admin\SiteSettingController;
 
 Route::get('/', function () {
     return Inertia::render('dashboard');
@@ -36,3 +37,7 @@ Route::resource('sales-center-groups', SalesCenterGroupController::class);
 Route::resource('categories', CategoryController::class);
 Route::resource('venues', VenueController::class);
 Route::resource('users', UserController::class);
+
+Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
+Route::post('settings', [SiteSettingController::class, 'update'])->name('settings.update');
+

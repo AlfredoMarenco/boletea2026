@@ -6,6 +6,7 @@ use App\Helpers\DistanceCalculator;
 use App\Models\Category;
 use App\Models\ExternalEvent;
 use App\Models\Venue;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -30,11 +31,18 @@ class HomeController extends Controller
             ->take(15)
             ->get();
 
+        $settings = SiteSetting::all()->pluck('value', 'key');
+        $showFeatured = ($settings['show_featured_events'] ?? '1') === '1';
+        $showNearby = ($settings['show_nearby_events'] ?? '1') === '1';
+
         // 1.5. Featured Events
-        $featuredEvents = (clone $baseQuery)
-            ->where('is_featured', true)
-            ->orderBy('start_date', 'asc')
-            ->get();
+        $featuredEvents = collect();
+        if ($showFeatured) {
+            $featuredEvents = (clone $baseQuery)
+                ->where('is_featured', true)
+                ->orderBy('start_date', 'asc')
+                ->get();
+        }
 
         // 2. Filtered Events (Main Grid - "Todos los eventos" or Search Results)
         $query = clone $baseQuery;
@@ -81,7 +89,7 @@ class HomeController extends Controller
             ($request->filled('category') && $request->category !== 'all') ||
             ($request->filled('date_start') && $request->filled('date_end'));
 
-        if (!$hasFilters && $userLocation) {
+        if ($showNearby && !$hasFilters && $userLocation) {
             $userLat = $userLocation['lat'] ?? null;
             $userLng = $userLocation['lng'] ?? null;
 
@@ -130,6 +138,8 @@ class HomeController extends Controller
             'nearbyEvents' => $nearbyEvents, // "Eventos cerca de ti"
             'featuredEvents' => $featuredEvents, // "Eventos Destacados"
             'carouselEvents' => $carouselEvents, // "Próximos eventos" (Carousel)
+            'showFeatured' => $showFeatured,
+            'showNearby' => $showNearby,
             'filters' => $request->all(['search', 'city', 'venue_id', 'category', 'date_start', 'date_end']),
             'options' => [
                 'cities' => $cities,

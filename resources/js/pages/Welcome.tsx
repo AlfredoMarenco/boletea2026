@@ -50,9 +50,11 @@ interface Props {
     events: ExternalEvent[];
     filters: Filters;
     options: FilterOptions;
+    showFeatured: boolean;
+    showNearby: boolean;
 }
 
-export default function Welcome({ canRegister, events: initialEvents, nearbyEvents, carouselEvents, featuredEvents, filters, options }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
+export default function Welcome({ canRegister, events: initialEvents, nearbyEvents, carouselEvents, featuredEvents, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
     return (
         <GeolocationProvider>
             <WelcomeContent
@@ -63,12 +65,14 @@ export default function Welcome({ canRegister, events: initialEvents, nearbyEven
                 featuredEvents={featuredEvents}
                 filters={filters}
                 options={options}
+                showFeatured={showFeatured}
+                showNearby={showNearby}
             />
         </GeolocationProvider>
     );
 }
 
-function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, featuredEvents, filters, options }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
+function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, featuredEvents, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
     const { city, state, country, latitude, longitude } = useGeolocation();
     const locationSentRef = useRef(false);
     const [showBanner, setShowBanner] = useState(false); // Inicia oculto para el delay
@@ -197,7 +201,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                 <div className="pb-16 bg-gray-50 dark:bg-background">
 
                     {/* Featured Events Section */}
-                    {featuredEvents && featuredEvents.length > 0 && (
+                    {showFeatured && featuredEvents && featuredEvents.length > 0 && (
                         <section className="pt-8 pb-4 border-b border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2 text-yellow-500">
@@ -219,7 +223,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                     )}
 
                     {/* Nearby Events Section */}
-                    {nearbyEvents && nearbyEvents.length > 0 && (
+                    {showNearby && nearbyEvents && nearbyEvents.length > 0 && (
                         <section className="pt-4 pb-12 border-b border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2">
