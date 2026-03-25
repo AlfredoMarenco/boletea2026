@@ -83,8 +83,33 @@ class EventImportService
                 $endDate = null;
                 $earliest = null;
                 $latest = null;
+                $cdvPrices = [];
 
                 foreach ($performances as $perf) {
+                    if (isset($perf['PerformancePrices']) && is_array($perf['PerformancePrices'])) {
+                        foreach ($perf['PerformancePrices'] as $categoryData) {
+                            $seatCategoryName = $categoryData['SeatCategoryName'] ?? 'General';
+                            if (isset($categoryData['Prices']) && is_array($categoryData['Prices'])) {
+                                foreach ($categoryData['Prices'] as $priceData) {
+                                    if (isset($priceData['PricingCode']) && $priceData['PricingCode'] === 'CDV') {
+                                        $priceAmt = $priceData['Price'] ?? 0;
+                                        $priceId = md5($seatCategoryName . '_' . $priceAmt);
+                                        
+                                        if (!isset($cdvPrices[$priceId])) {
+                                            $cdvPrices[$priceId] = [
+                                                'id' => $priceId,
+                                                'name' => $seatCategoryName,
+                                                'price' => $priceAmt,
+                                                'show' => false,
+                                                'sold_out' => false,
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (!empty($perf['PerformanceDateTime'])) {
                         try {
                             $dt = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceDateTime']);
@@ -137,6 +162,17 @@ class EventImportService
                 // Always update system/logistics fields
                 $externalEvent->venue_id = $venueId;
                 $externalEvent->raw_data = $performances;
+
+                // Merge CDV Prices
+                $existingCdvPrices = is_array($externalEvent->cdv_prices) ? collect($externalEvent->cdv_prices)->keyBy('id')->toArray() : [];
+                foreach ($cdvPrices as $id => $newPrice) {
+                    if (isset($existingCdvPrices[$id])) {
+                        // Preserve UI toggles if they exist
+                        $cdvPrices[$id]['show'] = $existingCdvPrices[$id]['show'] ?? false;
+                        $cdvPrices[$id]['sold_out'] = $existingCdvPrices[$id]['sold_out'] ?? false;
+                    }
+                }
+                $externalEvent->cdv_prices = array_values($cdvPrices);
 
                 // Sync API Image if local image is empty (fallback)
                 if (empty($externalEvent->image_path) && isset($eventData['EventImage']) && !empty($eventData['EventImage'])) {

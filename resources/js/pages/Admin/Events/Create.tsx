@@ -33,6 +33,7 @@ interface ExternalEvent {
     sales_centers: number[] | null;
     sales_center_groups?: number[] | null;
     categories?: number[] | null;
+    cdv_prices?: any[] | null;
 }
 
 interface SalesCenter {
@@ -98,6 +99,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
         sales_centers: [],
         sales_center_groups: [],
         categories: [],
+        cdv_prices: [],
     });
 
     transform((data) => {
@@ -403,7 +405,68 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 </SelectContent>
                             </Select>
                             {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
-                            {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
+                        </div>
+
+                        {/* CDV Prices Section */}
+                        <div className="space-y-4 border-t pt-4">
+                            <Label>Precios CDV (Sincronizados)</Label>
+                            {data.cdv_prices && data.cdv_prices.length > 0 ? (
+                                <>
+                                    <div className="flex flex-col gap-3">
+                                        {data.cdv_prices
+                                            .map((price: any, i: number) => ({ ...price, originalIndex: i }))
+                                            .sort((a: any, b: any) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0))
+                                            .map((price: any) => {
+                                                const index = price.originalIndex;
+                                                return (
+                                                    <div key={price.id} className="p-4 border rounded-lg bg-gray-50 dark:bg-card shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div>
+                                                    <p className="font-medium text-sm text-gray-800 dark:text-gray-200">{price.name}</p>
+                                                    <p className="text-lg font-bold text-gray-900 dark:text-white">{(parseFloat(price.price) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}</p>
+                                                </div>
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-3 sm:pt-0 border-t border-dashed dark:border-gray-700 sm:border-0 sm:pl-4 sm:ml-auto">
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`show-${price.id}`}
+                                                            checked={price.show === true || String(price.show) === 'true' || String(price.show) === '1'}
+                                                            onCheckedChange={(checked) => {
+                                                                const newPrices = [...data.cdv_prices];
+                                                                newPrices[index].show = !!checked;
+                                                                setData('cdv_prices', newPrices);
+                                                            }}
+                                                        />
+                                                        <label htmlFor={`show-${price.id}`} className="text-sm cursor-pointer text-gray-700 dark:text-gray-300">
+                                                            Mostrar al público
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`soldout-${price.id}`}
+                                                            checked={price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1'}
+                                                            onCheckedChange={(checked) => {
+                                                                const newPrices = [...data.cdv_prices];
+                                                                newPrices[index].sold_out = !!checked;
+                                                                setData('cdv_prices', newPrices);
+                                                            }}
+                                                        />
+                                                        <label htmlFor={`soldout-${price.id}`} className="text-sm cursor-pointer text-red-600 dark:text-red-400 font-medium whitespace-nowrap">
+                                                            Marcar como Agotado
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                                );
+                                            })}
+                                    </div>
+                                    <p className="text-xs text-gray-500">
+                                        Estos precios provienen de la sincronización. Puedes elegir cuáles mostrar y si ya están agotados.
+                                    </p>
+                                </>
+                            ) : (
+                                <div className="p-6 border border-dashed rounded-lg bg-gray-50 dark:bg-card text-center text-gray-500 dark:text-gray-400 text-sm">
+                                    No hay precios CDV sincronizados para este evento aún. (Al sincronizar desde la API se mostrarán aquí).
+                                </div>
+                            )}
                         </div>
 
                         {salesCenters && salesCenters.length > 0 && (

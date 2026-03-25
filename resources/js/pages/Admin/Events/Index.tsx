@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
 import {
     Table,
     TableBody,
@@ -44,11 +46,27 @@ interface Props {
     events: PaginatedData<ExternalEvent>;
     filters: {
         show_past: boolean;
+        search?: string | null;
     };
 }
 
 export default function Index({ events, filters }: Props) {
     const { post, processing } = useForm();
+    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (searchQuery !== (filters?.search || '')) {
+                router.get(
+                    route('admin.events.index'),
+                    { show_past: filters?.show_past, search: searchQuery },
+                    { preserveState: true, preserveScroll: true, replace: true }
+                );
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchQuery, filters?.show_past, filters?.search]);
 
     const handleSync = () => {
         post(route('admin.events.sync'));
@@ -57,7 +75,7 @@ export default function Index({ events, filters }: Props) {
     const handleTogglePast = (checked: boolean) => {
         router.get(
             route('admin.events.index'),
-            { show_past: checked },
+            { show_past: checked, search: filters?.search },
             { preserveState: true, preserveScroll: true }
         );
     };
@@ -67,18 +85,26 @@ export default function Index({ events, filters }: Props) {
             <Head title="Administrar Eventos" />
 
             <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                         Eventos Externos
                     </h1>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-border pr-6">
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="w-full lg:w-64">
+                            <Input
+                                type="text"
+                                placeholder="Buscar evento..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 border-l border-gray-200 dark:border-border pl-4">
                             <Switch
                                 id="show-past"
                                 checked={filters?.show_past}
                                 onCheckedChange={handleTogglePast}
                             />
-                            <Label htmlFor="show-past" className="cursor-pointer text-sm font-medium">
+                            <Label htmlFor="show-past" className="cursor-pointer text-sm font-medium whitespace-nowrap">
                                 Mostrar pasados
                             </Label>
                         </div>

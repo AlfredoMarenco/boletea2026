@@ -27,6 +27,7 @@ class ExternalEvent extends Model
         'raw_data',
         'sales_centers',
         'performance_url',
+        'cdv_prices',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class ExternalEvent extends Model
         'sales_start_date' => 'datetime',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'cdv_prices' => 'array',
     ];
 
     /**

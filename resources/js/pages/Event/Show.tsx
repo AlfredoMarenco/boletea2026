@@ -50,6 +50,16 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
         performances.length === 1 ? performances[0].PerformanceID.toString() : undefined
     );
 
+    const visibleCdvPrices = useMemo(() => {
+        const prices = (event as any).cdv_prices;
+        if (!prices || !Array.isArray(prices)) return [];
+        return prices
+            .filter((p: any) => p.show === true || String(p.show) === 'true' || String(p.show) === '1')
+            .sort((a: any, b: any) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+    }, [event]);
+
+    const [isPricesExpanded, setIsPricesExpanded] = useState(() => visibleCdvPrices.length <= 4 && visibleCdvPrices.length > 0);
+
     // Calendar Logic
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -203,6 +213,71 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 }}
                             />
                         </section>
+
+                        {/* CDV Prices */}
+                        {visibleCdvPrices.length > 0 && (
+                            <section className="relative rounded-2xl border border-[#c90000]/20 bg-white/50 dark:bg-[#1a1c20]/50 p-6 shadow-lg shadow-[#c90000]/5 overflow-hidden transition-all duration-300">
+                                {/* Pulse Glow Effect Background */}
+                                <div className="absolute inset-0 bg-[#c90000]/5 animate-pulse pointer-events-none"></div>
+
+                                <button 
+                                    onClick={() => setIsPricesExpanded(!isPricesExpanded)}
+                                    className="relative z-10 w-full flex items-center justify-between group outline-none"
+                                >
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000] group-hover:scale-110 transition-transform">
+                                            <Ticket className="size-4 sm:size-5" />
+                                        </div>
+                                        <h3 className="text-lg sm:text-xl font-bold lg:text-3xl text-gray-900 dark:text-white">Zonas y Precios</h3>
+                                        {!isPricesExpanded && (
+                                            <Badge className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs bg-[#c90000] text-white hover:bg-[#a00000] animate-pulse border-none">
+                                                Ver {visibleCdvPrices.length} precios
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="text-gray-400 group-hover:text-[#c90000] transition-colors rounded-full bg-gray-100 p-2 dark:bg-white/5">
+                                        <svg className={`w-6 h-6 transform transition-transform duration-300 ${isPricesExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                                
+                                <div className={`relative z-10 grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out ${isPricesExpanded ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                                    <div className="overflow-hidden">
+                                        <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto overflow-x-hidden pr-3 pb-2 rounded-b-xl" style={{ scrollbarWidth: 'thin' }}>
+                                            {visibleCdvPrices.map((price: any) => (
+                                                <div 
+                                                    key={price.id} 
+                                                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl border border-gray-200/60 bg-white dark:bg-[#1a1c20] dark:border-white/10 hover:border-[#c90000]/30 hover:shadow-md transition-all ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'opacity-60 saturate-0 hover:shadow-none pointer-events-none' : 'hover:-translate-y-0.5'}`}
+                                                >
+                                                    <div className="flex items-center gap-2.5 sm:gap-3">
+                                                        <Ticket className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'text-gray-400 dark:text-gray-600' : 'text-[#c90000]'}`} />
+                                                        <span className={`font-bold text-sm sm:text-base text-gray-800 dark:text-gray-200 leading-tight ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'line-through decoration-gray-400 dark:decoration-gray-600' : ''}`}>
+                                                            {price.name}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-end sm:items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2.5 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-white/5">
+                                                        {(price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1') && (
+                                                            <Badge variant="secondary" className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-none whitespace-nowrap text-[10px] sm:text-xs">
+                                                                Agotado
+                                                            </Badge>
+                                                        )}
+                                                        <div className="flex flex-col items-end leading-none ml-auto">
+                                                            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500 mb-0.5">
+                                                                desde
+                                                            </span>
+                                                            <span className={`text-lg sm:text-xl font-black ${(price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1') ? 'text-gray-500 dark:text-gray-500 line-through decoration-gray-400' : 'text-[#c90000] dark:text-red-500'}`}>
+                                                                {(parseFloat(price.price) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
 
 

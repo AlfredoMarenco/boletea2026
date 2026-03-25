@@ -19,8 +19,13 @@ class ExternalEventController extends Controller
     public function index(Request $request)
     {
         $showPast = $request->boolean('show_past', false);
+        $search = $request->input('search');
 
         $query = ExternalEvent::query();
+
+        if ($search) {
+            $query->where('title', 'like', "%{$search}%");
+        }
 
         if (!$showPast) {
             // Include active/upcoming events
@@ -46,6 +51,7 @@ class ExternalEventController extends Controller
             'events' => $events,
             'filters' => [
                 'show_past' => $showPast,
+                'search' => $search,
             ]
         ]);
     }
@@ -115,6 +121,7 @@ class ExternalEventController extends Controller
             'sales_center_groups' => 'nullable|array',
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
+            'cdv_prices' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -174,6 +181,7 @@ class ExternalEventController extends Controller
             'sales_center_groups' => 'nullable|array',
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
+            'cdv_prices' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
