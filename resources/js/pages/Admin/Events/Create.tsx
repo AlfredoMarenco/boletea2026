@@ -100,6 +100,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
         sales_center_groups: [],
         categories: [],
         cdv_prices: [],
+        is_featured: false,
     });
 
     transform((data) => {
@@ -405,6 +406,28 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 </SelectContent>
                             </Select>
                             {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2 border p-4 rounded-lg bg-gray-50 dark:bg-card">
+                                <Checkbox
+                                    id="is_featured"
+                                    checked={data.is_featured}
+                                    onCheckedChange={(checked) => setData('is_featured', !!checked)}
+                                />
+                                <div className="space-y-1 leading-none">
+                                    <label
+                                        htmlFor="is_featured"
+                                        className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-800 dark:text-gray-200"
+                                    >
+                                        Evento Destacado
+                                    </label>
+                                    <p className="text-sm text-gray-500">
+                                        Activa esta opción para mostrar este evento en la sección de destacados al inicio.
+                                    </p>
+                                </div>
+                            </div>
+                            {errors.is_featured && <p className="text-red-500 text-sm">{errors.is_featured}</p>}
                         </div>
 
                         {/* CDV Prices Section */}

@@ -18,14 +18,22 @@ class HomeController extends Controller
         $baseQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
             ->where('status', 'published')
             ->where(function ($q) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now());
+                $q->where(function ($sq) {
+                    $sq->whereNull('end_date')
+                       ->where('start_date', '>=', now()->startOfDay());
+                })->orWhere('end_date', '>=', now()->startOfDay());
             });
 
-        // 1. Carousel Events (Always upcoming, sorted by start_date)
         $carouselEvents = (clone $baseQuery)
+            ->orderByDesc('is_featured')
             ->orderBy('start_date', 'asc')
-            ->take(5)
+            ->take(15)
+            ->get();
+
+        // 1.5. Featured Events
+        $featuredEvents = (clone $baseQuery)
+            ->where('is_featured', true)
+            ->orderBy('start_date', 'asc')
             ->get();
 
         // 2. Filtered Events (Main Grid - "Todos los eventos" or Search Results)
@@ -120,6 +128,7 @@ class HomeController extends Controller
             'canRegister' => Features::enabled(Features::registration()),
             'events' => $allEvents, // "Todos los eventos" / Filtered results
             'nearbyEvents' => $nearbyEvents, // "Eventos cerca de ti"
+            'featuredEvents' => $featuredEvents, // "Eventos Destacados"
             'carouselEvents' => $carouselEvents, // "Próximos eventos" (Carousel)
             'filters' => $request->all(['search', 'city', 'venue_id', 'category', 'date_start', 'date_end']),
             'options' => [

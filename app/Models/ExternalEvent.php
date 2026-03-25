@@ -28,6 +28,7 @@ class ExternalEvent extends Model
         'sales_centers',
         'performance_url',
         'cdv_prices',
+        'is_featured',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class ExternalEvent extends Model
         'start_date' => 'datetime',
         'end_date' => 'datetime',
         'cdv_prices' => 'array',
+        'is_featured' => 'boolean',
     ];
 
     /**

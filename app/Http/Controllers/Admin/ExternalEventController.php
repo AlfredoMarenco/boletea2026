@@ -122,6 +122,7 @@ class ExternalEventController extends Controller
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
             'cdv_prices' => 'nullable|array',
+            'is_featured' => 'boolean',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -182,6 +183,7 @@ class ExternalEventController extends Controller
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
             'cdv_prices' => 'nullable|array',
+            'is_featured' => 'boolean',
         ]);
 
         if ($request->hasFile('image_path')) {
