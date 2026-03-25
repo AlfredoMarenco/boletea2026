@@ -25,6 +25,8 @@ export interface ExternalEvent {
     sales_start_date?: string | null;
     button_text?: string | null;
     distance_km?: number | null;
+    performance_url?: string | null;
+    redirect_external?: boolean;
     venue?: {
         name: string;
         city?: string;

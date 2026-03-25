@@ -37,6 +37,7 @@ interface ExternalEvent {
     categories?: number[] | null;
     cdv_prices?: any[] | null;
     is_featured?: boolean;
+    redirect_external?: boolean;
 }
 
 interface SalesCenter {
@@ -105,6 +106,7 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
         categories: ((event as any).categories as number[]) || [],
         cdv_prices: (event.cdv_prices as any[]) || [],
         is_featured: event.is_featured || false,
+        redirect_external: event.redirect_external || false,
     });
 
     transform((data) => {
@@ -203,6 +205,28 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 placeholder="https://boletea.com/... o liga de iframe"
                             />
                             {errors.performance_url && <p className="text-red-500 text-sm">{errors.performance_url}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center space-x-2 border p-4 rounded-lg bg-gray-50 dark:bg-card">
+                                <Checkbox
+                                    id="redirect_external"
+                                    checked={data.redirect_external}
+                                    onCheckedChange={(checked) => setData('redirect_external', !!checked)}
+                                />
+                                <div className="space-y-1 leading-none">
+                                    <label
+                                        htmlFor="redirect_external"
+                                        className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-800 dark:text-gray-200"
+                                    >
+                                        Redirección Directa
+                                    </label>
+                                    <p className="text-sm text-gray-500">
+                                        Al activarlo, el usuario irá directo al link externo en vez de a la página de detalle.
+                                    </p>
+                                </div>
+                            </div>
+                            {errors.redirect_external && <p className="text-red-500 text-sm">{errors.redirect_external}</p>}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

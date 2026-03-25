@@ -124,7 +124,6 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                 // Reload to get sorted events
                 router.reload({
                     only: ['events', 'nearbyEvents', 'featuredEvents'],
-                    preserveScroll: true,
                 });
             }).catch(err => {
                 console.error('Failed to update location session', err);
@@ -173,18 +172,33 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                                     <CarouselContent>
                                         {carouselEvents && carouselEvents.map((event) => (
                                             <CarouselItem key={event.id}>
-                                                <Link href={route('event.show', event.slug || event.id)} className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl">
-                                                    {event.image_path ? (
-                                                        <img src={event.image_path} alt={event.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                                    ) : (
-                                                        <div className="flex h-full w-full items-center justify-center bg-gray-800"><span className="text-gray-400">Sin Imagen</span></div>
-                                                    )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60"></div>
-                                                    <div className="absolute bottom-0 left-0 p-6 text-white">
-                                                        <h3 className="text-2xl font-bold">{event.title.replace(/^[A-Z0-9]+\s+/, '')}</h3>
-                                                        <p className="text-gray-300">{event.city}</p>
-                                                    </div>
-                                                </Link>
+                                                {event.redirect_external && event.performance_url ? (
+                                                    <a href={event.performance_url} target="_blank" rel="noopener noreferrer" className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl">
+                                                        {event.image_path ? (
+                                                            <img src={event.image_path} alt={event.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center bg-gray-800"><span className="text-gray-400">Sin Imagen</span></div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60"></div>
+                                                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                                                            <h3 className="text-2xl font-bold">{event.title.replace(/^[A-Z0-9]+\s+/, '')}</h3>
+                                                            <p className="text-gray-300">{event.city}</p>
+                                                        </div>
+                                                    </a>
+                                                ) : (
+                                                    <Link href={route('event.show', event.slug || event.id)} className="group relative block aspect-[5/4] w-full overflow-hidden rounded-2xl">
+                                                        {event.image_path ? (
+                                                            <img src={event.image_path} alt={event.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                        ) : (
+                                                            <div className="flex h-full w-full items-center justify-center bg-gray-800"><span className="text-gray-400">Sin Imagen</span></div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60"></div>
+                                                        <div className="absolute bottom-0 left-0 p-6 text-white">
+                                                            <h3 className="text-2xl font-bold">{event.title.replace(/^[A-Z0-9]+\s+/, '')}</h3>
+                                                            <p className="text-gray-300">{event.city}</p>
+                                                        </div>
+                                                    </Link>
+                                                )}
                                             </CarouselItem>
                                         ))}
                                     </CarouselContent>

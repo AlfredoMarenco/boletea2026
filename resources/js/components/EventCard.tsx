@@ -64,9 +64,15 @@ export default function EventCard({ event }: { event: ExternalEvent }) {
                     <span className="line-clamp-1">{event.city_location?.name}{event.state ? `, ${event.state.name}` : ''}</span>
                 </div>
                 <div className="mt-auto pt-2 sm:pt-4 border-t border-gray-100">
-                    <Link href={route('event.show', event.slug || event.id)} className="block w-full rounded-md sm:rounded-xl bg-gray-900 py-1.5 sm:py-3 text-center text-[11px] sm:text-sm font-bold text-white transition-colors hover:bg-[#c90000]">
-                        Comprar
-                    </Link>
+                    {event.redirect_external && event.performance_url ? (
+                        <a href={event.performance_url} target="_blank" rel="noopener noreferrer" className="block w-full rounded-md sm:rounded-xl bg-gray-900 py-1.5 sm:py-3 text-center text-[11px] sm:text-sm font-bold text-white transition-colors hover:bg-[#c90000]">
+                            Comprar
+                        </a>
+                    ) : (
+                        <Link href={route('event.show', event.slug || event.id)} className="block w-full rounded-md sm:rounded-xl bg-gray-900 py-1.5 sm:py-3 text-center text-[11px] sm:text-sm font-bold text-white transition-colors hover:bg-[#c90000]">
+                            Comprar
+                        </Link>
+                    )}
                 </div>
             </div>
         </div>

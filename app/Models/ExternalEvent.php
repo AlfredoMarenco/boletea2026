@@ -29,6 +29,7 @@ class ExternalEvent extends Model
         'performance_url',
         'cdv_prices',
         'is_featured',
+        'redirect_external',
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class ExternalEvent extends Model
         'end_date' => 'datetime',
         'cdv_prices' => 'array',
         'is_featured' => 'boolean',
+        'redirect_external' => 'boolean',
     ];
 
     /**
