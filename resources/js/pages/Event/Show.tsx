@@ -486,55 +486,54 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                     )}
                                 </div>
                             ) : (
-                                [...performances]
-                                    .sort((a, b) => {
-                                        const descA = event.performance_descriptions?.[a.PerformanceID] as any;
-                                        const descB = event.performance_descriptions?.[b.PerformanceID] as any;
-                                        const orderA = typeof descA === 'object' ? (descA?.order ?? 999) : 999;
-                                        const orderB = typeof descB === 'object' ? (descB?.order ?? 999) : 999;
-                                        return orderA - orderB;
-                                    })
-                                    .map((perf) => {
-                                    const desc = event.performance_descriptions?.[perf.PerformanceID] as any;
-                                    const titleStr = typeof desc === 'string' ? desc : (desc?.title || 'Reserva tus Boletos');
-                                    const subtitleStr = typeof desc === 'object' && desc?.subtitle ? desc.subtitle : format(new Date(perf.PerformanceDateTime), "EEEE d 'de' MMMM yyyy", { locale: es });
+                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
+                                    <h3 className="mb-6 text-xl font-bold text-[#c90000] dark:text-red-500">
+                                        Reserva tus Boletos
+                                    </h3>
+                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                        {[...performances]
+                                            .sort((a, b) => {
+                                                const descA = event.performance_descriptions?.[a.PerformanceID] as any;
+                                                const descB = event.performance_descriptions?.[b.PerformanceID] as any;
+                                                const orderA = typeof descA === 'object' ? (descA?.order ?? 999) : 999;
+                                                const orderB = typeof descB === 'object' ? (descB?.order ?? 999) : 999;
+                                                return orderA - orderB;
+                                            })
+                                            .map((perf) => {
+                                                const desc = event.performance_descriptions?.[perf.PerformanceID] as any;
+                                                const titleStr = typeof desc === 'string' ? desc : (desc?.title || event.button_text || 'Comprar Boletos');
+                                                const subtitleStr = typeof desc === 'object' && desc?.subtitle ? desc.subtitle : format(new Date(perf.PerformanceDateTime), "EEEE d 'de' MMMM yyyy", { locale: es });
 
-                                    return (
-                                        <div key={perf.PerformanceID} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card transition-all hover:shadow-2xl hover:border-[#c90000]/30 animate-in fade-in slide-in-from-bottom-4">
-                                            <h3 className="mb-4 text-xl font-bold text-[#c90000] dark:text-red-500">
-                                                {titleStr}
-                                            </h3>
-                                            <div className="space-y-6">
-                                                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
-                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
-                                                        <CalendarIcon className="size-6" />
+                                                return (
+                                                    <div key={perf.PerformanceID} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 dark:border-border/50 dark:bg-white/5 transition-all hover:border-[#c90000]/30 hover:shadow-md">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                                <CalendarIcon className="size-6" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-gray-900 dark:text-white capitalize">
+                                                                    {subtitleStr}
+                                                                </p>
+                                                                <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                                    Horario: {format(new Date(perf.PerformanceDateTime), "h:mm a")}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <Button
+                                                            className="w-full sm:w-auto h-12 px-6 font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-md shadow-red-600/20"
+                                                            onClick={() => {
+                                                                window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${perf.PerformanceID}`;
+                                                            }}
+                                                        >
+                                                            <Ticket className="mr-2 h-5 w-5" />
+                                                            {titleStr}
+                                                        </Button>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-bold text-gray-900 dark:text-white capitalize">
-                                                            {subtitleStr}
-                                                        </p>
-                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                        Horario: {format(new Date(perf.PerformanceDateTime), "h:mm a")}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            
-                                            <Button
-                                                className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
-                                                onClick={() => {
-                                                    window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${perf.PerformanceID}`;
-                                                }}
-                                            >
-                                                <Ticket className="mr-2 h-5 w-5" />
-                                                {event.button_text || 'Comprar Boletos'}
-                                            </Button>
-
-                                            <p className="text-xs text-center text-gray-400">
-                                                Pagos procesados de forma segura
-                                            </p>
-                                        </div>
+                                                );
+                                            })}
                                     </div>
-                                )})
+                                </div>
                             )}
                         </div>
                     </div>
