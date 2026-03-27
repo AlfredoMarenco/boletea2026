@@ -38,6 +38,10 @@ interface ExternalEvent {
     cdv_prices?: any[] | null;
     is_featured?: boolean;
     redirect_external?: boolean;
+    show_calendar?: boolean;
+    calendar_description?: string | null;
+    performance_descriptions?: Record<string, { title?: string; subtitle?: string } | string> | null;
+    raw_data?: any;
 }
 
 interface SalesCenter {
@@ -107,6 +111,9 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
         cdv_prices: (event.cdv_prices as any[]) || [],
         is_featured: event.is_featured || false,
         redirect_external: event.redirect_external || false,
+        show_calendar: event.show_calendar ?? true,
+        calendar_description: event.calendar_description || '',
+        performance_descriptions: event.performance_descriptions || {},
     });
 
     transform((data) => {
@@ -467,6 +474,104 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 </div>
                             </div>
                             {errors.is_featured && <p className="text-red-500 text-sm">{errors.is_featured}</p>}
+                        </div>
+
+                        {/* Calendar Config */}
+                        <div className="space-y-4 border-t pt-4">
+                            <Label>Configuración de Calendario (Eventos multifunción)</Label>
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-2 border p-4 rounded-lg bg-gray-50 dark:bg-card">
+                                    <Checkbox
+                                        id="show_calendar"
+                                        checked={data.show_calendar}
+                                        onCheckedChange={(checked) => setData('show_calendar', !!checked)}
+                                    />
+                                    <div className="space-y-1 leading-none">
+                                        <label
+                                            htmlFor="show_calendar"
+                                            className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-800 dark:text-gray-200"
+                                        >
+                                            Mostrar calendario para seleccionar fecha
+                                        </label>
+                                        <p className="text-sm text-gray-500">
+                                            Si se desactiva, el calendario se oculta y puedes personalizar el texto por cada recuadro inferior de función.
+                                        </p>
+                                    </div>
+                                </div>
+                                {errors.show_calendar && <p className="text-red-500 text-sm">{errors.show_calendar}</p>}
+
+                                {!data.show_calendar && (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border rounded-lg p-4 bg-gray-50 dark:bg-card">
+                                        <Label>Textos personalizados por función (Recuadros de Reserva)</Label>
+                                        <p className="text-xs text-gray-500 mb-4">
+                                            Escribe el título/texto corto que aparecerá en el recuadro de cada fecha. Ej: "Reserva tus boletos" o "Función de Estreno".
+                                        </p>
+                                        
+                                        {event.raw_data && Array.isArray(event.raw_data) && event.raw_data.length > 0 ? (
+                                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+                                                {event.raw_data.map((perf: any) => {
+                                                    const perfDesc = data.performance_descriptions?.[perf.PerformanceID] || {};
+                                                    return (
+                                                        <div key={perf.PerformanceID} className="flex flex-col gap-3 p-4 bg-white dark:bg-background border rounded-lg shadow-sm">
+                                                            <div className="flex items-center gap-2">
+                                                                <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                                    Función {format(new Date(perf.PerformanceDateTime), "dd MMM yyyy - h:mm a")}
+                                                                </Label>
+                                                                {perf.PerformanceName && (
+                                                                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+                                                                        {perf.PerformanceName}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs text-gray-500">Título del Botón/Recuadro</Label>
+                                                                    <Input
+                                                                        value={typeof perfDesc === 'string' ? perfDesc : (perfDesc.title || '')}
+                                                                        onChange={(e) => {
+                                                                            const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
+                                                                                ? (data.performance_descriptions[perf.PerformanceID] as any) 
+                                                                                : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
+                                                                            setData('performance_descriptions', {
+                                                                                ...(data.performance_descriptions || {}),
+                                                                                [perf.PerformanceID]: { ...current, title: e.target.value }
+                                                                            });
+                                                                        }}
+                                                                        placeholder="Ej. Reserva tus Boletos"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label className="text-xs text-gray-500">Subtítulo (Fecha/Información)</Label>
+                                                                    <Input
+                                                                        value={typeof perfDesc === 'string' ? '' : (perfDesc.subtitle || '')}
+                                                                        onChange={(e) => {
+                                                                            const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
+                                                                                ? (data.performance_descriptions[perf.PerformanceID] as any) 
+                                                                                : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
+                                                                            setData('performance_descriptions', {
+                                                                                ...(data.performance_descriptions || {}),
+                                                                                [perf.PerformanceID]: { ...current, subtitle: e.target.value }
+                                                                            });
+                                                                        }}
+                                                                        placeholder="Ej. domingo 12 de julio 2026"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 border border-dashed rounded-md text-sm text-gray-500 dark:text-gray-400 text-center">
+                                                Este evento no tiene funciones sincronizadas aún para personalizar.
+                                            </div>
+                                        )}
+                                        {/* @ts-ignore */}
+                                        {errors.performance_descriptions && <p className="text-red-500 text-sm">{errors.performance_descriptions}</p>}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* CDV Prices Section */}

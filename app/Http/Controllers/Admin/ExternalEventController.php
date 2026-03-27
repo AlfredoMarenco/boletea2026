@@ -124,6 +124,9 @@ class ExternalEventController extends Controller
             'cdv_prices' => 'nullable|array',
             'is_featured' => 'boolean',
             'redirect_external' => 'boolean',
+            'show_calendar' => 'boolean',
+            'calendar_description' => 'nullable|string',
+            'performance_descriptions' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -186,6 +189,9 @@ class ExternalEventController extends Controller
             'cdv_prices' => 'nullable|array',
             'is_featured' => 'boolean',
             'redirect_external' => 'boolean',
+            'show_calendar' => 'boolean',
+            'calendar_description' => 'nullable|string',
+            'performance_descriptions' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {

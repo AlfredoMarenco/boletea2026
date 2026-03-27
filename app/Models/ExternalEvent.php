@@ -30,6 +30,9 @@ class ExternalEvent extends Model
         'cdv_prices',
         'is_featured',
         'redirect_external',
+        'show_calendar',
+        'calendar_description',
+        'performance_descriptions',
     ];
 
     protected $casts = [
@@ -41,6 +44,8 @@ class ExternalEvent extends Model
         'cdv_prices' => 'array',
         'is_featured' => 'boolean',
         'redirect_external' => 'boolean',
+        'show_calendar' => 'boolean',
+        'performance_descriptions' => 'array',
     ];
 
     /**

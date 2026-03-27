@@ -34,6 +34,9 @@ interface ExternalEvent {
     sales_center_groups?: number[] | null;
     categories?: number[] | null;
     cdv_prices?: any[] | null;
+    show_calendar?: boolean;
+    calendar_description?: string | null;
+    performance_descriptions?: Record<string, { title?: string; subtitle?: string } | string> | null;
 }
 
 interface SalesCenter {
@@ -102,6 +105,9 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
         cdv_prices: [],
         is_featured: false,
         redirect_external: false,
+        show_calendar: true,
+        calendar_description: '',
+        performance_descriptions: {},
     });
 
     transform((data) => {
@@ -451,6 +457,44 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 </div>
                             </div>
                             {errors.is_featured && <p className="text-red-500 text-sm">{errors.is_featured}</p>}
+                        </div>
+
+                        {/* Calendar Config */}
+                        <div className="space-y-4 border-t pt-4">
+                            <Label>Configuración de Calendario (Eventos multifunción)</Label>
+                            <div className="space-y-4">
+                                <div className="flex items-center space-x-2 border p-4 rounded-lg bg-gray-50 dark:bg-card">
+                                    <Checkbox
+                                        id="show_calendar"
+                                        checked={data.show_calendar}
+                                        onCheckedChange={(checked) => setData('show_calendar', !!checked)}
+                                    />
+                                    <div className="space-y-1 leading-none">
+                                        <label
+                                            htmlFor="show_calendar"
+                                            className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-gray-800 dark:text-gray-200"
+                                        >
+                                            Mostrar calendario para seleccionar fecha
+                                        </label>
+                                        <p className="text-sm text-gray-500">
+                                            Si se desactiva, el calendario se oculta y puedes personalizar el texto por cada recuadro inferior de función.
+                                        </p>
+                                    </div>
+                                </div>
+                                {errors.show_calendar && <p className="text-red-500 text-sm">{errors.show_calendar}</p>}
+
+                                {!data.show_calendar && (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 border rounded-lg p-4 bg-gray-50 dark:bg-card">
+                                        <Label>Textos personalizados por función (Recuadros de Reserva)</Label>
+                                        <p className="text-xs text-gray-500 mb-4">
+                                            Escribe el título/texto corto que aparecerá en el recuadro de cada fecha. Ej: "Reserva tus boletos" o "Función de Estreno".
+                                        </p>
+                                        <div className="p-4 border border-dashed rounded-md text-sm text-gray-500 dark:text-gray-400 text-center">
+                                            Guarda el evento y sincroniza las funciones desde la API para poder personalizar los textos por cada recuadro.
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* CDV Prices Section */}

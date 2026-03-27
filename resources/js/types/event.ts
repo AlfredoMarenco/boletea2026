@@ -27,6 +27,9 @@ export interface ExternalEvent {
     distance_km?: number | null;
     performance_url?: string | null;
     redirect_external?: boolean;
+    show_calendar?: boolean;
+    calendar_description?: string | null;
+    performance_descriptions?: Record<string, { title?: string; subtitle?: string } | string> | null;
     venue?: {
         name: string;
         city?: string;

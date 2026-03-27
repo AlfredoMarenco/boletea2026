@@ -347,140 +347,186 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                     {/* Booking Sidebar */}
                     <div className="relative order-1 lg:order-2">
-                        <div className="sticky top-24 rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
-                            <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
+                        <div className="sticky top-24 flex flex-col gap-6">
+                            {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
+                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
+                                    <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
-                            {/* SALES START DATE CHECK */}
-                            {!isSalesOpen && event.sales_start_date ? (
-                                <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4">
-                                    <div className="rounded-xl bg-[#c90000]/5 p-6 border border-[#c90000]/10">
-                                        <h4 className="text-lg font-bold text-[#c90000] mb-2">Próximamente a la venta</h4>
-                                        <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
-                                            La venta de boletos comenzará el:
-                                        </p>
-                                        <p className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                                            {format(new Date(event.sales_start_date), "d 'de' MMMM 'a las' h:mm a", { locale: es })}
-                                        </p>
+                                    {/* SALES START DATE CHECK */}
+                                    {!isSalesOpen && event.sales_start_date ? (
+                                        <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4">
+                                            <div className="rounded-xl bg-[#c90000]/5 p-6 border border-[#c90000]/10">
+                                                <h4 className="text-lg font-bold text-[#c90000] mb-2">Próximamente a la venta</h4>
+                                                <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
+                                                    La venta de boletos comenzará el:
+                                                </p>
+                                                <p className="text-xl font-bold text-gray-900 dark:text-white mb-6">
+                                                    {format(new Date(event.sales_start_date), "d 'de' MMMM 'a las' h:mm a", { locale: es })}
+                                                </p>
 
-                                        <div className="grid grid-cols-4 gap-2 text-center">
-                                            <Countdown
-                                                targetDate={event.sales_start_date}
-                                                onComplete={() => setIsSalesOpen(true)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-card dark:text-gray-600">
-                                        Próximamente
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {performances.length > 1 ? (
-                                        <div className="space-y-6">
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                    Selecciona una fecha
-                                                </label>
-                                                <div className="flex justify-center">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={selectedDate}
-                                                        onSelect={setSelectedDate}
-                                                        disabled={(date) => {
-                                                            const dateString = format(date, 'yyyy-MM-dd');
-                                                            return !performanceDates.has(dateString);
-                                                        }}
-                                                        defaultMonth={performances.length > 0 ? new Date(performances[0].PerformanceDateTime) : undefined}
-                                                        className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-card dark:border-border"
-                                                        locale={es}
+                                                <div className="grid grid-cols-4 gap-2 text-center">
+                                                    <Countdown
+                                                        targetDate={event.sales_start_date}
+                                                        onComplete={() => setIsSalesOpen(true)}
                                                     />
                                                 </div>
                                             </div>
-
-                                            {selectedDate && (
-                                                <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                        Horarios disponibles
-                                                    </label>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {availablePerformancesForDate.map((perf) => (
-                                                            <button
-                                                                key={perf.PerformanceID}
-                                                                onClick={() => setSelectedPerformanceId(perf.PerformanceID.toString())}
-                                                                className={`
-                                                                px-4 py-2 text-sm font-medium rounded-md border transition-all
-                                                                ${selectedPerformanceId === perf.PerformanceID.toString()
-                                                                        ? 'bg-[#c90000] text-white border-[#c90000] shadow-md'
-                                                                        : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-background dark:text-muted-foreground dark:border-border'
-                                                                    }
-                                                            `}
-                                                            >
-                                                                {format(new Date(perf.PerformanceDateTime), 'h:mm a')}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : performances.length === 1 ? (
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                Fecha y Hora del Evento
-                                            </label>
-                                            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
-                                                    <CalendarIcon className="size-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
-                                                        {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                        Horario: {format(new Date(performances[0].PerformanceDateTime), "h:mm a")}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : event.start_date ? (
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                Fecha del Evento
-                                            </label>
-                                            <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
-                                                    <CalendarIcon className="size-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
-                                                        {format(new Date(event.start_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
-                                                    </p>
-                                                    {event.start_date.includes(':') && (
-                                                        <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                            Horario: {format(new Date(event.start_date), "h:mm a")}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-card dark:text-gray-600">
+                                                Próximamente
+                                            </Button>
                                         </div>
                                     ) : (
-                                        <div className="p-4 text-center text-gray-500">
-                                            No hay funciones disponibles actualmente.
+                                        <div className="space-y-6">
+                                            {performances.length > 1 ? (
+                                                <div className="space-y-6">
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                            Selecciona una fecha
+                                                        </label>
+                                                        <div className="flex justify-center">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={selectedDate}
+                                                                onSelect={setSelectedDate}
+                                                                disabled={(date) => {
+                                                                    const dateString = format(date, 'yyyy-MM-dd');
+                                                                    return !performanceDates.has(dateString);
+                                                                }}
+                                                                defaultMonth={performances.length > 0 ? new Date(performances[0].PerformanceDateTime) : undefined}
+                                                                className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-card dark:border-border"
+                                                                locale={es}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {selectedDate && (
+                                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                            <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                                Horarios disponibles
+                                                            </label>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                {availablePerformancesForDate.map((perf) => (
+                                                                    <button
+                                                                        key={perf.PerformanceID}
+                                                                        onClick={() => setSelectedPerformanceId(perf.PerformanceID.toString())}
+                                                                        className={`
+                                                                        px-4 py-2 text-sm font-medium rounded-md border transition-all
+                                                                        ${selectedPerformanceId === perf.PerformanceID.toString()
+                                                                                ? 'bg-[#c90000] text-white border-[#c90000] shadow-md'
+                                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-background dark:text-muted-foreground dark:border-border'
+                                                                            }
+                                                                    `}
+                                                                    >
+                                                                        {format(new Date(perf.PerformanceDateTime), 'h:mm a')}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : performances.length === 1 ? (
+                                                <div className="space-y-3">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                        Fecha y Hora del Evento
+                                                    </label>
+                                                    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
+                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                            <CalendarIcon className="size-6" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                                {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                                Horario: {format(new Date(performances[0].PerformanceDateTime), "h:mm a")}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : event.start_date ? (
+                                                <div className="space-y-3">
+                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                        Fecha del Evento
+                                                    </label>
+                                                    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
+                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                            <CalendarIcon className="size-6" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                                {format(new Date(event.start_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
+                                                            </p>
+                                                            {event.start_date.includes(':') && (
+                                                                <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                                    Horario: {format(new Date(event.start_date), "h:mm a")}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 text-center text-gray-500">
+                                                    No hay funciones disponibles actualmente.
+                                                </div>
+                                            )}
+
+                                            <Button
+                                                className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
+                                                onClick={handleBuy}
+                                                disabled={!selectedPerformanceId}
+                                            >
+                                                <Ticket className="mr-2 h-5 w-5" />
+                                                {event.button_text || 'Comprar Boletos'}
+                                            </Button>
+
+                                            <p className="text-xs text-center text-gray-400">
+                                                Pagos procesados de forma segura
+                                            </p>
                                         </div>
                                     )}
-
-                                    <Button
-                                        className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
-                                        onClick={handleBuy}
-                                        disabled={!selectedPerformanceId}
-                                    >
-                                        <Ticket className="mr-2 h-5 w-5" />
-                                        {event.button_text || 'Comprar Boletos'}
-                                    </Button>
-
-                                    <p className="text-xs text-center text-gray-400">
-                                        Pagos procesados de forma segura
-                                    </p>
                                 </div>
+                            ) : (
+                                performances.map((perf) => {
+                                    const desc = event.performance_descriptions?.[perf.PerformanceID] as any;
+                                    const titleStr = typeof desc === 'string' ? desc : (desc?.title || 'Reserva tus Boletos');
+                                    const subtitleStr = typeof desc === 'object' && desc?.subtitle ? desc.subtitle : format(new Date(perf.PerformanceDateTime), "EEEE d 'de' MMMM yyyy", { locale: es });
+
+                                    return (
+                                        <div key={perf.PerformanceID} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card transition-all hover:shadow-2xl hover:border-[#c90000]/30 animate-in fade-in slide-in-from-bottom-4">
+                                            <h3 className="mb-4 text-xl font-bold text-[#c90000] dark:text-red-500">
+                                                {titleStr}
+                                            </h3>
+                                            <div className="space-y-6">
+                                                <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
+                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                        <CalendarIcon className="size-6" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                            {subtitleStr}
+                                                        </p>
+                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                        Horario: {format(new Date(perf.PerformanceDateTime), "h:mm a")}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <Button
+                                                className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
+                                                onClick={() => {
+                                                    window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${perf.PerformanceID}`;
+                                                }}
+                                            >
+                                                <Ticket className="mr-2 h-5 w-5" />
+                                                {event.button_text || 'Comprar Boletos'}
+                                            </Button>
+
+                                            <p className="text-xs text-center text-gray-400">
+                                                Pagos procesados de forma segura
+                                            </p>
+                                        </div>
+                                    </div>
+                                )})
                             )}
                         </div>
                     </div>
