@@ -434,7 +434,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                             <CalendarIcon className="size-6" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                            <p className="font-bold text-gray-900 dark:text-white capitalize">
                                                                 {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
                                                             </p>
                                                             <p className="text-sm text-gray-500 dark:text-muted-foreground">
@@ -453,7 +453,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                             <CalendarIcon className="size-6" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                            <p className="font-bold text-gray-900 dark:text-white capitalize">
                                                                 {format(new Date(event.start_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
                                                             </p>
                                                             {event.start_date.includes(':') && (
@@ -510,7 +510,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                         <CalendarIcon className="size-6" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 dark:text-white lowercase first-letter:uppercase">
+                                                        <p className="font-bold text-gray-900 dark:text-white capitalize">
                                                             {subtitleStr}
                                                         </p>
                                                     <p className="text-sm text-gray-500 dark:text-muted-foreground">
