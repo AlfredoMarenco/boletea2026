@@ -1,4 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
+import React from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { GripVertical } from 'lucide-react';
 import { Head, useForm, Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { format } from 'date-fns';
@@ -164,6 +167,41 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
             return <img src={URL.createObjectURL(data.secondary_image_path as any)} alt="Preview" className="w-[79px] h-[108px] object-cover rounded border" />;
         }
         return null;
+    };
+
+    const orderedPerformances = React.useMemo(() => {
+        if (!event.raw_data || !Array.isArray(event.raw_data)) return [];
+        return [...event.raw_data].sort((a, b) => {
+            const orderA = typeof data.performance_descriptions?.[a.PerformanceID] === 'object'
+                ? (data.performance_descriptions[a.PerformanceID] as any)?.order ?? 999
+                : 999;
+            const orderB = typeof data.performance_descriptions?.[b.PerformanceID] === 'object'
+                ? (data.performance_descriptions[b.PerformanceID] as any)?.order ?? 999
+                : 999;
+            return orderA - orderB;
+        });
+    }, [event.raw_data, data.performance_descriptions]);
+
+    const onDragEnd = (result: DropResult) => {
+        if (!result.destination) return;
+        
+        const items = Array.from(orderedPerformances);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+        
+        const updatedDescriptions = { ...(data.performance_descriptions || {}) };
+        items.forEach((item: any, index: number) => {
+            const currentDesc = typeof updatedDescriptions[item.PerformanceID] === 'object' 
+                ? updatedDescriptions[item.PerformanceID] 
+                : { title: typeof updatedDescriptions[item.PerformanceID] === 'string' ? updatedDescriptions[item.PerformanceID] : '' };
+                
+            updatedDescriptions[item.PerformanceID] = {
+                ...(currentDesc as any),
+                order: index
+            };
+        });
+        
+        setData('performance_descriptions', updatedDescriptions);
     };
 
     return (
@@ -508,60 +546,82 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                         </p>
                                         
                                         {event.raw_data && Array.isArray(event.raw_data) && event.raw_data.length > 0 ? (
-                                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
-                                                {event.raw_data.map((perf: any) => {
-                                                    const perfDesc = data.performance_descriptions?.[perf.PerformanceID] || {};
-                                                    return (
-                                                        <div key={perf.PerformanceID} className="flex flex-col gap-3 p-4 bg-white dark:bg-background border rounded-lg shadow-sm">
-                                                            <div className="flex items-center gap-2">
-                                                                <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                                                                    Función {format(new Date(perf.PerformanceDateTime), "dd MMM yyyy - h:mm a")}
-                                                                </Label>
-                                                                {perf.PerformanceName && (
-                                                                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
-                                                                        {perf.PerformanceName}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <Label className="text-xs text-gray-500">Título del Botón/Recuadro</Label>
-                                                                    <Input
-                                                                        value={typeof perfDesc === 'string' ? perfDesc : (perfDesc.title || '')}
-                                                                        onChange={(e) => {
-                                                                            const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
-                                                                                ? (data.performance_descriptions[perf.PerformanceID] as any) 
-                                                                                : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
-                                                                            setData('performance_descriptions', {
-                                                                                ...(data.performance_descriptions || {}),
-                                                                                [perf.PerformanceID]: { ...current, title: e.target.value }
-                                                                            });
-                                                                        }}
-                                                                        placeholder="Ej. Reserva tus Boletos"
-                                                                    />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <Label className="text-xs text-gray-500">Subtítulo (Fecha/Información)</Label>
-                                                                    <Input
-                                                                        value={typeof perfDesc === 'string' ? '' : (perfDesc.subtitle || '')}
-                                                                        onChange={(e) => {
-                                                                            const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
-                                                                                ? (data.performance_descriptions[perf.PerformanceID] as any) 
-                                                                                : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
-                                                                            setData('performance_descriptions', {
-                                                                                ...(data.performance_descriptions || {}),
-                                                                                [perf.PerformanceID]: { ...current, subtitle: e.target.value }
-                                                                            });
-                                                                        }}
-                                                                        placeholder="Ej. domingo 12 de julio 2026"
-                                                                    />
-                                                                </div>
-                                                            </div>
+                                            <DragDropContext onDragEnd={onDragEnd}>
+                                                <Droppable droppableId="performances-list">
+                                                    {(provided) => (
+                                                        <div 
+                                                            {...provided.droppableProps} 
+                                                            ref={provided.innerRef}
+                                                            className="space-y-4 max-h-[400px] overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}
+                                                        >
+                                                            {orderedPerformances.map((perf: any, index: number) => {
+                                                                const perfDesc = data.performance_descriptions?.[perf.PerformanceID] || {};
+                                                                return (
+                                                                    <Draggable key={perf.PerformanceID.toString()} draggableId={perf.PerformanceID.toString()} index={index}>
+                                                                        {(provided) => (
+                                                                            <div 
+                                                                                ref={provided.innerRef}
+                                                                                {...provided.draggableProps}
+                                                                                className="flex flex-col gap-3 p-4 bg-white dark:bg-background border rounded-lg shadow-sm"
+                                                                            >
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div {...provided.dragHandleProps} className="text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+                                                                                        <GripVertical className="size-5" />
+                                                                                    </div>
+                                                                                    <Label className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                                                        Función {format(new Date(perf.PerformanceDateTime), "dd MMM yyyy - h:mm a")}
+                                                                                    </Label>
+                                                                                    {perf.PerformanceName && (
+                                                                                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
+                                                                                            {perf.PerformanceName}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                                
+                                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                                    <div className="space-y-2">
+                                                                                        <Label className="text-xs text-gray-500">Título del Botón/Recuadro</Label>
+                                                                                        <Input
+                                                                                            value={typeof perfDesc === 'string' ? perfDesc : (perfDesc.title || '')}
+                                                                                            onChange={(e) => {
+                                                                                                const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
+                                                                                                    ? (data.performance_descriptions[perf.PerformanceID] as any) 
+                                                                                                    : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
+                                                                                                setData('performance_descriptions', {
+                                                                                                    ...(data.performance_descriptions || {}),
+                                                                                                    [perf.PerformanceID]: { ...current, title: e.target.value }
+                                                                                                });
+                                                                                            }}
+                                                                                            placeholder="Ej. Reserva tus Boletos"
+                                                                                        />
+                                                                                    </div>
+                                                                                    <div className="space-y-2">
+                                                                                        <Label className="text-xs text-gray-500">Subtítulo (Fecha/Información)</Label>
+                                                                                        <Input
+                                                                                            value={typeof perfDesc === 'string' ? '' : (perfDesc.subtitle || '')}
+                                                                                            onChange={(e) => {
+                                                                                                const current = typeof data.performance_descriptions?.[perf.PerformanceID] === 'object' 
+                                                                                                    ? (data.performance_descriptions[perf.PerformanceID] as any) 
+                                                                                                    : { title: typeof data.performance_descriptions?.[perf.PerformanceID] === 'string' ? data.performance_descriptions[perf.PerformanceID] : '' };
+                                                                                                setData('performance_descriptions', {
+                                                                                                    ...(data.performance_descriptions || {}),
+                                                                                                    [perf.PerformanceID]: { ...current, subtitle: e.target.value }
+                                                                                                });
+                                                                                            }}
+                                                                                            placeholder="Ej. domingo 12 de julio 2026"
+                                                                                        />
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </Draggable>
+                                                                );
+                                                            })}
+                                                            {provided.placeholder}
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
+                                                    )}
+                                                </Droppable>
+                                            </DragDropContext>
                                         ) : (
                                             <div className="p-4 border border-dashed rounded-md text-sm text-gray-500 dark:text-gray-400 text-center">
                                                 Este evento no tiene funciones sincronizadas aún para personalizar.

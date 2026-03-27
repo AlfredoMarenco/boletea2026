@@ -486,7 +486,15 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                     )}
                                 </div>
                             ) : (
-                                performances.map((perf) => {
+                                [...performances]
+                                    .sort((a, b) => {
+                                        const descA = event.performance_descriptions?.[a.PerformanceID] as any;
+                                        const descB = event.performance_descriptions?.[b.PerformanceID] as any;
+                                        const orderA = typeof descA === 'object' ? (descA?.order ?? 999) : 999;
+                                        const orderB = typeof descB === 'object' ? (descB?.order ?? 999) : 999;
+                                        return orderA - orderB;
+                                    })
+                                    .map((perf) => {
                                     const desc = event.performance_descriptions?.[perf.PerformanceID] as any;
                                     const titleStr = typeof desc === 'string' ? desc : (desc?.title || 'Reserva tus Boletos');
                                     const subtitleStr = typeof desc === 'object' && desc?.subtitle ? desc.subtitle : format(new Date(perf.PerformanceDateTime), "EEEE d 'de' MMMM yyyy", { locale: es });
