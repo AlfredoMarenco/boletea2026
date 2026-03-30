@@ -97,7 +97,7 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
     };
 
     return (
-        <div className="w-full bg-white dark:bg-background border-b dark:border-slate-800 shadow-sm sticky top-0 z-30">
+        <div className="w-full bg-white/95 dark:bg-background/95 backdrop-blur-md border-b dark:border-slate-800 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.1)] dark:shadow-none sticky top-20 z-30 transition-all duration-300">
             <div className="container mx-auto px-4 py-3">
                 <div className="flex flex-col md:flex-row gap-3 md:items-center">
 
@@ -106,8 +106,8 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                         <div className="relative w-full">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-muted-foreground" />
                             <Input
-                                placeholder="Buscar evento, artista..."
-                                className="pl-9 bg-gray-50 dark:bg-card border-gray-200 dark:border-slate-700 shadow-sm"
+                                placeholder="BUSCAR EVENTO, ARTISTA..."
+                                className="pl-9 bg-gray-50 dark:bg-card border-gray-200 dark:border-slate-700 shadow-sm transition-all focus:ring-2 focus:ring-[#c90000]/20"
                                 value={values.search}
                                 onChange={(e) => setValues({ ...values, search: e.target.value })}
                             />
@@ -153,13 +153,13 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                                     }, 0);
                                 }}
                             >
-                                <SelectTrigger className="w-full md:w-[140px]">
-                                    <SelectValue placeholder="Ciudad" />
+                                <SelectTrigger className="w-full md:w-[140px] font-semibold tracking-wide">
+                                    <SelectValue placeholder="CIUDAD" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="all">TODAS</SelectItem>
                                     {options.cities.map((city) => (
-                                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                                        <SelectItem key={city} value={city}>{city.toUpperCase()}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -169,13 +169,13 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                                 value={values.category}
                                 onValueChange={(val) => setValues({ ...values, category: val === 'all' ? '' : val })}
                             >
-                                <SelectTrigger className="w-full md:w-[150px]">
-                                    <SelectValue placeholder="Categoría" />
+                                <SelectTrigger className="w-full md:w-[150px] font-semibold tracking-wide">
+                                    <SelectValue placeholder="CATEGORÍA" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="all">TODAS</SelectItem>
                                     {options.categories.map((cat) => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        <SelectItem key={cat} value={cat}>{cat.toUpperCase()}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -185,13 +185,13 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                                 value={values.venue_id}
                                 onValueChange={(val) => setValues({ ...values, venue_id: val === 'all' ? '' : val })}
                             >
-                                <SelectTrigger className="w-full md:w-[160px]">
-                                    <SelectValue placeholder="Recinto" />
+                                <SelectTrigger className="w-full md:w-[160px] font-semibold tracking-wide">
+                                    <SelectValue placeholder="RECINTO" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
+                                    <SelectItem value="all">TODOS</SelectItem>
                                     {options.venues.map((venue) => (
-                                        <SelectItem key={venue.id} value={String(venue.id)}>{venue.name}</SelectItem>
+                                        <SelectItem key={venue.id} value={String(venue.id)}>{venue.name.toUpperCase()}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -206,18 +206,20 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
                                             !dateRange && "text-muted-foreground"
                                         )}
                                     >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        <CalendarIcon className="mr-2 h-4 w-4 text-[#c90000]" />
                                         {dateRange?.from ? (
                                             dateRange.to ? (
-                                                <>
+                                                <span className="font-semibold uppercase text-xs">
                                                     {format(dateRange.from, "dd/MM/y", { locale: es })} -{" "}
                                                     {format(dateRange.to, "dd/MM/y", { locale: es })}
-                                                </>
+                                                </span>
                                             ) : (
-                                                format(dateRange.from, "dd/MM/y", { locale: es })
+                                                <span className="font-semibold uppercase text-xs">
+                                                    {format(dateRange.from, "dd/MM/y", { locale: es })}
+                                                </span>
                                             )
                                         ) : (
-                                            <span>Seleccionar Fechas</span>
+                                            <span className="font-semibold tracking-wide uppercase text-xs">SELECCIONAR FECHAS</span>
                                         )}
                                     </Button>
                                 </PopoverTrigger>
@@ -238,10 +240,14 @@ export default function FilterBar({ filters, options }: FilterBarProps) {
 
                         {/* Actions */}
                         <div className="flex gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-100 dark:border-slate-800">
-                            <Button className="flex-1 md:flex-none" onClick={() => { applyFilters(); setShowFilters(false); }} disabled={isPending}>
-                                {isPending ? 'Filtrando...' : 'Aplicar'}
+                            <Button 
+                                className="flex-1 md:flex-none uppercase font-bold tracking-widest bg-[#c90000] hover:bg-[#a30000] text-white shadow-md transition-all active:scale-95" 
+                                onClick={() => { applyFilters(); setShowFilters(false); }} 
+                                disabled={isPending}
+                            >
+                                {isPending ? 'FILTRANDO...' : 'APLICAR'}
                             </Button>
-                            <Button variant="ghost" size="icon" className="shrink-0 text-gray-400" onClick={handleReset} title="Limpiar Filtros">
+                            <Button variant="ghost" size="icon" className="shrink-0 text-gray-400" onClick={handleReset} title="LIMPIAR FILTROS">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>

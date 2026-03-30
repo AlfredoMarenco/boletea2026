@@ -52,9 +52,10 @@ interface Props {
     options: FilterOptions;
     showFeatured: boolean;
     showNearby: boolean;
+    bannerEvent: ExternalEvent | null;
 }
 
-export default function Welcome({ canRegister, events: initialEvents, nearbyEvents, carouselEvents, featuredEvents, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
+export default function Welcome({ canRegister, events: initialEvents, nearbyEvents, carouselEvents, featuredEvents, bannerEvent, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
     return (
         <GeolocationProvider>
             <WelcomeContent
@@ -63,6 +64,7 @@ export default function Welcome({ canRegister, events: initialEvents, nearbyEven
                 nearbyEvents={nearbyEvents}
                 carouselEvents={carouselEvents}
                 featuredEvents={featuredEvents}
+                bannerEvent={bannerEvent}
                 filters={filters}
                 options={options}
                 showFeatured={showFeatured}
@@ -72,7 +74,7 @@ export default function Welcome({ canRegister, events: initialEvents, nearbyEven
     );
 }
 
-function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, featuredEvents, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
+function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, featuredEvents, bannerEvent, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
     const { city, state, country, latitude, longitude } = useGeolocation();
     const locationSentRef = useRef(false);
     const [showBanner, setShowBanner] = useState(false); // Inicia oculto para el delay
@@ -151,9 +153,12 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
 
             <PublicHeader canRegister={canRegister} />
 
-            <main>
+            <main className="pt-20">
+                {/* Filter Bar */}
+                <FilterBar filters={filters} options={options} />
+
                 {/* Hero Section */}
-                <section className="relative pt-24 pb-16 lg:pt-28 overflow-hidden">
+                <section className="relative pt-12 pb-8 lg:pt-16 overflow-hidden">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#c90000] opacity-[0.08] blur-[120px] rounded-full pointer-events-none"></div>
 
                     <div className="container mx-auto px-6">
@@ -208,8 +213,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                     </div>
                 </section>
 
-                {/* Filter Bar */}
-                <FilterBar filters={filters} options={options} />
+
 
                 {/* Main Content Area */}
                 <div className="pb-16 bg-gray-50 dark:bg-background">
@@ -284,40 +288,45 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                 </div>
             </main>
 
-            {/* Modal / Banner Flotante - Unión Laguna */}
-            {showBanner && (
-                <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-right-full fade-in duration-500 max-w-sm w-[calc(100%-2rem)] md:max-w-md">
-                    <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl border border-gray-200 dark:border-border overflow-hidden">
+            {/* Modal / Banner Flotante - Dinámico (Optimizado) */}
+            {showBanner && bannerEvent && (
+                <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-700 w-[280px] sm:w-[320px] md:w-[350px]">
+                    <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl border border-gray-200 dark:border-border overflow-hidden group hover:shadow-red-500/10 transition-shadow">
                         {/* Barra de progreso de cierre */}
-                        <div className="h-1.5 bg-gray-200 dark:bg-card w-full absolute top-0 left-0 z-20">
+                        <div className="h-1 bg-gray-100 dark:bg-card w-full absolute top-0 left-0 z-20">
                             <div 
                                 className="h-full bg-[#c90000]" 
-                                style={{ width: `${progress}%` }}
+                                style={{ width: `${progress}%`, transition: 'width 30ms linear' }}
                             ></div>
                         </div>
 
                         <button 
                             onClick={() => setShowBanner(false)}
-                            className="absolute top-3 right-2 z-10 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors backdrop-blur-sm"
+                            className="absolute top-3 right-3 z-30 p-1.5 bg-black/40 hover:bg-[#c90000] text-white rounded-full transition-all backdrop-blur-sm opacity-0 group-hover:opacity-100 focus:opacity-100"
                             aria-label="Cerrar banner"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
-                        <a 
-                            href="https://unionlaguna.boletea.com.mx/" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="block hover:opacity-95 transition-opacity pt-1.5"
+                        
+                        <Link 
+                            href={bannerEvent.redirect_external && bannerEvent.performance_url ? bannerEvent.performance_url : route('event.show', bannerEvent.slug || bannerEvent.id)} 
+                            className="block pt-1"
                         >
-                            <div className="p-3 bg-gray-100 dark:bg-card text-[#c90000] dark:text-red-500 text-center text-sm font-bold uppercase tracking-wide">
-                                ¡Venta de boletos de Béisbol!
+                            <div className="px-3 py-2 bg-gray-50/80 dark:bg-card/80 backdrop-blur-sm text-[#c90000] dark:text-red-500 text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-100 dark:border-border">
+                                ¡Evento Recomendado!
                             </div>
-                            <img 
-                                src="/images/banners/banner_web.png" 
-                                alt="Boletos Unión Laguna" 
-                                className="w-full h-auto object-contain bg-white" 
-                            />
-                        </a>
+                            <div className="relative aspect-[16/10] overflow-hidden">
+                                <img 
+                                    src={bannerEvent.image_path || "/images/banners/banner_web.png"} 
+                                    alt={bannerEvent.title} 
+                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                <div className="absolute bottom-2 left-3 right-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300 line-clamp-1">
+                                    {bannerEvent.title}
+                                </div>
+                            </div>
+                        </Link>
                     </div>
                 </div>
             )}

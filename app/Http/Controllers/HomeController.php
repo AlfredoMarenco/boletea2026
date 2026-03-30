@@ -129,8 +129,13 @@ class HomeController extends Controller
 
         // Options for filters
         $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter()->values();
-        $venues = Venue::select('id', 'name')->get();
+        $venues = Venue::whereNotNull('latitude')->whereNotNull('longitude')->select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
+
+        // 4. Random Banner Event (Any upcoming event)
+        $bannerEvent = (clone $baseQuery)
+            ->inRandomOrder()
+            ->first();
 
         return Inertia::render('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),
@@ -138,6 +143,7 @@ class HomeController extends Controller
             'nearbyEvents' => $nearbyEvents, // "Eventos cerca de ti"
             'featuredEvents' => $featuredEvents, // "Eventos Destacados"
             'carouselEvents' => $carouselEvents, // "Próximos eventos" (Carousel)
+            'bannerEvent' => $bannerEvent, // For the floating banner card
             'showFeatured' => $showFeatured,
             'showNearby' => $showNearby,
             'filters' => $request->all(['search', 'city', 'venue_id', 'category', 'date_start', 'date_end']),

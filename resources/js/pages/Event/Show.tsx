@@ -10,6 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
+import ViewerCounter from '@/components/ViewerCounter';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PublicFooter from '@/components/public-footer';
 import {
@@ -479,6 +480,8 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                 {event.button_text || 'Comprar Boletos'}
                                             </Button>
 
+                                            <ViewerCounter eventId={event.id} />
+
                                             <p className="text-xs text-center text-gray-400">
                                                 Pagos procesados de forma segura
                                             </p>
@@ -533,6 +536,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                 );
                                             })}
                                     </div>
+                                    <ViewerCounter eventId={event.id} />
                                 </div>
                             )}
                         </div>
