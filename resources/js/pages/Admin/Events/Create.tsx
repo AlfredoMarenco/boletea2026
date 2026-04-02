@@ -37,6 +37,7 @@ interface ExternalEvent {
     show_calendar?: boolean;
     calendar_description?: string | null;
     performance_descriptions?: Record<string, { title?: string; subtitle?: string } | string> | null;
+    meta_pixel_id?: string | null;
 }
 
 interface SalesCenter {
@@ -108,6 +109,7 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
         show_calendar: true,
         calendar_description: '',
         performance_descriptions: {},
+        meta_pixel_id: '',
     });
 
     transform((data) => {
@@ -206,6 +208,18 @@ export default function Create({ salesCenters = [], salesCenterGroups = [], stat
                                 placeholder="https://boletea.com/... o liga de iframe"
                             />
                             {errors.performance_url && <p className="text-red-500 text-sm">{errors.performance_url}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="meta_pixel_id">Facebook / Meta Pixel ID (Opcional)</Label>
+                            <Input
+                                id="meta_pixel_id"
+                                value={data.meta_pixel_id}
+                                onChange={(e) => setData('meta_pixel_id', e.target.value)}
+                                placeholder="ej. 123456789012345"
+                            />
+                            <p className="text-xs text-gray-500">Solo introduce el ID numérico del píxel. Útil para tracking de métricas.</p>
+                            {errors.meta_pixel_id && <p className="text-red-500 text-sm">{errors.meta_pixel_id}</p>}
                         </div>
 
                         <div className="space-y-2">

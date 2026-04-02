@@ -33,6 +33,7 @@ class ExternalEvent extends Model
         'show_calendar',
         'calendar_description',
         'performance_descriptions',
+        'meta_pixel_id',
     ];
 
     protected $casts = [

@@ -36,4 +36,5 @@ export interface ExternalEvent {
     };
     sales_centers?: string[] | null;
     raw_data?: Performance[] | Performance | null;
+    meta_pixel_id?: string | null;
 }

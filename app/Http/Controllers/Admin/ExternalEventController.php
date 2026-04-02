@@ -127,6 +127,7 @@ class ExternalEventController extends Controller
             'show_calendar' => 'boolean',
             'calendar_description' => 'nullable|string',
             'performance_descriptions' => 'nullable|array',
+            'meta_pixel_id' => 'nullable|string|max:50',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -192,6 +193,7 @@ class ExternalEventController extends Controller
             'show_calendar' => 'boolean',
             'calendar_description' => 'nullable|string',
             'performance_descriptions' => 'nullable|array',
+            'meta_pixel_id' => 'nullable|string|max:50',
         ]);
 
         if ($request->hasFile('image_path')) {
