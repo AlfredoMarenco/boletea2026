@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\DistanceCalculator;
 use App\Models\Category;
 use App\Models\ExternalEvent;
+use App\Models\WelcomeBanner;
 use App\Models\Venue;
 use App\Models\SiteSetting;
 use Illuminate\Http\Request;
@@ -132,10 +133,16 @@ class HomeController extends Controller
         $venues = Venue::whereNotNull('latitude')->whereNotNull('longitude')->select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
 
-        // 4. Random Banner Event (Any upcoming event)
-        $bannerEvent = (clone $baseQuery)
+        // 4. Random Banner (From WelcomeBanner model)
+        $bannerEvent = WelcomeBanner::with('event')
+            ->where('is_active', true)
             ->inRandomOrder()
             ->first();
+
+        // Optional: append resolved attrs for Inertia context
+        if ($bannerEvent) {
+            $bannerEvent->append(['resolved_image', 'resolved_link', 'resolved_title']);
+        }
 
         return Inertia::render('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),

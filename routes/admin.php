@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VenueController;
 use App\Http\Controllers\Admin\SiteSettingController;
+use App\Http\Controllers\Admin\WelcomeBannerController;
 
 Route::get('/', function () {
     return Inertia::render('dashboard');
@@ -41,3 +42,4 @@ Route::resource('users', UserController::class);
 Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
 Route::post('settings', [SiteSettingController::class, 'update'])->name('settings.update');
 
+Route::resource('banners', WelcomeBannerController::class);

@@ -45,6 +45,19 @@ interface Filters {
     date_end?: string;
 }
 
+interface WelcomeBanner {
+    id: number;
+    title: string | null;
+    image_path: string | null;
+    external_link: string | null;
+    external_event_id: number | null;
+    is_active: boolean;
+    resolved_image: string | null;
+    resolved_link: string | null;
+    resolved_title: string;
+    event?: ExternalEvent | null;
+}
+
 interface Props {
     canRegister: boolean;
     events: ExternalEvent[];
@@ -52,7 +65,7 @@ interface Props {
     options: FilterOptions;
     showFeatured: boolean;
     showNearby: boolean;
-    bannerEvent: ExternalEvent | null;
+    bannerEvent: WelcomeBanner | null;
 }
 
 export default function Welcome({ canRegister, events: initialEvents, nearbyEvents, carouselEvents, featuredEvents, bannerEvent, filters, options, showFeatured, showNearby }: Props & { nearbyEvents: ExternalEvent[], carouselEvents: ExternalEvent[], featuredEvents: ExternalEvent[] }) {
@@ -308,25 +321,27 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                             <X className="w-4 h-4" />
                         </button>
                         
-                        <Link 
-                            href={bannerEvent.redirect_external && bannerEvent.performance_url ? bannerEvent.performance_url : route('event.show', bannerEvent.slug || bannerEvent.id)} 
+                        <a 
+                            href={bannerEvent.resolved_link || '#'} 
+                            target={bannerEvent.resolved_link && bannerEvent.resolved_link.startsWith('http') && !bannerEvent.resolved_link.includes(window.location.hostname) ? "_blank" : "_self"}
+                            rel="noopener noreferrer"
                             className="block pt-1"
                         >
                             <div className="px-3 py-2 bg-gray-50/80 dark:bg-card/80 backdrop-blur-sm text-[#c90000] dark:text-red-500 text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-100 dark:border-border">
                                 ¡Evento Recomendado!
                             </div>
-                            <div className="relative aspect-[16/10] overflow-hidden">
+                            <div className="relative overflow-hidden flex justify-center bg-black/5">
                                 <img 
-                                    src={bannerEvent.image_path || "/images/banners/banner_web.png"} 
-                                    alt={bannerEvent.title} 
-                                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
+                                    src={bannerEvent.resolved_image || "/images/banners/banner_web.png"} 
+                                    alt={bannerEvent.resolved_title || ''} 
+                                    className="w-full h-auto object-contain transform group-hover:scale-105 transition-transform duration-500" 
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 <div className="absolute bottom-2 left-3 right-3 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300 line-clamp-1">
-                                    {bannerEvent.title}
+                                    {bannerEvent.resolved_title}
                                 </div>
                             </div>
-                        </Link>
+                        </a>
                     </div>
                 </div>
             )}
