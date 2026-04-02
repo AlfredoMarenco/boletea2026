@@ -69,23 +69,12 @@ class WelcomeBannerController extends Controller
 
         $banner->save();
 
-        return redirect()->route('admin.banners.index')->with('success', 'Banner creado exitosamente.');
+        return redirect()->route('admin.settings.index')->with('success', 'Banner creado exitosamente.');
     }
 
     public function edit(WelcomeBanner $banner)
     {
-        $events = ExternalEvent::where('status', 'published')
-            ->orderBy('start_date', 'asc')
-            ->select('id', 'title', 'start_date', 'image_path')
-            ->get();
-
-        // Infer type for the UI
-        $banner->type = $banner->external_event_id ? 'event' : 'manual';
-
-        return Inertia::render('Admin/Banners/Edit', [
-            'banner' => $banner,
-            'events' => $events
-        ]);
+        // Not used as we do it in modal
     }
 
     public function update(Request $request, WelcomeBanner $banner)
@@ -134,7 +123,7 @@ class WelcomeBannerController extends Controller
 
         $banner->save();
 
-        return redirect()->route('admin.banners.index')->with('success', 'Banner actualizado exitosamente.');
+        return redirect()->route('admin.settings.index')->with('success', 'Banner actualizado exitosamente.');
     }
 
     public function destroy(WelcomeBanner $banner)
@@ -144,6 +133,6 @@ class WelcomeBannerController extends Controller
         }
         $banner->delete();
 
-        return redirect()->route('admin.banners.index')->with('success', 'Banner eliminado exitosamente.');
+        return redirect()->route('admin.settings.index')->with('success', 'Banner eliminado exitosamente.');
     }
 }

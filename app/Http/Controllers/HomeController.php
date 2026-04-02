@@ -132,16 +132,21 @@ class HomeController extends Controller
         $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter()->values();
         $venues = Venue::whereNotNull('latitude')->whereNotNull('longitude')->select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
+        
+        $showFloatingBanner = ($settings['show_floating_banner'] ?? '1') === '1';
 
         // 4. Random Banner (From WelcomeBanner model)
-        $bannerEvent = WelcomeBanner::with('event')
-            ->where('is_active', true)
-            ->inRandomOrder()
-            ->first();
+        $bannerEvent = null;
+        if ($showFloatingBanner) {
+            $bannerEvent = WelcomeBanner::with('event')
+                ->where('is_active', true)
+                ->inRandomOrder()
+                ->first();
 
-        // Optional: append resolved attrs for Inertia context
-        if ($bannerEvent) {
-            $bannerEvent->append(['resolved_image', 'resolved_link', 'resolved_title']);
+            // Optional: append resolved attrs for Inertia context
+            if ($bannerEvent) {
+                $bannerEvent->append(['resolved_image', 'resolved_link', 'resolved_title']);
+            }
         }
 
         return Inertia::render('Welcome', [

@@ -28,11 +28,6 @@ const mainNavItems: NavItem[] = [
         icon: BookOpen,
     },
     {
-        title: 'Banners Flotantes',
-        href: route('admin.banners.index'),
-        icon: ImageIcon,
-    },
-    {
         title: 'Puntos de Venta',
         href: route('admin.sales-centers.index'),
         icon: MapPin,
