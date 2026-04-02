@@ -159,7 +159,12 @@ class EventImportService
 
                 $externalEvent = ExternalEvent::firstOrNew(['external_id' => $eventId]);
 
-                // Always update system/logistics fields
+                // Si el evento ya existe y está publicado, lo omitimos por completo (Opción A)
+                if ($externalEvent->exists && $externalEvent->status === 'published') {
+                    continue;
+                }
+
+                // Always update system/logistics fields para eventos nuevos o en borrador
                 $externalEvent->venue_id = $venueId;
                 $externalEvent->raw_data = $performances;
 
