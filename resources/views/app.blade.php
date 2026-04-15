@@ -62,7 +62,7 @@
 
     @viteReactRefresh
     @routes
-    @vite(['resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])
+    @vite(['resources/js/app.tsx'])
     @inertiaHead
 
     <!-- Google tag (gtag.js) -->

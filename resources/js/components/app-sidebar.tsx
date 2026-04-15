@@ -58,6 +58,11 @@ const mainNavItems: NavItem[] = [
         icon: Building,
     },
     {
+        title: 'Mapas de Asientos',
+        href: route('admin.seating-maps.index'),
+        icon: LayoutGrid,
+    },
+    {
         title: 'Usuarios',
         href: route('admin.users.index'),
         icon: Users,
