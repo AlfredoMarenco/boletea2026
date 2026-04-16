@@ -16,9 +16,9 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // Base query for upcoming events
         $baseQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
             ->where('status', 'published')
+            ->whereDoesntHave('parentEvents')
             ->where(function ($q) {
                 $q->where(function ($sq) {
                     $sq->whereNull('end_date')

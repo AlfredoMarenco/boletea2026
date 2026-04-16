@@ -49,7 +49,7 @@ export default function ViewerCounter({ eventId }: Props) {
 
     return (
         <div 
-            className="flex items-center gap-3 mt-4 py-2.5 px-4 bg-red-50/30 dark:bg-red-500/5 rounded-xl border border-red-100/50 dark:border-red-500/10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-2"
+            className="flex items-center gap-3 py-1.5 px-3 bg-red-50/50 dark:bg-red-500/5 rounded-xl border border-red-100/50 dark:border-red-500/10 transition-all duration-700 animate-in fade-in slide-in-from-bottom-2"
         >
             {/* Live Indicator */}
             <div className="relative flex h-2 w-2 shrink-0">
@@ -57,13 +57,13 @@ export default function ViewerCounter({ eventId }: Props) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
             </div>
 
-            <div className="flex items-center gap-2 overflow-hidden">
-                <Users className="size-3.5 text-red-600/70 dark:text-red-500/70 shrink-0" />
-                <p className="text-[11px] sm:text-xs font-medium text-gray-600 dark:text-gray-400 leading-tight">
-                    <span className="text-gray-900 dark:text-white tabular-nums font-extrabold mr-0.5">
+            <div className="flex items-center gap-2">
+                <Users className="size-4 text-red-600/70 dark:text-red-500/70 shrink-0" />
+                <p className="text-xs font-bold text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    <span className="text-gray-900 dark:text-white tabular-nums font-black">
                         {viewers}
                     </span>
-                    {' '}personas están viendo este evento ahora mismo
+                    {' '}viendo ahora
                 </p>
             </div>
         </div>

@@ -82,13 +82,13 @@ export default function PublicHeader({ canRegister = false }: Props) {
                 </nav>
                 <div className="flex items-center gap-4">
                     <ModeToggle />
-                    <Link
-                        href="#"
+                    <a
+                        href="https://boletea.com.mx/login.asp?gifrompage=2&gitopage=2"
                         className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-900 transition-all hover:bg-[#c90000] hover:text-white dark:bg-white/10 dark:text-white dark:hover:bg-[#c90000]"
                         title="Iniciar Sesión"
                     >
                         <User className="h-5 w-5" />
-                    </Link>
+                    </a>
                 </div>
             </div>
         </header>

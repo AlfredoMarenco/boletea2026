@@ -21,6 +21,7 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
+import EventCard from '@/components/EventCard';
 
 // ExternalEvent imported from '@/types/event'
 import { ExternalEvent, Performance } from '@/types/event';
@@ -108,6 +109,20 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
     };
 
+    const isGridMode = !!(event.show_linked_events && event.linked_events && event.linked_events.length > 0);
+
+    const getPurchaseLink = (ev: ExternalEvent) => {
+        if (ev.performance_url) return ev.performance_url;
+        const evPerformances: Performance[] = Array.isArray(ev.raw_data)
+            ? ev.raw_data
+            : (ev.raw_data ? [ev.raw_data as Performance] : []);
+        
+        if (evPerformances.length > 0) {
+            return `https://boletea.com.mx/ordertickets.asp?p=${evPerformances[0].PerformanceID}`;
+        }
+        return route('event.show', ev.slug || ev.id);
+    };
+
     return (
         <div className="min-h-screen bg-white text-gray-900 dark:bg-background dark:text-gray-100 font-sans">
             <Head>
@@ -179,7 +194,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-3">
-                                        {displayDate && (
+                                        {displayDate && !isGridMode && (
                                             <div className="flex flex-col items-center justify-center bg-white rounded-xl p-2 min-w-[60px] shadow-lg">
                                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
                                                     {format(displayDate, 'MMM', { locale: es }).replace('.', '')}
@@ -215,30 +230,89 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     </div>
                 </div>
 
-                <div className="container mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start">
-                    {/* Main Content (Acerca del Evento) */}
-                    <div className="flex flex-col gap-8 lg:col-span-2 lg:gap-10 order-2 lg:order-1">
+                <div className={`container mx-auto flex flex-col ${isGridMode ? 'lg:grid-cols-1' : 'lg:grid lg:grid-cols-3'} gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start`}>
+                    {/* Main Content (Acerca del Evento o Grid) */}
+                    <div className={`flex flex-col gap-8 ${isGridMode ? 'lg:col-span-1' : 'lg:col-span-2'} lg:gap-10 order-2 lg:order-1`}>
                         {/* Description */}
-                        <section>
-                            <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
-                            <div
-                                className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
-                                dangerouslySetInnerHTML={{
-                                    __html: (event.description ? (() => {
-                                        try {
-                                            const txt = document.createElement('textarea');
-                                            txt.innerHTML = event.description;
-                                            return txt.value;
-                                        } catch (e) {
-                                            return event.description;
-                                        }
-                                    })() : 'Sin descripción disponible.')
-                                }}
-                            />
-                        </section>
+                        {(event.description && event.description !== 'Sin descripción disponible.') && (
+                            <section>
+                                <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
+                                <div
+                                    className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
+                                    dangerouslySetInnerHTML={{
+                                        __html: (event.description ? (() => {
+                                            try {
+                                                const txt = document.createElement('textarea');
+                                                txt.innerHTML = event.description;
+                                                return txt.value;
+                                            } catch (e) {
+                                                return event.description;
+                                            }
+                                        })() : 'Sin descripción disponible.')
+                                    }}
+                                />
+                            </section>
+                        )}
+
+                        {/* Linked Events Grid */}
+                        {isGridMode && (
+                            <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <h2 className="mb-6 text-2xl font-bold lg:text-3xl flex items-center gap-2">
+                                    <div className="h-8 w-1.5 bg-[#c90000] rounded-full" />
+                                    Eventos Disponibles
+                                </h2>
+
+                                 {/* Option G: Fixed Compact Sidebar Layout */}
+                                 <div className="mx-auto mb-6 flex w-full max-w-2xl items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-card">
+                                     {/* Left: Status / Countdown */}
+                                     <div className="flex flex-1 items-center gap-6">
+                                         {!isSalesOpen && event.sales_start_date ? (
+                                             <div className="flex items-center gap-4">
+                                                 <div className="flex flex-col">
+                                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-[#c90000]">Venta próximamente</h4>
+                                                     <h3 className="text-base font-black tracking-tight text-gray-900 dark:text-white">Apertura</h3>
+                                                 </div>
+                                                 <div className="scale-90 transform-gpu translate-y-0.5">
+                                                     <Countdown
+                                                         targetDate={event.sales_start_date}
+                                                         onComplete={() => setIsSalesOpen(true)}
+                                                     />
+                                                 </div>
+                                             </div>
+                                         ) : (
+                                             <div className="flex items-center gap-4">
+                                                 <div className="flex flex-col">
+                                                     <h3 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
+                                                        Venta Disponible
+                                                     </h3>
+                                                     <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">¡Adquiere tus boletos ahora mismo!</p>
+                                                 </div>
+                                             </div>
+                                         )}
+                                     </div>
+
+                                     {/* Right: Social Proof */}
+                                     <div className="flex shrink-0 items-center border-l border-gray-50 pl-4 ml-2 dark:border-white/5">
+                                         <ViewerCounter eventId={event.id} />
+                                     </div>
+                                 </div>
+
+
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
+                                    {event.linked_events.map((linkedEvent) => (
+                                        <EventCard 
+                                            key={linkedEvent.id} 
+                                            event={linkedEvent} 
+                                            disabled={!isSalesOpen}
+                                            forceExternal={true}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
                         {/* CDV Prices */}
-                        {visibleCdvPrices.length > 0 && (
+                        {visibleCdvPrices.length > 0 && !isGridMode && (
                             <section className="relative rounded-2xl border border-[#c90000]/20 bg-white/50 dark:bg-[#1a1c20]/50 p-6 shadow-lg shadow-[#c90000]/5 overflow-hidden transition-all duration-300">
                                 {/* Pulse Glow Effect Background */}
                                 <div className="absolute inset-0 bg-[#c90000]/5 animate-pulse pointer-events-none"></div>
@@ -368,10 +442,11 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         )}
                     </div>
 
-                    {/* Booking Sidebar */}
-                    <div className="relative order-1 lg:order-2">
-                        <div className="sticky top-24 flex flex-col gap-6">
-                            {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
+                    {/* Booking Sidebar / Recuadro de Reserva */}
+                    {!isGridMode && (
+                        <div className="relative order-1 lg:order-2">
+                            <div className="sticky top-24 flex flex-col gap-6">
+                                {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
                                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
                                     <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
@@ -563,6 +638,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                             )}
                         </div>
                     </div>
+                    )}
 
                     {/* Mobile Sales Centers Carousel (Hidden on desktop) */}
                     {salesCentersDetails && salesCentersDetails.length > 0 && (
@@ -631,92 +707,40 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                 </div>
 
                 {/* Related Events Section (Mobile Slider / Desktop Grid) */}
-                {
-                    relatedEvents && relatedEvents.length > 0 && (
-                        <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
-                            <div className="container mx-auto px-6">
-                                <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
-                                    Eventos que te podrían interesar
-                                </h3>
+                {relatedEvents && relatedEvents.length > 0 && !isGridMode && (
+                    <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
+                        <div className="container mx-auto px-6">
+                            <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
+                                Eventos que te podrían interesar
+                            </h3>
 
-                                <Carousel
-                                    opts={{
-                                        align: "start",
-                                        loop: true,
-                                    }}
-                                    plugins={[
-                                        Autoplay({
-                                            delay: 4000,
-                                        }),
-                                    ]}
-                                    className="w-full"
-                                >
-                                    <CarouselContent className="-ml-4 md:-ml-6">
-                                        {relatedEvents.map((relatedEvent) => (
-                                            <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3">
-                                                <a
-                                                    href={route('event.show', relatedEvent.slug || relatedEvent.id)}
-                                                    className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-border dark:bg-background"
-                                                >
-                                                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-card">
-                                                        {relatedEvent.image_path ? (
-                                                            <img
-                                                                src={relatedEvent.image_path}
-                                                                alt={relatedEvent.title}
-                                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                                loading="lazy"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                                                <Ticket className="h-10 w-10 opacity-20" />
-                                                            </div>
-                                                        )}
-
-                                                        {relatedEvent.start_date && (
-                                                            <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-gray-900 backdrop-blur-sm shadow-sm dark:bg-background/80 dark:text-white">
-                                                                <span className="block text-xl leading-none text-[#c90000]">
-                                                                    {format(new Date(relatedEvent.start_date), 'dd')}
-                                                                </span>
-                                                                <span className="block uppercase leading-none text-gray-500 dark:text-muted-foreground mt-0.5">
-                                                                    {format(new Date(relatedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex flex-1 flex-col p-5">
-                                                        <div className="mb-3">
-                                                            {relatedEvent.category && (
-                                                                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-card dark:text-muted-foreground">
-                                                                    {relatedEvent.category}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        <h4 className="mb-2 text-lg font-bold leading-tight text-gray-900 dark:text-white line-clamp-2 group-hover:text-[#c90000] transition-colors">
-                                                            {relatedEvent.title}
-                                                        </h4>
-
-                                                        <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-muted-foreground">
-                                                            <MapPin className="h-4 w-4 text-[#c90000]" />
-                                                            <span className="line-clamp-1 font-medium">
-                                                                {relatedEvent.venue?.name || relatedEvent.city_location?.name}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </a>
-                                            </CarouselItem>
-                                        ))}
-                                    </CarouselContent>
-                                    <div className="hidden md:block">
-                                        <CarouselPrevious />
-                                        <CarouselNext />
-                                    </div>
-                                </Carousel>
-                            </div>
-                        </section>
-                    )
-                }
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    loop: true,
+                                }}
+                                plugins={[
+                                    Autoplay({
+                                        delay: 4000,
+                                    }),
+                                ]}
+                                className="w-full"
+                            >
+                                <CarouselContent className="-ml-4 md:-ml-6">
+                                    {relatedEvents.map((relatedEvent) => (
+                                        <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/3 lg:basis-1/4">
+                                            <EventCard event={relatedEvent} />
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                                <div className="hidden md:block">
+                                    <CarouselPrevious />
+                                    <CarouselNext />
+                                </div>
+                            </Carousel>
+                        </div>
+                    </section>
+                )}
             </main>
             <PublicFooter />
         </div>
