@@ -43,3 +43,23 @@ Route::post('settings', [SiteSettingController::class, 'update'])->name('setting
 
 use App\Http\Controllers\Admin\WelcomeBannerController;
 Route::resource('banners', WelcomeBannerController::class)->except(['index', 'create', 'show', 'edit']);
+
+// ─── Mailing ──────────────────────────────────────────────────────────────────
+use App\Http\Controllers\Admin\MailingController;
+
+// Contactos / Lista de correos
+Route::prefix('mailing')->name('mailing.')->group(function () {
+    Route::get('contacts', [MailingController::class, 'contactsIndex'])->name('contacts.index');
+    Route::post('contacts', [MailingController::class, 'contactsStore'])->name('contacts.store');
+    Route::post('contacts/import', [MailingController::class, 'contactsImport'])->name('contacts.import');
+    Route::delete('contacts/{contact}', [MailingController::class, 'contactsDestroy'])->name('contacts.destroy');
+    Route::patch('contacts/{contact}/toggle', [MailingController::class, 'contactsToggle'])->name('contacts.toggle');
+
+    // Campañas
+    Route::get('campaigns', [MailingController::class, 'campaignsIndex'])->name('campaigns.index');
+    Route::get('campaigns/create', [MailingController::class, 'campaignsCreate'])->name('campaigns.create');
+    Route::post('campaigns', [MailingController::class, 'campaignsStore'])->name('campaigns.store');
+    Route::get('campaigns/{campaign}', [MailingController::class, 'campaignsShow'])->name('campaigns.show');
+    Route::post('campaigns/{campaign}/send', [MailingController::class, 'campaignsSend'])->name('campaigns.send');
+    Route::delete('campaigns/{campaign}', [MailingController::class, 'campaignsDestroy'])->name('campaigns.destroy');
+});

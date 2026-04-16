@@ -69,6 +69,11 @@ class ExternalEventController extends Controller
         $event->sales_centers = $event->salesCenters()->pluck('sales_centers.id');
         $event->sales_center_groups = $event->salesCenterGroups()->pluck('sales_center_groups.id');
         $event->categories = $event->categories()->pluck('categories.id');
+        $event->linked_events = $event->linkedEvents()->pluck('external_events.id');
+
+        $allEvents = ExternalEvent::where('id', '!=', $event->id)
+            ->orderBy('title')
+            ->get(['id', 'title', 'start_date']);
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
@@ -78,6 +83,7 @@ class ExternalEventController extends Controller
             'cities' => $cities,
             'categories' => $categories,
             'venues' => $venues,
+            'allEvents' => $allEvents,
         ]);
     }
 
@@ -89,6 +95,7 @@ class ExternalEventController extends Controller
         $cities = City::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $venues = Venue::orderBy('name')->get();
+        $allEvents = ExternalEvent::orderBy('title')->get(['id', 'title', 'start_date']);
 
         return Inertia::render('Admin/Events/Create', [
             'salesCenters' => $salesCenters,
@@ -97,6 +104,7 @@ class ExternalEventController extends Controller
             'cities' => $cities,
             'categories' => $categories,
             'venues' => $venues,
+            'allEvents' => $allEvents,
         ]);
     }
 
@@ -125,9 +133,11 @@ class ExternalEventController extends Controller
             'is_featured' => 'boolean',
             'redirect_external' => 'boolean',
             'show_calendar' => 'boolean',
+            'show_linked_events' => 'boolean',
             'calendar_description' => 'nullable|string',
             'performance_descriptions' => 'nullable|array',
             'meta_pixel_id' => 'nullable|string|max:50',
+            'linked_events' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -151,10 +161,12 @@ class ExternalEventController extends Controller
         $salesCenterIds = $validated['sales_centers'] ?? [];
         $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
         $categoryIds = $validated['categories'] ?? [];
+        $linkedEventIds = $validated['linked_events'] ?? [];
 
         unset($validated['sales_centers']);
         unset($validated['sales_center_groups']);
         unset($validated['categories']);
+        unset($validated['linked_events']);
         
         $validated['external_id'] = 'MANUAL_' . uniqid();
 
@@ -162,6 +174,7 @@ class ExternalEventController extends Controller
         $event->salesCenters()->sync($salesCenterIds);
         $event->salesCenterGroups()->sync($salesCenterGroupIds);
         $event->categories()->sync($categoryIds);
+        $event->linkedEvents()->sync($linkedEventIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento creado correctamente.');
     }
@@ -191,9 +204,11 @@ class ExternalEventController extends Controller
             'is_featured' => 'boolean',
             'redirect_external' => 'boolean',
             'show_calendar' => 'boolean',
+            'show_linked_events' => 'boolean',
             'calendar_description' => 'nullable|string',
             'performance_descriptions' => 'nullable|array',
             'meta_pixel_id' => 'nullable|string|max:50',
+            'linked_events' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -220,15 +235,18 @@ class ExternalEventController extends Controller
         $salesCenterIds = $validated['sales_centers'] ?? [];
         $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
         $categoryIds = $validated['categories'] ?? [];
+        $linkedEventIds = $validated['linked_events'] ?? [];
 
         unset($validated['sales_centers']);
         unset($validated['sales_center_groups']);
         unset($validated['categories']);
+        unset($validated['linked_events']);
 
         $event->update($validated);
         $event->salesCenters()->sync($salesCenterIds);
         $event->salesCenterGroups()->sync($salesCenterGroupIds);
         $event->categories()->sync($categoryIds);
+        $event->linkedEvents()->sync($linkedEventIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }

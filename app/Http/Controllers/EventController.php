@@ -10,7 +10,9 @@ class EventController extends Controller
 {
     public function show($slug)
     {
-        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories'])
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories', 'linkedEvents' => function($q) {
+            $q->with(['venue', 'state', 'cityLocation', 'categories']);
+        }])
             ->where('slug', $slug)
             ->orWhere('id', $slug)
             ->firstOrFail();

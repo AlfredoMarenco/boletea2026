@@ -108,6 +108,20 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
     };
 
+    const isGridMode = !!(event.show_linked_events && event.linked_events && event.linked_events.length > 0);
+
+    const getPurchaseLink = (ev: ExternalEvent) => {
+        if (ev.performance_url) return ev.performance_url;
+        const evPerformances: Performance[] = Array.isArray(ev.raw_data)
+            ? ev.raw_data
+            : (ev.raw_data ? [ev.raw_data as Performance] : []);
+        
+        if (evPerformances.length > 0) {
+            return `https://boletea.com.mx/ordertickets.asp?p=${evPerformances[0].PerformanceID}`;
+        }
+        return route('event.show', ev.slug || ev.id);
+    };
+
     return (
         <div className="min-h-screen bg-white text-gray-900 dark:bg-background dark:text-gray-100 font-sans">
             <Head>
@@ -179,7 +193,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-3">
-                                        {displayDate && (
+                                        {displayDate && !isGridMode && (
                                             <div className="flex flex-col items-center justify-center bg-white rounded-xl p-2 min-w-[60px] shadow-lg">
                                                 <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
                                                     {format(displayDate, 'MMM', { locale: es }).replace('.', '')}
@@ -215,30 +229,149 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     </div>
                 </div>
 
-                <div className="container mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start">
-                    {/* Main Content (Acerca del Evento) */}
-                    <div className="flex flex-col gap-8 lg:col-span-2 lg:gap-10 order-2 lg:order-1">
+                <div className={`container mx-auto flex flex-col ${isGridMode ? 'lg:grid-cols-1' : 'lg:grid lg:grid-cols-3'} gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start`}>
+                    {/* Main Content (Acerca del Evento o Grid) */}
+                    <div className={`flex flex-col gap-8 ${isGridMode ? 'lg:col-span-1' : 'lg:col-span-2'} lg:gap-10 order-2 lg:order-1`}>
                         {/* Description */}
-                        <section>
-                            <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
-                            <div
-                                className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
-                                dangerouslySetInnerHTML={{
-                                    __html: (event.description ? (() => {
-                                        try {
-                                            const txt = document.createElement('textarea');
-                                            txt.innerHTML = event.description;
-                                            return txt.value;
-                                        } catch (e) {
-                                            return event.description;
-                                        }
-                                    })() : 'Sin descripción disponible.')
-                                }}
-                            />
-                        </section>
+                        {(event.description && event.description !== 'Sin descripción disponible.') && (
+                            <section>
+                                <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
+                                <div
+                                    className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
+                                    dangerouslySetInnerHTML={{
+                                        __html: (event.description ? (() => {
+                                            try {
+                                                const txt = document.createElement('textarea');
+                                                txt.innerHTML = event.description;
+                                                return txt.value;
+                                            } catch (e) {
+                                                return event.description;
+                                            }
+                                        })() : 'Sin descripción disponible.')
+                                    }}
+                                />
+                            </section>
+                        )}
+
+                        {/* Linked Events Grid */}
+                        {isGridMode && (
+                            <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                <h2 className="mb-6 text-2xl font-bold lg:text-3xl flex items-center gap-2">
+                                    <div className="h-8 w-1.5 bg-[#c90000] rounded-full" />
+                                    Eventos Disponibles
+                                </h2>
+
+                                {/* Option B: Relocated Countdown and ViewerCounter */}
+                                {isGridMode && (
+                                    <div className="mb-10 p-6 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                            {!isSalesOpen && event.sales_start_date ? (
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="flex items-center gap-2 text-[#c90000] font-bold">
+                                                        <CalendarIcon className="size-5" />
+                                                        <span>Venta de boletos disponible en:</span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <Countdown
+                                                            targetDate={event.sales_start_date}
+                                                            onComplete={() => setIsSalesOpen(true)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                                        <span className="text-sm font-bold text-green-600 dark:text-green-500 uppercase tracking-wider">Venta Disponible</span>
+                                                    </div>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">Selecciona uno de los eventos vinculados a continuación para proceder con la compra.</p>
+                                                </div>
+                                            )}
+                                            
+                                            <div className="shrink-0 md:border-l md:pl-8 dark:border-white/10">
+                                                <ViewerCounter eventId={event.id} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {event.linked_events.map((linkedEvent) => (
+                                        <a
+                                            key={linkedEvent.id}
+                                            href={isGridMode ? getPurchaseLink(linkedEvent) : route('event.show', linkedEvent.slug || linkedEvent.id)}
+                                            target={isGridMode && (linkedEvent.performance_url || (Array.isArray(linkedEvent.raw_data) ? linkedEvent.raw_data.length > 0 : !!linkedEvent.raw_data)) ? "_blank" : "_self"}
+                                            className="group flex flex-col bg-white dark:bg-[#1a1c20] rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-[#c90000]/20 transition-all duration-300 transform hover:-translate-y-1"
+                                        >
+                                            <div className="relative aspect-[16/9] overflow-hidden">
+                                                {linkedEvent.image_path ? (
+                                                    <img
+                                                        src={linkedEvent.image_path}
+                                                        alt={linkedEvent.title}
+                                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                    />
+                                                ) : (
+                                                    <div className="h-full w-full bg-gray-100 dark:bg-card flex items-center justify-center">
+                                                        <Ticket className="w-12 h-12 text-gray-300 dark:text-gray-700" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                
+                                                {linkedEvent.start_date && (
+                                                    <div className="absolute top-4 left-4 bg-white/95 dark:bg-black/80 backdrop-blur-md rounded-xl p-2 min-w-[55px] text-center shadow-lg border border-white/20">
+                                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter leading-none mb-0.5">
+                                                            {format(new Date(linkedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
+                                                        </div>
+                                                        <div className="text-xl font-black text-[#c90000] leading-none">
+                                                            {format(new Date(linkedEvent.start_date), 'dd')}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="p-5 flex flex-col flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {linkedEvent.category && (
+                                                        <Badge variant="outline" className="text-[10px] font-bold border-gray-200 text-gray-500 dark:border-white/10">
+                                                            {linkedEvent.category}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 line-clamp-2 group-hover:text-[#c90000] transition-colors">
+                                                    {linkedEvent.title.replace(/^[A-Z0-9]+\s+/, '')}
+                                                </h3>
+                                                
+                                                <div className="mt-auto flex items-center justify-between">
+                                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                                        <MapPin className="w-3.5 h-3.5 text-[#c90000]" />
+                                                        <span className="line-clamp-1">
+                                                            {linkedEvent.venue?.name || linkedEvent.city_location?.name}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 dark:bg-white/5 text-gray-400 group-hover:bg-[#c90000] group-hover:text-white transition-all transform group-hover:rotate-45">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7M5 19l7-7-7-7" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-4">
+                                                    <Button className="w-full h-10 bg-[#c90000] hover:bg-[#a00000] text-white font-bold rounded-xl shadow-md shadow-red-600/10 group-hover:shadow-red-600/20 transition-all border-none">
+                                                        <Ticket className="w-4 h-4 mr-2" />
+                                                        Comprar Boletos
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
 
                         {/* CDV Prices */}
-                        {visibleCdvPrices.length > 0 && (
+                        {visibleCdvPrices.length > 0 && !isGridMode && (
                             <section className="relative rounded-2xl border border-[#c90000]/20 bg-white/50 dark:bg-[#1a1c20]/50 p-6 shadow-lg shadow-[#c90000]/5 overflow-hidden transition-all duration-300">
                                 {/* Pulse Glow Effect Background */}
                                 <div className="absolute inset-0 bg-[#c90000]/5 animate-pulse pointer-events-none"></div>
@@ -368,10 +501,11 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         )}
                     </div>
 
-                    {/* Booking Sidebar */}
-                    <div className="relative order-1 lg:order-2">
-                        <div className="sticky top-24 flex flex-col gap-6">
-                            {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
+                    {/* Booking Sidebar / Recuadro de Reserva */}
+                    {!isGridMode && (
+                        <div className="relative order-1 lg:order-2">
+                            <div className="sticky top-24 flex flex-col gap-6">
+                                {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
                                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
                                     <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
 
@@ -563,6 +697,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                             )}
                         </div>
                     </div>
+                    )}
 
                     {/* Mobile Sales Centers Carousel (Hidden on desktop) */}
                     {salesCentersDetails && salesCentersDetails.length > 0 && (
@@ -653,7 +788,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 >
                                     <CarouselContent className="-ml-4 md:-ml-6">
                                         {relatedEvents.map((relatedEvent) => (
-                                            <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/2 lg:basis-1/3">
+                                            <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/3 lg:basis-1/4">
                                                 <a
                                                     href={route('event.show', relatedEvent.slug || relatedEvent.id)}
                                                     className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-border dark:bg-background"

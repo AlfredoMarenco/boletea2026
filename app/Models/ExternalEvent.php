@@ -31,6 +31,7 @@ class ExternalEvent extends Model
         'is_featured',
         'redirect_external',
         'show_calendar',
+        'show_linked_events',
         'calendar_description',
         'performance_descriptions',
         'meta_pixel_id',
@@ -46,6 +47,7 @@ class ExternalEvent extends Model
         'is_featured' => 'boolean',
         'redirect_external' => 'boolean',
         'show_calendar' => 'boolean',
+        'show_linked_events' => 'boolean',
         'performance_descriptions' => 'array',
     ];
 
@@ -92,5 +94,11 @@ class ExternalEvent extends Model
     public function images()
     {
         return $this->morphMany(Image::class, 'imageable');
+    }
+
+    public function linkedEvents()
+    {
+        return $this->belongsToMany(ExternalEvent::class, 'external_event_related', 'parent_id', 'child_id')
+            ->orderBy('start_date', 'desc');
     }
 }
