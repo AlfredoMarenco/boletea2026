@@ -99,7 +99,7 @@ class ExternalEvent extends Model
     public function linkedEvents()
     {
         return $this->belongsToMany(ExternalEvent::class, 'external_event_related', 'parent_id', 'child_id')
-            ->orderBy('start_date', 'desc');
+            ->orderBy('start_date', 'asc');
     }
 
     public function parentEvents()
