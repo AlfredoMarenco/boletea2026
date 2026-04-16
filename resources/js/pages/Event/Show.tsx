@@ -21,6 +21,7 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
+import EventCard from '@/components/EventCard';
 
 // ExternalEvent imported from '@/types/event'
 import { ExternalEvent, Performance } from '@/types/event';
@@ -261,110 +262,50 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                     Eventos Disponibles
                                 </h2>
 
-                                {/* Option B: Relocated Countdown and ViewerCounter */}
-                                {isGridMode && (
-                                    <div className="mb-10 p-6 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                            {!isSalesOpen && event.sales_start_date ? (
-                                                <div className="flex-1 space-y-3">
-                                                    <div className="flex items-center gap-2 text-[#c90000] font-bold">
-                                                        <CalendarIcon className="size-5" />
-                                                        <span>Venta de boletos disponible en:</span>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Countdown
-                                                            targetDate={event.sales_start_date}
-                                                            onComplete={() => setIsSalesOpen(true)}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                                        <span className="text-sm font-bold text-green-600 dark:text-green-500 uppercase tracking-wider">Venta Disponible</span>
-                                                    </div>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">Selecciona uno de los eventos vinculados a continuación para proceder con la compra.</p>
-                                                </div>
-                                            )}
-                                            
-                                            <div className="shrink-0 md:border-l md:pl-8 dark:border-white/10">
-                                                <ViewerCounter eventId={event.id} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                 {/* Option G: Fixed Compact Sidebar Layout */}
+                                 <div className="mx-auto mb-6 flex w-full max-w-2xl items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-card">
+                                     {/* Left: Status / Countdown */}
+                                     <div className="flex flex-1 items-center gap-6">
+                                         {!isSalesOpen && event.sales_start_date ? (
+                                             <div className="flex items-center gap-4">
+                                                 <div className="flex flex-col">
+                                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-[#c90000]">Venta próximamente</h4>
+                                                     <h3 className="text-base font-black tracking-tight text-gray-900 dark:text-white">Apertura</h3>
+                                                 </div>
+                                                 <div className="scale-90 transform-gpu translate-y-0.5">
+                                                     <Countdown
+                                                         targetDate={event.sales_start_date}
+                                                         onComplete={() => setIsSalesOpen(true)}
+                                                     />
+                                                 </div>
+                                             </div>
+                                         ) : (
+                                             <div className="flex items-center gap-4">
+                                                 <div className="flex flex-col">
+                                                     <h3 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
+                                                        Venta Disponible
+                                                     </h3>
+                                                     <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">¡Adquiere tus boletos ahora mismo!</p>
+                                                 </div>
+                                             </div>
+                                         )}
+                                     </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                     {/* Right: Social Proof */}
+                                     <div className="flex shrink-0 items-center border-l border-gray-50 pl-4 ml-2 dark:border-white/5">
+                                         <ViewerCounter eventId={event.id} />
+                                     </div>
+                                 </div>
+
+
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
                                     {event.linked_events.map((linkedEvent) => (
-                                        <a
-                                            key={linkedEvent.id}
-                                            href={isGridMode ? getPurchaseLink(linkedEvent) : route('event.show', linkedEvent.slug || linkedEvent.id)}
-                                            target={isGridMode && (linkedEvent.performance_url || (Array.isArray(linkedEvent.raw_data) ? linkedEvent.raw_data.length > 0 : !!linkedEvent.raw_data)) ? "_blank" : "_self"}
-                                            className="group flex flex-col bg-white dark:bg-[#1a1c20] rounded-2xl overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-[#c90000]/20 transition-all duration-300 transform hover:-translate-y-1"
-                                        >
-                                            <div className="relative aspect-[16/9] overflow-hidden">
-                                                {linkedEvent.image_path ? (
-                                                    <img
-                                                        src={linkedEvent.image_path}
-                                                        alt={linkedEvent.title}
-                                                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                    />
-                                                ) : (
-                                                    <div className="h-full w-full bg-gray-100 dark:bg-card flex items-center justify-center">
-                                                        <Ticket className="w-12 h-12 text-gray-300 dark:text-gray-700" />
-                                                    </div>
-                                                )}
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                
-                                                {linkedEvent.start_date && (
-                                                    <div className="absolute top-4 left-4 bg-white/95 dark:bg-black/80 backdrop-blur-md rounded-xl p-2 min-w-[55px] text-center shadow-lg border border-white/20">
-                                                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter leading-none mb-0.5">
-                                                            {format(new Date(linkedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
-                                                        </div>
-                                                        <div className="text-xl font-black text-[#c90000] leading-none">
-                                                            {format(new Date(linkedEvent.start_date), 'dd')}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="p-5 flex flex-col flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    {linkedEvent.category && (
-                                                        <Badge variant="outline" className="text-[10px] font-bold border-gray-200 text-gray-500 dark:border-white/10">
-                                                            {linkedEvent.category}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                                
-                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 line-clamp-2 group-hover:text-[#c90000] transition-colors">
-                                                    {linkedEvent.title.replace(/^[A-Z0-9]+\s+/, '')}
-                                                </h3>
-                                                
-                                                <div className="mt-auto flex items-center justify-between">
-                                                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                                                        <MapPin className="w-3.5 h-3.5 text-[#c90000]" />
-                                                        <span className="line-clamp-1">
-                                                            {linkedEvent.venue?.name || linkedEvent.city_location?.name}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 dark:bg-white/5 text-gray-400 group-hover:bg-[#c90000] group-hover:text-white transition-all transform group-hover:rotate-45">
-                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7-7 7M5 19l7-7-7-7" />
-                                                        </svg>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-4">
-                                                    <Button className="w-full h-10 bg-[#c90000] hover:bg-[#a00000] text-white font-bold rounded-xl shadow-md shadow-red-600/10 group-hover:shadow-red-600/20 transition-all border-none">
-                                                        <Ticket className="w-4 h-4 mr-2" />
-                                                        Comprar Boletos
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </a>
+                                        <EventCard 
+                                            key={linkedEvent.id} 
+                                            event={linkedEvent} 
+                                            disabled={!isSalesOpen}
+                                            forceExternal={true}
+                                        />
                                     ))}
                                 </div>
                             </section>
@@ -766,92 +707,40 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                 </div>
 
                 {/* Related Events Section (Mobile Slider / Desktop Grid) */}
-                {
-                    relatedEvents && relatedEvents.length > 0 && (
-                        <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
-                            <div className="container mx-auto px-6">
-                                <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
-                                    Eventos que te podrían interesar
-                                </h3>
+                {relatedEvents && relatedEvents.length > 0 && !isGridMode && (
+                    <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
+                        <div className="container mx-auto px-6">
+                            <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
+                                Eventos que te podrían interesar
+                            </h3>
 
-                                <Carousel
-                                    opts={{
-                                        align: "start",
-                                        loop: true,
-                                    }}
-                                    plugins={[
-                                        Autoplay({
-                                            delay: 4000,
-                                        }),
-                                    ]}
-                                    className="w-full"
-                                >
-                                    <CarouselContent className="-ml-4 md:-ml-6">
-                                        {relatedEvents.map((relatedEvent) => (
-                                            <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/3 lg:basis-1/4">
-                                                <a
-                                                    href={route('event.show', relatedEvent.slug || relatedEvent.id)}
-                                                    className="group relative flex flex-col h-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-border dark:bg-background"
-                                                >
-                                                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-gray-100 dark:bg-card">
-                                                        {relatedEvent.image_path ? (
-                                                            <img
-                                                                src={relatedEvent.image_path}
-                                                                alt={relatedEvent.title}
-                                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                                loading="lazy"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center text-gray-400">
-                                                                <Ticket className="h-10 w-10 opacity-20" />
-                                                            </div>
-                                                        )}
-
-                                                        {relatedEvent.start_date && (
-                                                            <div className="absolute left-3 top-3 rounded-lg bg-white/90 px-3 py-1.5 text-center text-xs font-bold text-gray-900 backdrop-blur-sm shadow-sm dark:bg-background/80 dark:text-white">
-                                                                <span className="block text-xl leading-none text-[#c90000]">
-                                                                    {format(new Date(relatedEvent.start_date), 'dd')}
-                                                                </span>
-                                                                <span className="block uppercase leading-none text-gray-500 dark:text-muted-foreground mt-0.5">
-                                                                    {format(new Date(relatedEvent.start_date), 'MMM', { locale: es }).replace('.', '')}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex flex-1 flex-col p-5">
-                                                        <div className="mb-3">
-                                                            {relatedEvent.category && (
-                                                                <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-card dark:text-muted-foreground">
-                                                                    {relatedEvent.category}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        <h4 className="mb-2 text-lg font-bold leading-tight text-gray-900 dark:text-white line-clamp-2 group-hover:text-[#c90000] transition-colors">
-                                                            {relatedEvent.title}
-                                                        </h4>
-
-                                                        <div className="mt-auto flex items-center gap-2 text-sm text-gray-500 dark:text-muted-foreground">
-                                                            <MapPin className="h-4 w-4 text-[#c90000]" />
-                                                            <span className="line-clamp-1 font-medium">
-                                                                {relatedEvent.venue?.name || relatedEvent.city_location?.name}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </a>
-                                            </CarouselItem>
-                                        ))}
-                                    </CarouselContent>
-                                    <div className="hidden md:block">
-                                        <CarouselPrevious />
-                                        <CarouselNext />
-                                    </div>
-                                </Carousel>
-                            </div>
-                        </section>
-                    )
-                }
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    loop: true,
+                                }}
+                                plugins={[
+                                    Autoplay({
+                                        delay: 4000,
+                                    }),
+                                ]}
+                                className="w-full"
+                            >
+                                <CarouselContent className="-ml-4 md:-ml-6">
+                                    {relatedEvents.map((relatedEvent) => (
+                                        <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/3 lg:basis-1/4">
+                                            <EventCard event={relatedEvent} />
+                                        </CarouselItem>
+                                    ))}
+                                </CarouselContent>
+                                <div className="hidden md:block">
+                                    <CarouselPrevious />
+                                    <CarouselNext />
+                                </div>
+                            </Carousel>
+                        </div>
+                    </section>
+                )}
             </main>
             <PublicFooter />
         </div>
