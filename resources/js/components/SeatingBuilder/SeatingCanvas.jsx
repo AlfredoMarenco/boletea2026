@@ -824,7 +824,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 className="bg-white"
                 onContextMenu={(e) => e.evt.preventDefault()} // Allow right-click for upcoming features
             >
-                <Layer name="grid" listening={false}>
+                <Layer name="canvas-bottom" listening={false}>
                     {/* Render Grid Lines */}
                     {mode === 'edit' && (() => {
                         const lines = [];
@@ -859,8 +859,6 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         }
                         return lines;
                     })()}
-                </Layer>
-                <Layer name="background" listening={false}>
                     {bgImage && (
                         <KonvaImage 
                             image={bgImage}
@@ -997,13 +995,44 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                     onDragStart={(e) => {
                                         e.cancelBubble = true;
                                         const startMap = {};
+                                        const layer = e.target.getLayer();
+                                        
+                                        // PERFORMANCE: Pre-map all Konva nodes in this layer to avoid repeated findOne
+                                        const konvaNodesMap = {};
+                                        layer.getChildren().forEach(child => {
+                                            const cid = child.id();
+                                            if (cid) konvaNodesMap[cid] = child;
+                                        });
+
                                         if (selectedIdsRef.current.includes(node.id)) {
                                             selectedIdsRef.current.forEach(id => {
                                                 const n = nodesRef.current.find(item => item.id === id);
-                                                if (n) startMap[id] = { x: n.x, y: n.y };
+                                                if (n) {
+                                                    startMap[id] = { 
+                                                        x: n.x, 
+                                                        y: n.y,
+                                                        konvaNode: konvaNodesMap[id]
+                                                    };
+                                                    
+                                                    // Identify and cache row labels for real-time movement
+                                                    if (n.row_uuid) {
+                                                        const leftLabel = konvaNodesMap[`label-L-${n.row_uuid}`];
+                                                        const rightLabel = konvaNodesMap[`label-R-${n.row_uuid}`];
+                                                        if (leftLabel && !startMap[`label-L-${n.row_uuid}`]) {
+                                                            startMap[`label-L-${n.row_uuid}`] = { x: leftLabel.x(), y: leftLabel.y(), konvaNode: leftLabel };
+                                                        }
+                                                        if (rightLabel && !startMap[`label-R-${n.row_uuid}`]) {
+                                                            startMap[`label-R-${n.row_uuid}`] = { x: rightLabel.x(), y: rightLabel.y(), konvaNode: rightLabel };
+                                                        }
+                                                    }
+                                                }
                                             });
                                         } else {
-                                            startMap[node.id] = { x: node.x, y: node.y };
+                                            startMap[node.id] = { 
+                                                x: node.x, 
+                                                y: node.y,
+                                                konvaNode: e.target
+                                            };
                                         }
                                         dragStartRef.current = startMap;
                                         e.target.setAttr('dragStartX', node.x);
@@ -1012,39 +1041,44 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                     onDragMove={(e) => {
                                         const isSelected = selectedIdsRef.current.includes(node.id);
                                         if (!isSelected) return;
- 
+
                                         let rawX = e.target.x();
                                         let rawY = e.target.y();
                                         
-                                        const activeGuides = [];
-                                        nodesRef.current.forEach(other => {
-                                            if (other.id === node.id || selectedIdsRef.current.includes(other.id)) return;
-                                            if (other.type !== 'seat') return;
-                                            if (Math.abs(rawX - other.x) < 5) {
-                                                rawX = other.x;
-                                                activeGuides.push({ orientation: 'V', pos: other.x });
-                                            }
-                                            if (Math.abs(rawY - other.y) < 5) {
-                                                rawY = other.y;
-                                                activeGuides.push({ orientation: 'H', pos: other.y });
-                                            }
-                                        });
+                                        // PERFORMANCE: Only calculate guides for smaller selections
+                                        const selectionSize = Object.keys(dragStartRef.current).length;
+                                        if (selectionSize < 20) {
+                                            const activeGuides = [];
+                                            // Limit guide search to a small window or sample
+                                            nodesRef.current.forEach((other, idx) => {
+                                                if (other.id === node.id || selectedIdsRef.current.includes(other.id)) return;
+                                                if (other.type !== 'seat' || (nodesRef.current.length > 200 && idx % 2 !== 0)) return;
+                                                
+                                                if (Math.abs(rawX - other.x) < 5) {
+                                                    rawX = other.x;
+                                                    activeGuides.push({ orientation: 'V', pos: other.x });
+                                                }
+                                                if (Math.abs(rawY - other.y) < 5) {
+                                                    rawY = other.y;
+                                                    activeGuides.push({ orientation: 'H', pos: other.y });
+                                                }
+                                            });
+                                            if (activeGuides.length > 0) setGuides(activeGuides.slice(0, 2));
+                                        }
 
-                                        setGuides(activeGuides.slice(0, 2));
                                         e.target.x(rawX);
                                         e.target.y(rawY);
 
                                         const dx = rawX - (e.target.getAttr('dragStartX') || node.x);
                                         const dy = rawY - (e.target.getAttr('dragStartY') || node.y);
- 
-                                        const layer = e.target.getLayer();
+
+                                        // Move other selected nodes using CACHED REFS
                                         Object.keys(dragStartRef.current).forEach(id => {
                                             if (id === node.id) return;
-                                            const otherNode = layer.findOne('#' + id) || layer.findOne('.' + id);
-                                            const startPos = dragStartRef.current[id];
-                                            if (otherNode && startPos) {
-                                                otherNode.x(startPos.x + dx);
-                                                otherNode.y(startPos.y + dy);
+                                            const data = dragStartRef.current[id];
+                                            if (data.konvaNode) {
+                                                data.konvaNode.x(data.x + dx);
+                                                data.konvaNode.y(data.y + dy);
                                             }
                                         });
                                     }}
@@ -1150,6 +1184,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 <React.Fragment key={`row-labels-${idx}`}>
                                     {showLeft && (
                                         <Text
+                                            id={`label-L-${first.row_uuid}`}
                                             x={extremeLeft.x - Math.cos(angle) * offset - radius}
                                             y={extremeLeft.y - Math.sin(angle) * offset - radius}
                                             text={displayLabel}
@@ -1162,6 +1197,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                     )}
                                     {showRight && (
                                         <Text
+                                            id={`label-R-${first.row_uuid}`}
                                             x={extremeRight.x + Math.cos(angle) * offset - radius}
                                             y={extremeRight.y + Math.sin(angle) * offset - radius}
                                             text={displayLabel}
@@ -1207,7 +1243,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                     
                 </Layer>
 
-                <Layer name="overlays">
+                <Layer name="canvas-top">
                     {/* Smart Guides Rendering */}
                     {guides.map((guide, i) => (
                         <Line
@@ -1269,8 +1305,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                             perfectDrawEnabled={false}
                         />
                     ))}
-                </Layer>
-                <Layer name="controls">
+
                     {mode === 'edit' && selectedIds.length > 0 && !isResizing && (
                         <Transformer
                             ref={transformerRef}
@@ -1283,117 +1318,210 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         />
                     )}
 
-                    {/* Resize Handles (Both Ends) */}
+                    {/* Resize Handles (4 Centered Sides) */}
                     {mode === 'edit' && selectedIds.length > 0 && !selectionRect && (
                         (() => {
                             const selectedSeats = nodes.filter(n => selectedIds.includes(n.id) && n.type === 'seat');
                             if (selectedSeats.length < 1) return null;
                             
-                            const rowUuid = selectedSeats[0].row_uuid;
-                            if (!rowUuid) return null;
-                            
-                            const fullRow = nodes.filter(n => n.row_uuid === rowUuid && n.type === 'seat');
-                            if (fullRow.length < 2) return null;
+                            // 1. Group selection by row and calculate bounding box
+                            const rowsMap = {};
+                            const allX = [];
+                            const allY = [];
 
-                            const startNode = fullRow[0];
-                            const lastNode = fullRow[fullRow.length - 1];
+                            selectedSeats.forEach(s => {
+                                allX.push(s.x);
+                                allY.push(s.y);
+                                if (s.row_uuid && !rowsMap[s.row_uuid]) {
+                                    const fullRow = nodes.filter(n => n.row_uuid === s.row_uuid && n.type === 'seat');
+                                    if (fullRow.length >= 1) {
+                                        const sorted = [...fullRow].sort((a,b) => a.x - b.x);
+                                        rowsMap[s.row_uuid] = {
+                                            nodes: sorted,
+                                            startNode: sorted[0],
+                                            lastNode: sorted[sorted.length - 1],
+                                            rowLabel: sorted[0].row
+                                        };
+                                    }
+                                }
+                            });
 
-                            const createHandle = (node, anchor, isStart) => {
-                                // Calculate offset to put handle OUTSIDE the seat
-                                const dx = node.x - anchor.x;
-                                const dy = node.y - anchor.y;
-                                const dist = Math.sqrt(dx * dx + dy * dy);
-                                const angle = Math.atan2(dy, dx);
-                                
-                                // Offset handle by 20px further than the seat center
-                                const handleOffset = 25; 
-                                const hX = node.x + Math.cos(angle) * handleOffset;
-                                const hY = node.y + Math.sin(angle) * handleOffset;
+                            const minX = Math.min(...allX);
+                            const maxX = Math.max(...allX);
+                            const minY = Math.min(...allY);
+                            const maxY = Math.max(...allY);
+                            const centerX = (minX + maxX) / 2;
+                            const centerY = (minY + maxY) / 2;
+                            const handleOffset = 30;
 
+                            const rowUuids = Object.keys(rowsMap);
+                            if (rowUuids.length === 0) return null;
+
+                            const createHandle = (type, x, y, angle) => {
                                 return (
                                     <Rect
-                                        x={hX - 5}
-                                        y={hY - 5}
-                                        width={10}
-                                        height={10}
+                                        x={x - 6}
+                                        y={y - 6}
+                                        width={12}
+                                        height={12}
                                         fill="#3b82f6"
                                         stroke="#fff"
                                         strokeWidth={2}
-                                        cornerRadius={2}
+                                        cornerRadius={3}
+                                        shadowBlur={4}
+                                        shadowColor="rgba(0,0,0,0.2)"
                                         draggable
                                         onDragStart={(e) => {
                                             e.cancelBubble = true;
                                             setIsResizing(true);
+                                            setResizingData({ rowsMap, type, startX: x, startY: y, minX, maxX, minY, maxY });
                                         }}
                                         onDragMove={(e) => {
                                             const stage = e.target.getStage();
                                             const pos = getRelativePointerPosition(stage);
-                                            
-                                            // The distance should be calculated to the anchor
-                                            const adx = pos.x - anchor.x;
-                                            const ady = pos.y - anchor.y;
-                                            const aDist = Math.sqrt(adx * adx + ady * ady);
                                             const spacing = layout?.config?.defaultSpacing || 35;
-                                            
-                                            // APPLY ANGLE SNAPPING (5 degrees)
-                                            let aAngle = Math.atan2(ady, adx);
-                                            const angleDeg = aAngle * (180 / Math.PI);
-                                            const snappedDeg = Math.round(angleDeg / 5) * 5;
-                                            aAngle = snappedDeg * (Math.PI / 180);
-                                            
-                                            // Subtract the handle offset from the dist calculation to find real seat count
-                                            const actualDist = Math.max(0, aDist - handleOffset);
-                                            const newCount = Math.max(1, Math.round(actualDist / spacing) + 1);
-                                            
+                                            const rowSpacing = layout?.config?.rowSpacing || 40;
                                             const ghosts = [];
-                                            for (let i = 0; i < newCount; i++) {
-                                                ghosts.push({
-                                                    id: 'ghost-' + i,
-                                                    x: anchor.x + Math.cos(aAngle) * i * spacing,
-                                                    y: anchor.y + Math.sin(aAngle) * i * spacing,
+                                            const rowsToExpand = Object.values(rowsMap);
+
+                                            if (type === 'R' || type === 'L') {
+                                                // HORIZONTAL EXPANSION (Seats in row)
+                                                const dx = type === 'R' ? pos.x - minX : maxX - pos.x;
+                                                const newCount = Math.max(1, Math.round((dx - handleOffset/2) / spacing) + 1);
+
+                                                rowsToExpand.forEach(row => {
+                                                    const rowAnchor = type === 'R' ? row.startNode : row.lastNode;
+                                                    const rowAngle = type === 'R' ? 0 : Math.PI; // Simplified for grid
+                                                    // Actual angle calculation if shifted/rotated blocks exist:
+                                                    // const angleAxis = type === 'R' ? 0 : Math.PI;
+
+                                                    for (let i = 0; i < newCount; i++) {
+                                                        ghosts.push({
+                                                            id: `ghost-${row.startNode.row_uuid}-${i}`,
+                                                            x: rowAnchor.x + Math.cos(rowAngle) * i * spacing,
+                                                            y: rowAnchor.y + Math.sin(rowAngle) * i * spacing,
+                                                        });
+                                                    }
                                                 });
+                                            } else {
+                                                // VERTICAL EXPANSION (New rows)
+                                                const sortedRowsY = Object.values(rowsMap).sort((a,b) => a.startNode.y - b.startNode.y);
+                                                const edgeRow = type === 'B' ? sortedRowsY[sortedRowsY.length - 1] : sortedRowsY[0];
+                                                const prevRow = type === 'B' ? (sortedRowsY[sortedRowsY.length - 2] || edgeRow) : (sortedRowsY[1] || edgeRow);
+                                                
+                                                // Calculate measured metrics from the selection
+                                                const dy = sortedRowsY.length > 1 ? (edgeRow.startNode.y - prevRow.startNode.y) : (type === 'B' ? rowSpacing : -rowSpacing);
+                                                const honeyOffsetX = sortedRowsY.length > 1 ? (edgeRow.startNode.x - prevRow.startNode.x) : 0;
+                                                const isHoneycomb = Math.abs(honeyOffsetX) > spacing / 4;
+
+                                                const actualDy = Math.abs(pos.y - edgeRow.startNode.y);
+                                                const extraRowsCount = Math.max(0, Math.floor((actualDy - handleOffset/2) / Math.abs(dy)));
+
+                                                // Current rows ghosts
+                                                rowsToExpand.forEach(row => {
+                                                    row.nodes.forEach((n, i) => {
+                                                        ghosts.push({ id: `ghost-orig-${row.startNode.row_uuid}-${i}`, x: n.x, y: n.y });
+                                                    });
+                                                });
+
+                                                if (extraRowsCount > 0) {
+                                                    for (let r = 1; r <= extraRowsCount; r++) {
+                                                        const isOdd = r % 2 !== 0;
+                                                        // Toggling offset for honeycomb: new row 1 is like prevRow, row 2 is like edgeRow
+                                                        const currentXShift = (isHoneycomb && isOdd) ? -honeyOffsetX : 0;
+                                                        
+                                                        edgeRow.nodes.forEach((n, i) => {
+                                                            ghosts.push({
+                                                                id: `ghost-newrow-${r}-${i}`,
+                                                                x: n.x + currentXShift,
+                                                                y: edgeRow.startNode.y + (r * dy),
+                                                            });
+                                                        });
+                                                    }
+                                                }
                                             }
+
                                             setPreviewNodes(ghosts);
                                             setIsDrawingRow(true);
                                         }}
                                         onDragEnd={(e) => {
                                             const stage = e.target.getStage();
                                             const pos = getRelativePointerPosition(stage);
-                                            const adx = pos.x - anchor.x;
-                                            const ady = pos.y - anchor.y;
-                                            const aDist = Math.sqrt(adx * adx + ady * ady);
                                             const spacing = layout?.config?.defaultSpacing || 35;
+                                            const rowSpacing = layout?.config?.rowSpacing || 40;
                                             
-                                            // APPLY ANGLE SNAPPING (5 degrees)
-                                            let aAngle = Math.atan2(ady, adx);
-                                            const angleDeg = aAngle * (180 / Math.PI);
-                                            const snappedDeg = Math.round(angleDeg / 5) * 5;
-                                            aAngle = snappedDeg * (Math.PI / 180);
-                                            
-                                            const actualDist = Math.max(0, aDist - handleOffset);
-                                            const newCount = Math.max(1, Math.round(actualDist / spacing) + 1);
+                                            let updatedNodes = [...nodes];
+                                            const rowUuidsToReplace = Object.keys(rowsMap);
+                                            const rowsToExpand = Object.values(rowsMap);
+                                            const newSelectionIds = [];
 
-                                            const newSeats = [];
-                                            for (let i = 0; i < newCount; i++) {
-                                                newSeats.push({
-                                                    ...anchor, 
-                                                    id: 'seat-' + uuidv4(),
-                                                    x: anchor.x + Math.cos(aAngle) * i * spacing,
-                                                    y: anchor.y + Math.sin(aAngle) * i * spacing,
-                                                    number: i + 1,
-                                                    permanent_uuid: uuidv4()
+                                            if (type === 'R' || type === 'L') {
+                                                const dx = type === 'R' ? pos.x - minX : maxX - pos.x;
+                                                const newCount = Math.max(1, Math.round((dx - handleOffset/2) / spacing) + 1);
+                                                
+                                                updatedNodes = updatedNodes.filter(n => !rowUuidsToReplace.includes(n.row_uuid));
+                                                rowsToExpand.forEach(row => {
+                                                    const rowAnchor = type === 'R' ? row.startNode : row.lastNode;
+                                                    const rowAngle = type === 'R' ? 0 : Math.PI;
+                                                    for (let i = 0; i < newCount; i++) {
+                                                        const newId = 'seat-' + uuidv4();
+                                                        updatedNodes.push({
+                                                            ...row.startNode, 
+                                                            id: newId,
+                                                            x: rowAnchor.x + Math.cos(rowAngle) * i * spacing,
+                                                            y: rowAnchor.y + Math.sin(rowAngle) * i * spacing,
+                                                            number: i + 1,
+                                                            permanent_uuid: uuidv4()
+                                                        });
+                                                        newSelectionIds.push(newId);
+                                                    }
                                                 });
+                                            } else {
+                                                const sortedRowsY = rowsToExpand.sort((a,b) => a.startNode.y - b.startNode.y);
+                                                const edgeRow = type === 'B' ? sortedRowsY[sortedRowsY.length - 1] : sortedRowsY[0];
+                                                const prevRow = type === 'B' ? (sortedRowsY[sortedRowsY.length - 2] || edgeRow) : (sortedRowsY[1] || edgeRow);
+                                                
+                                                const dy = sortedRowsY.length > 1 ? (edgeRow.startNode.y - prevRow.startNode.y) : (type === 'B' ? rowSpacing : -rowSpacing);
+                                                const honeyOffsetX = sortedRowsY.length > 1 ? (edgeRow.startNode.x - prevRow.startNode.x) : 0;
+                                                const isHoneycomb = Math.abs(honeyOffsetX) > spacing / 4;
+
+                                                const actualDy = Math.abs(pos.y - edgeRow.startNode.y);
+                                                const extraRowsCount = Math.max(0, Math.floor((actualDy - handleOffset/2) / Math.abs(dy)));
+
+                                                if (extraRowsCount > 0) {
+                                                    for (let r = 1; r <= extraRowsCount; r++) {
+                                                        const isOdd = r % 2 !== 0;
+                                                        const currentXShift = (isHoneycomb && isOdd) ? -honeyOffsetX : 0;
+                                                        const newRowUuid = uuidv4();
+                                                        const nextLabel = getNextRowLabel(updatedNodes, edgeRow.startNode.section);
+
+                                                        edgeRow.nodes.forEach((n, i) => {
+                                                            const newId = 'seat-' + uuidv4();
+                                                            updatedNodes.push({
+                                                                ...n, 
+                                                                id: newId,
+                                                                row: nextLabel,
+                                                                row_uuid: newRowUuid,
+                                                                x: n.x + currentXShift,
+                                                                y: edgeRow.startNode.y + (r * dy),
+                                                                permanent_uuid: uuidv4()
+                                                            });
+                                                            newSelectionIds.push(newId);
+                                                        });
+                                                    }
+                                                    selectedIds.forEach(id => newSelectionIds.push(id));
+                                                } else {
+                                                    selectedIds.forEach(id => newSelectionIds.push(id));
+                                                }
                                             }
 
-                                            const updatedNodes = [...nodes.filter(n => n.row_uuid !== rowUuid), ...newSeats];
                                             setNodes(updatedNodes);
                                             pushToHistory(updatedNodes);
                                             onChange({ ...layout, nodes: updatedNodes });
-                                            
                                             setIsResizing(false);
                                             setIsDrawingRow(false);
                                             setPreviewNodes([]);
-                                            setSelectedIds(newSeats.map(n => n.id));
+                                            setSelectedIds(newSelectionIds);
                                         }}
                                     />
                                 );
@@ -1401,8 +1529,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
 
                             return (
                                 <React.Fragment>
-                                    {createHandle(startNode, lastNode, true)}
-                                    {createHandle(lastNode, startNode, false)}
+                                    {/* Right Handle */}
+                                    {createHandle('R', maxX + handleOffset, centerY, 0)}
+                                    {/* Left Handle */}
+                                    {createHandle('L', minX - handleOffset, centerY, Math.PI)}
+                                    {/* Bottom Handle */}
+                                    {createHandle('B', centerX, maxY + handleOffset, Math.PI / 2)}
+                                    {/* Top Handle */}
+                                    {createHandle('T', centerX, minY - handleOffset, -Math.PI / 2)}
                                 </React.Fragment>
                             );
                         })()

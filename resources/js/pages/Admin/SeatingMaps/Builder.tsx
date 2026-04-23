@@ -445,9 +445,7 @@ export default function Builder({ seatingMap }: Props) {
     );
 }
 
-function ToolButton(props: any) {
-    const { icon, active, onClick, tooltip, hasArrow = false } = props;
-    
+function ToolButton({ icon, active, onClick, tooltip, hasArrow = false, ...props }: any) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>

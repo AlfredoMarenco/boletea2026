@@ -58,6 +58,15 @@ Route::prefix('mailing')->name('mailing.')->group(function () {
     Route::post('contacts/import', [MailingController::class, 'contactsImport'])->name('contacts.import');
     Route::delete('contacts/{contact}', [MailingController::class, 'contactsDestroy'])->name('contacts.destroy');
     Route::patch('contacts/{contact}/toggle', [MailingController::class, 'contactsToggle'])->name('contacts.toggle');
+    
+    // Acciones masivas
+    Route::post('contacts/bulk-destroy', [MailingController::class, 'contactsBulkDestroy'])->name('contacts.bulk-destroy');
+    Route::post('contacts/bulk-assign', [MailingController::class, 'contactsBulkAssign'])->name('contacts.bulk-assign');
+
+    // Audiencias (Listas)
+    Route::get('audiences', [MailingController::class, 'audiencesIndex'])->name('audiences.index');
+    Route::post('audiences', [MailingController::class, 'audiencesStore'])->name('audiences.store');
+    Route::delete('audiences/{audience}', [MailingController::class, 'audiencesDestroy'])->name('audiences.destroy');
 
     // Campañas
     Route::get('campaigns', [MailingController::class, 'campaignsIndex'])->name('campaigns.index');

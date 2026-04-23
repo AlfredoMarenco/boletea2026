@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendCampaignMailJob;
+use App\Models\MailingAudience;
 use App\Models\MailingCampaign;
 use App\Models\MailingList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,66 +17,114 @@ use Inertia\Response;
 class MailingController extends Controller
 {
     // ─────────────────────────────────────────────
+    // AUDIENCIAS (LISTAS)
+    // ─────────────────────────────────────────────
+
+    public function audiencesIndex(): Response
+    {
+        $audiences = MailingAudience::withCount('contacts')->orderBy('name')->get();
+        return Inertia::render('Admin/Mailing/Audiences', [
+            'audiences' => $audiences,
+        ]);
+    }
+
+    public function audiencesStore(Request $request)
+    {
+        $request->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        MailingAudience::create($request->all());
+
+        return back()->with('success', 'Lista (Audiencia) creada correctamente.');
+    }
+
+    public function audiencesDestroy(MailingAudience $audience)
+    {
+        $audience->delete();
+        return back()->with('success', 'Lista eliminada (los contactos permanecen).');
+    }
+
+    // ─────────────────────────────────────────────
     // LISTA DE DESTINATARIOS
     // ─────────────────────────────────────────────
 
-    public function contactsIndex(): Response
+    public function contactsIndex(Request $request): Response
     {
-        $contacts = MailingList::orderBy('name')->paginate(50);
+        $audienceId = $request->input('audience_id');
+        
+        $query = MailingList::with('audiences')->orderBy('name');
+
+        if ($audienceId) {
+            $query->whereHas('audiences', function($q) use ($audienceId) {
+                $q->where('mailing_audiences.id', $audienceId);
+            });
+        }
+
+        $contacts = $query->paginate(100)->withQueryString();
 
         return Inertia::render('Admin/Mailing/Contacts', [
             'contacts' => $contacts,
+            'audiences' => MailingAudience::orderBy('name')->get(),
+            'currentAudienceId' => $audienceId,
         ]);
     }
 
     public function contactsStore(Request $request)
     {
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:mailing_lists,email',
-            'zone'  => 'nullable|string|max:100',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email|unique:mailing_lists,email',
+            'zone'         => 'nullable|string|max:100',
+            'audience_id'  => 'required|exists:mailing_audiences,id',
         ]);
 
-        MailingList::create($request->only('name', 'email', 'zone'));
+        $contact = MailingList::create($request->only('name', 'email', 'zone'));
+        $contact->audiences()->attach($request->audience_id);
 
-        return back()->with('success', 'Contacto agregado correctamente.');
+        return back()->with('success', 'Contacto agregado y asignado a la lista.');
     }
 
-    /**
-     * Importar CSV: name,email,zone
-     */
     public function contactsImport(Request $request)
     {
         $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+            'csv_file'    => 'required|file|mimes:csv,txt|max:5120',
+            'audience_id' => 'required|exists:mailing_audiences,id',
         ]);
 
-        $file    = $request->file('csv_file');
-        $handle  = fopen($file->getRealPath(), 'r');
-        $header  = fgetcsv($handle); // skip header row
+        $file       = $request->file('csv_file');
+        $audienceId = $request->audience_id;
+        $handle     = fopen($file->getRealPath(), 'r');
+        $header     = fgetcsv($handle); 
 
         $imported = 0;
         $skipped  = 0;
 
-        DB::transaction(function () use ($handle, &$imported, &$skipped) {
+        DB::transaction(function () use ($handle, $audienceId, &$imported, &$skipped) {
             while (($row = fgetcsv($handle)) !== false) {
-                if (count($row) < 2) {
+                if (count($row) < 1) {
                     $skipped++;
                     continue;
                 }
 
-                [$name, $email, $zone] = array_pad($row, 3, null);
-                $email = trim(strtolower($email));
+                [$email, $name, $zone] = array_pad($row, 3, null);
+                $email = trim(strtolower($email ?? ''));
+                $name  = $name ? trim($name) : explode('@', $email)[0];
 
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $skipped++;
                     continue;
                 }
 
-                MailingList::updateOrCreate(
+                $contact = MailingList::updateOrCreate(
                     ['email' => $email],
-                    ['name' => trim($name), 'zone' => $zone ? trim($zone) : null, 'active' => true],
+                    ['name' => $name, 'zone' => $zone ? trim($zone) : null, 'active' => true],
                 );
+
+                if (! $contact->audiences()->where('mailing_audiences.id', $audienceId)->exists()) {
+                    $contact->audiences()->attach($audienceId);
+                }
 
                 $imported++;
             }
@@ -82,7 +132,7 @@ class MailingController extends Controller
 
         fclose($handle);
 
-        return back()->with('success', "Importación completada: {$imported} contactos importados, {$skipped} omitidos.");
+        return back()->with('success', "Importación completada: {$imported} contactos procesados en la lista.");
     }
 
     public function contactsDestroy(MailingList $contact)
@@ -97,39 +147,62 @@ class MailingController extends Controller
         return back()->with('success', 'Estado actualizado.');
     }
 
+    public function contactsBulkDestroy(Request $request)
+    {
+        $request->validate(['ids' => 'required|array']);
+        MailingList::whereIn('id', $request->ids)->delete();
+        return back()->with('success', 'Contactos eliminados correctamente.');
+    }
+
+    public function contactsBulkAssign(Request $request)
+    {
+        $request->validate([
+            'ids'         => 'required|array',
+            'audience_id' => 'required|exists:mailing_audiences,id'
+        ]);
+
+        $audience = MailingAudience::findOrFail($request->audience_id);
+        
+        foreach ($request->ids as $id) {
+            $contact = MailingList::findOrFail($id);
+            if (! $contact->audiences()->where('mailing_audiences.id', $audience->id)->exists()) {
+                $contact->audiences()->attach($audience->id);
+            }
+        }
+
+        return back()->with('success', 'Contactos asignados a la lista correctamente.');
+    }
+
     // ─────────────────────────────────────────────
     // CAMPAÑAS
     // ─────────────────────────────────────────────
 
     public function campaignsIndex(): Response
     {
-        $campaigns = MailingCampaign::latest()->paginate(20);
-        $totalContacts = MailingList::active()->count();
+        $campaigns = MailingCampaign::with('audience')->latest()->paginate(20);
 
         return Inertia::render('Admin/Mailing/Campaigns', [
-            'campaigns'     => $campaigns,
-            'totalContacts' => $totalContacts,
+            'campaigns' => $campaigns,
         ]);
     }
 
     public function campaignsCreate(): Response
     {
-        $totalContacts = MailingList::active()->count();
-
         return Inertia::render('Admin/Mailing/CampaignForm', [
-            'totalContacts' => $totalContacts,
-            'defaultMessage' => "Nuevamente es un gusto saludarte, el presente es para informarte que el código de vestimenta para la zona asignada en el evento \"Gala con causa\", será Black Tie, se adjunta como referencia un archivo con imágenes ilustrativas.\n\n¡Gracias por donar!\n\nSaludos",
+            'audiences' => MailingAudience::withCount('contacts')->orderBy('name')->get(),
+            'defaultMessage' => "",
         ]);
     }
 
     public function campaignsStore(Request $request)
     {
         $request->validate([
-            'name'       => 'required|string|max:255',
-            'subject'    => 'required|string|max:255',
-            'message'    => 'required|string',
-            'event_name' => 'nullable|string|max:255',
-            'image'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'name'                => 'required|string|max:255',
+            'subject'             => 'required|string|max:255',
+            'message'             => 'required|string',
+            'mailing_audience_id' => 'required|exists:mailing_audiences,id',
+            'event_name'          => 'nullable|string|max:255',
+            'image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         $imagePath = null;
@@ -138,15 +211,16 @@ class MailingController extends Controller
         }
 
         $campaign = MailingCampaign::create([
-            'name'             => $request->name,
-            'subject'          => $request->subject,
-            'message'          => $request->message,
-            'event_name'       => $request->event_name,
-            'image_path'       => $imagePath,
-            'status'           => 'draft',
-            'total_recipients' => 0,
-            'sent_count'       => 0,
-            'failed_count'     => 0,
+            'name'                => $request->name,
+            'subject'             => $request->subject,
+            'message'             => $request->message,
+            'mailing_audience_id' => $request->mailing_audience_id,
+            'event_name'          => $request->event_name,
+            'image_path'          => $imagePath,
+            'status'              => 'draft',
+            'total_recipients'    => 0,
+            'sent_count'          => 0,
+            'failed_count'        => 0,
         ]);
 
         return redirect()
@@ -156,7 +230,8 @@ class MailingController extends Controller
 
     public function campaignsShow(MailingCampaign $campaign): Response
     {
-        $totalContacts = MailingList::active()->count();
+        $campaign->load('audience');
+        $totalContacts = $campaign->audience ? $campaign->audience->contacts()->active()->count() : 0;
 
         return Inertia::render('Admin/Mailing/CampaignShow', [
             'campaign'      => $campaign,
@@ -164,19 +239,20 @@ class MailingController extends Controller
         ]);
     }
 
-    /**
-     * Encola los correos para todos los destinatarios activos.
-     */
     public function campaignsSend(MailingCampaign $campaign)
     {
         if (! in_array($campaign->status, ['draft', 'failed'])) {
             return back()->with('error', 'Esta campaña ya fue enviada o está en proceso.');
         }
 
-        $recipients = MailingList::active()->get();
+        if (! $campaign->mailing_audience_id) {
+            return back()->with('error', 'La campaña no tiene una audiencia asignada.');
+        }
+
+        $recipients = $campaign->audience->contacts()->active()->get();
 
         if ($recipients->isEmpty()) {
-            return back()->with('error', 'No hay destinatarios activos en la lista.');
+            return back()->with('error', 'La audiencia seleccionada no tiene contactos activos.');
         }
 
         $campaign->update([
@@ -192,7 +268,7 @@ class MailingController extends Controller
                 ->onQueue('emails');
         }
 
-        return back()->with('success', "Se encolaron {$recipients->count()} correos. El worker los irá enviando en segundo plano.");
+        return back()->with('success', "Se encolaron {$recipients->count()} correos para la audiencia '{$campaign->audience->name}'.");
     }
 
     public function campaignsDestroy(MailingCampaign $campaign)
