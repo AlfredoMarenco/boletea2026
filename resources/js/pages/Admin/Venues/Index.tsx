@@ -20,10 +20,7 @@ interface Venue {
 }
 
 interface Props {
-    venues: {
-        data: Venue[];
-        links: any[];
-    };
+    venues: Venue[];
 }
 
 export default function Index({ venues }: Props) {
@@ -60,8 +57,8 @@ export default function Index({ venues }: Props) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {venues.data.length > 0 ? (
-                                venues.data.map((venue) => (
+                            {venues.length > 0 ? (
+                                venues.map((venue) => (
                                     <TableRow key={venue.id}>
                                         <TableCell className="font-medium">{venue.name}</TableCell>
                                         <TableCell>

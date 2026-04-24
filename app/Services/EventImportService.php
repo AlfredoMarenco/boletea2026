@@ -14,7 +14,7 @@ class EventImportService
     /**
      * Import events from the external API (Mocking for now).
      *
-     * @return int Count of events imported/updated
+     * @return array
      */
     public function importEvents()
     {
@@ -78,27 +78,67 @@ class EventImportService
                 $eventData = $group['meta'];
                 $performances = $group['performances'];
 
-                // Sort performances by date to find the earliest start date if needed, 
-                // or just use the meta one. But strictly speaking, an Event might just span dates.
-
-                // Parse Date (use the first one or earliest)
+                // Find earliest start date and latest end date across all performances
                 $startDate = null;
-                if (!empty($eventData['PerformanceDateTime'])) {
-                    try {
-                        $startDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceDateTime'])->format('Y-m-d H:i:s');
-                    }
-                    catch (\Exception $e) {
-                    // ignore
-                    }
-                }
-
                 $endDate = null;
-                if (!empty($eventData['PerformanceEndDateTime'])) {
-                    try {
-                        $endDate = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $eventData['PerformanceEndDateTime'])->format('Y-m-d H:i:s');
+                $earliest = null;
+                $latest = null;
+                $cdvPrices = [];
+
+                foreach ($performances as $perf) {
+                    if (isset($perf['PerformancePrices']) && is_array($perf['PerformancePrices'])) {
+                        foreach ($perf['PerformancePrices'] as $categoryData) {
+                            $seatCategoryName = $categoryData['SeatCategoryName'] ?? 'General';
+                            if (isset($categoryData['Prices']) && is_array($categoryData['Prices'])) {
+                                foreach ($categoryData['Prices'] as $priceData) {
+                                    if (isset($priceData['PricingCode']) && $priceData['PricingCode'] === 'CDV') {
+                                        $priceAmt = $priceData['Price'] ?? 0;
+                                        $priceId = md5($seatCategoryName . '_' . $priceAmt);
+                                        
+                                        if (!isset($cdvPrices[$priceId])) {
+                                            $cdvPrices[$priceId] = [
+                                                'id' => $priceId,
+                                                'name' => $seatCategoryName,
+                                                'price' => $priceAmt,
+                                                'show' => false,
+                                                'sold_out' => false,
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    catch (\Exception $e) {
-                    // ignore
+
+                    if (!empty($perf['PerformanceDateTime'])) {
+                        try {
+                            $dt = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceDateTime']);
+                            if ($earliest === null || $dt->lt($earliest)) {
+                                $earliest = clone $dt;
+                                $startDate = $earliest->format('Y-m-d H:i:s');
+                            }
+                            // Fallback for latest if EndDateTime is missing
+                            if (empty($perf['PerformanceEndDateTime'])) {
+                                if ($latest === null || $dt->gt($latest)) {
+                                    $latest = clone $dt;
+                                    $endDate = $latest->format('Y-m-d H:i:s');
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
+                    }
+
+                    if (!empty($perf['PerformanceEndDateTime'])) {
+                        try {
+                            $dtEnd = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceEndDateTime']);
+                            if ($latest === null || $dtEnd->gt($latest)) {
+                                $latest = clone $dtEnd;
+                                $endDate = $latest->format('Y-m-d H:i:s');
+                            }
+                        } catch (\Exception $e) {
+                            // ignore
+                        }
                     }
                 }
 
@@ -119,18 +159,40 @@ class EventImportService
 
                 $externalEvent = ExternalEvent::firstOrNew(['external_id' => $eventId]);
 
-                // Always update system/logistics fields
+                // Si el evento ya existe y está publicado, lo omitimos por completo (Opción A)
+                if ($externalEvent->exists && $externalEvent->status === 'published') {
+                    continue;
+                }
+
+                // Always update system/logistics fields para eventos nuevos o en borrador
                 $externalEvent->venue_id = $venueId;
                 $externalEvent->raw_data = $performances;
 
+                // Merge CDV Prices
+                $existingCdvPrices = is_array($externalEvent->cdv_prices) ? collect($externalEvent->cdv_prices)->keyBy('id')->toArray() : [];
+                foreach ($cdvPrices as $id => $newPrice) {
+                    if (isset($existingCdvPrices[$id])) {
+                        // Preserve UI toggles if they exist
+                        $cdvPrices[$id]['show'] = $existingCdvPrices[$id]['show'] ?? false;
+                        $cdvPrices[$id]['sold_out'] = $existingCdvPrices[$id]['sold_out'] ?? false;
+                    }
+                }
+                $externalEvent->cdv_prices = array_values($cdvPrices);
+
+                // Sync API Image if local image is empty (fallback)
+                if (empty($externalEvent->image_path) && isset($eventData['EventImage']) && !empty($eventData['EventImage'])) {
+                    $externalEvent->image_path = $eventData['EventImage'];
+                }
+
+                // Always sync dates so multi-function events stay visible until their last performance
+                $externalEvent->start_date = $startDate;
+                $externalEvent->end_date = $endDate;
+
                 // Only update content fields if new (preserve manual edits)
                 if (!$externalEvent->exists) {
-                    $externalEvent->start_date = $startDate;
-                    $externalEvent->end_date = $endDate;
                     $externalEvent->title = $eventData['EventName'] ?? $eventData['PerformanceName'] ?? 'No Title';
                     $externalEvent->description = !empty($eventData['EventDescription']) ? $eventData['EventDescription'] : ($eventData['PerformanceDescription'] ?? '');
                     $externalEvent->city = $eventData['VenueCity'] ?? $eventData['VenueStateProvince'] ?? '';
-                    $externalEvent->image_path = isset($eventData['EventImage']) ? preg_replace('/N\d+X\d+/', 'N500X400', $eventData['EventImage']) : '';
                     $externalEvent->sales_centers = ['Boletea', $eventData['VenueName'] ?? 'Taquilla'];
                     $externalEvent->status = $eventData['PerformanceStatus'] ?? 'draft';
                     $externalEvent->performance_url = $eventData['PerformanceURL'] ?? null;

@@ -1,6 +1,6 @@
 import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle, Image as ImageIcon } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle, Image as ImageIcon, Settings, Mail } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -62,7 +62,11 @@ const mainNavItems: NavItem[] = [
         href: route('admin.users.index'),
         icon: Users,
     },
-    
+    {
+        title: 'Mailing',
+        href: '/admin/mailing/campaigns',
+        icon: Mail,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -80,6 +84,11 @@ const footerNavItems: NavItem[] = [
         title: 'Biblioteca de Medios',
         href: route('admin.images.index'),
         icon: ImageIcon,
+    },
+    {
+        title: 'Configuración del Sitio',
+        href: route('admin.settings.index'),
+        icon: Settings,
     },
 ];
 

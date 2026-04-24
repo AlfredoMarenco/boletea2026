@@ -10,10 +10,16 @@ class EventController extends Controller
 {
     public function show($slug)
     {
-        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters'])
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories', 'linkedEvents' => function($q) {
+            $q->with(['venue', 'state', 'cityLocation', 'categories'])->orderBy('start_date', 'asc');
+        }])
             ->where('slug', $slug)
             ->orWhere('id', $slug)
             ->firstOrFail();
+
+        if ($event->status !== 'published') {
+            return redirect()->route('home');
+        }
 
         $id = $event->id; // for related events logic
         $directSalesCenters = $event->salesCenters;
@@ -25,7 +31,7 @@ class EventController extends Controller
         $salesCentersDetails = $directSalesCenters->merge($groupSalesCenters)->unique('id')->values();
 
         // Related Events Logic
-        $relatedEvents = ExternalEvent::where('id', '!=', $id)
+        $relatedEvents = ExternalEvent::with(['venue', 'state', 'cityLocation', 'categories'])->where('id', '!=', $id)
             ->where('status', 'published')
             ->where(function ($query) use ($event) {
                 if ($event->category) {
@@ -42,7 +48,7 @@ class EventController extends Controller
 
         // Fallback if not enough related events
         if ($relatedEvents->count() < 3) {
-            $moreEvents = ExternalEvent::where('id', '!=', $id)
+            $moreEvents = ExternalEvent::with(['venue', 'state', 'cityLocation', 'categories'])->where('id', '!=', $id)
                 ->whereNotIn('id', $relatedEvents->pluck('id'))
                 ->where('status', 'published')
                 ->where(function ($q) {
@@ -55,10 +61,21 @@ class EventController extends Controller
             $relatedEvents = $relatedEvents->merge($moreEvents);
         }
 
+        $title = trim(preg_replace('/^[A-Z0-9]+\s+/', '', $event->title));
+        $description = $event->description ? substr(strip_tags($event->description), 0, 160) . '...' : "Boletos para {$title} en Boletea.";
+        $image = $event->image_path ? asset($event->image_path) : null;
+
         return Inertia::render('Event/Show', [
             'event' => $event,
             'salesCentersDetails' => $salesCentersDetails,
             'relatedEvents' => $relatedEvents
+        ])->withViewData([
+            'meta' => [
+                'title' => $title . ' - Boletea',
+                'description' => $description,
+                'image' => $image,
+                'url' => route('event.show', $slug)
+            ]
         ]);
     }
 }

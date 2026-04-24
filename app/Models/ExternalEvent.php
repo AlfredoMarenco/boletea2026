@@ -27,6 +27,14 @@ class ExternalEvent extends Model
         'raw_data',
         'sales_centers',
         'performance_url',
+        'cdv_prices',
+        'is_featured',
+        'redirect_external',
+        'show_calendar',
+        'show_linked_events',
+        'calendar_description',
+        'performance_descriptions',
+        'meta_pixel_id',
     ];
 
     protected $casts = [
@@ -35,6 +43,12 @@ class ExternalEvent extends Model
         'sales_start_date' => 'datetime',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
+        'cdv_prices' => 'array',
+        'is_featured' => 'boolean',
+        'redirect_external' => 'boolean',
+        'show_calendar' => 'boolean',
+        'show_linked_events' => 'boolean',
+        'performance_descriptions' => 'array',
     ];
 
     /**
@@ -80,5 +94,16 @@ class ExternalEvent extends Model
     public function images()
     {
         return $this->morphMany(Image::class, 'imageable');
+    }
+
+    public function linkedEvents()
+    {
+        return $this->belongsToMany(ExternalEvent::class, 'external_event_related', 'parent_id', 'child_id')
+            ->orderBy('start_date', 'asc');
+    }
+
+    public function parentEvents()
+    {
+        return $this->belongsToMany(ExternalEvent::class, 'external_event_related', 'child_id', 'parent_id');
     }
 }

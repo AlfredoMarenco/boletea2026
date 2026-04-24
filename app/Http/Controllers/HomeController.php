@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Helpers\DistanceCalculator;
 use App\Models\Category;
 use App\Models\ExternalEvent;
+use App\Models\WelcomeBanner;
 use App\Models\Venue;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -14,19 +16,34 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // Base query for upcoming events
-        $baseQuery = ExternalEvent::with(['venue', 'categories'])
+        $baseQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
             ->where('status', 'published')
+            ->whereDoesntHave('parentEvents')
             ->where(function ($q) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now());
+                $q->where(function ($sq) {
+                    $sq->whereNull('end_date')
+                       ->where('start_date', '>=', now()->startOfDay());
+                })->orWhere('end_date', '>=', now()->startOfDay());
             });
 
-        // 1. Carousel Events (Always upcoming, sorted by start_date)
         $carouselEvents = (clone $baseQuery)
+            ->orderByDesc('is_featured')
             ->orderBy('start_date', 'asc')
-            ->take(5)
+            ->take(15)
             ->get();
+
+        $settings = SiteSetting::all()->pluck('value', 'key');
+        $showFeatured = ($settings['show_featured_events'] ?? '1') === '1';
+        $showNearby = ($settings['show_nearby_events'] ?? '1') === '1';
+
+        // 1.5. Featured Events
+        $featuredEvents = collect();
+        if ($showFeatured) {
+            $featuredEvents = (clone $baseQuery)
+                ->where('is_featured', true)
+                ->orderBy('start_date', 'asc')
+                ->get();
+        }
 
         // 2. Filtered Events (Main Grid - "Todos los eventos" or Search Results)
         $query = clone $baseQuery;
@@ -73,7 +90,7 @@ class HomeController extends Controller
             ($request->filled('category') && $request->category !== 'all') ||
             ($request->filled('date_start') && $request->filled('date_end'));
 
-        if (!$hasFilters && $userLocation) {
+        if ($showNearby && !$hasFilters && $userLocation) {
             $userLat = $userLocation['lat'] ?? null;
             $userLng = $userLocation['lng'] ?? null;
 
@@ -112,20 +129,47 @@ class HomeController extends Controller
         }
 
         // Options for filters
-        $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter();
-        $venues = Venue::select('id', 'name')->get();
+        $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter()->values();
+        $venues = Venue::whereNotNull('latitude')->whereNotNull('longitude')->select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
+        
+        $showFloatingBanner = ($settings['show_floating_banner'] ?? '1') === '1';
+
+        // 4. Random Banner (From WelcomeBanner model)
+        $bannerEvent = null;
+        if ($showFloatingBanner) {
+            $bannerEvent = WelcomeBanner::with('event')
+                ->where('is_active', true)
+                ->inRandomOrder()
+                ->first();
+
+            // Optional: append resolved attrs for Inertia context
+            if ($bannerEvent) {
+                $bannerEvent->append(['resolved_image', 'resolved_link', 'resolved_title']);
+            }
+        }
 
         return Inertia::render('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),
             'events' => $allEvents, // "Todos los eventos" / Filtered results
             'nearbyEvents' => $nearbyEvents, // "Eventos cerca de ti"
+            'featuredEvents' => $featuredEvents, // "Eventos Destacados"
             'carouselEvents' => $carouselEvents, // "Próximos eventos" (Carousel)
+            'bannerEvent' => $bannerEvent, // For the floating banner card
+            'showFeatured' => $showFeatured,
+            'showNearby' => $showNearby,
             'filters' => $request->all(['search', 'city', 'venue_id', 'category', 'date_start', 'date_end']),
             'options' => [
                 'cities' => $cities,
                 'venues' => $venues,
                 'categories' => $categories,
+            ]
+        ])->withViewData([
+            'meta' => [
+                'title' => 'Inicio - Boletea',
+                'description' => 'Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia.',
+                'image' => asset('logo.ico'), // Default logo image
+                'url' => route('home')
             ]
         ]);
     }

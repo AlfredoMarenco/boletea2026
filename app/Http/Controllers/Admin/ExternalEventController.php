@@ -19,8 +19,13 @@ class ExternalEventController extends Controller
     public function index(Request $request)
     {
         $showPast = $request->boolean('show_past', false);
+        $search = $request->input('search');
 
         $query = ExternalEvent::query();
+
+        if ($search) {
+            $query->where('title', 'like', "%{$search}%");
+        }
 
         if (!$showPast) {
             // Include active/upcoming events
@@ -46,6 +51,7 @@ class ExternalEventController extends Controller
             'events' => $events,
             'filters' => [
                 'show_past' => $showPast,
+                'search' => $search,
             ]
         ]);
     }
@@ -63,6 +69,11 @@ class ExternalEventController extends Controller
         $event->sales_centers = $event->salesCenters()->pluck('sales_centers.id');
         $event->sales_center_groups = $event->salesCenterGroups()->pluck('sales_center_groups.id');
         $event->categories = $event->categories()->pluck('categories.id');
+        $event->linked_events = $event->linkedEvents()->pluck('external_events.id');
+
+        $allEvents = ExternalEvent::where('id', '!=', $event->id)
+            ->orderBy('title')
+            ->get(['id', 'title', 'start_date']);
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
@@ -72,6 +83,7 @@ class ExternalEventController extends Controller
             'cities' => $cities,
             'categories' => $categories,
             'venues' => $venues,
+            'allEvents' => $allEvents,
         ]);
     }
 
@@ -83,6 +95,7 @@ class ExternalEventController extends Controller
         $cities = City::orderBy('name')->get();
         $categories = Category::orderBy('name')->get();
         $venues = Venue::orderBy('name')->get();
+        $allEvents = ExternalEvent::orderBy('title')->get(['id', 'title', 'start_date']);
 
         return Inertia::render('Admin/Events/Create', [
             'salesCenters' => $salesCenters,
@@ -91,6 +104,7 @@ class ExternalEventController extends Controller
             'cities' => $cities,
             'categories' => $categories,
             'venues' => $venues,
+            'allEvents' => $allEvents,
         ]);
     }
 
@@ -115,6 +129,15 @@ class ExternalEventController extends Controller
             'sales_center_groups' => 'nullable|array',
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
+            'cdv_prices' => 'nullable|array',
+            'is_featured' => 'boolean',
+            'redirect_external' => 'boolean',
+            'show_calendar' => 'boolean',
+            'show_linked_events' => 'boolean',
+            'calendar_description' => 'nullable|string',
+            'performance_descriptions' => 'nullable|array',
+            'meta_pixel_id' => 'nullable|string|max:50',
+            'linked_events' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -138,10 +161,12 @@ class ExternalEventController extends Controller
         $salesCenterIds = $validated['sales_centers'] ?? [];
         $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
         $categoryIds = $validated['categories'] ?? [];
+        $linkedEventIds = $validated['linked_events'] ?? [];
 
         unset($validated['sales_centers']);
         unset($validated['sales_center_groups']);
         unset($validated['categories']);
+        unset($validated['linked_events']);
         
         $validated['external_id'] = 'MANUAL_' . uniqid();
 
@@ -149,6 +174,7 @@ class ExternalEventController extends Controller
         $event->salesCenters()->sync($salesCenterIds);
         $event->salesCenterGroups()->sync($salesCenterGroupIds);
         $event->categories()->sync($categoryIds);
+        $event->linkedEvents()->sync($linkedEventIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento creado correctamente.');
     }
@@ -174,6 +200,15 @@ class ExternalEventController extends Controller
             'sales_center_groups' => 'nullable|array',
             'categories' => 'nullable|array',
             'status' => 'required|in:draft,published',
+            'cdv_prices' => 'nullable|array',
+            'is_featured' => 'boolean',
+            'redirect_external' => 'boolean',
+            'show_calendar' => 'boolean',
+            'show_linked_events' => 'boolean',
+            'calendar_description' => 'nullable|string',
+            'performance_descriptions' => 'nullable|array',
+            'meta_pixel_id' => 'nullable|string|max:50',
+            'linked_events' => 'nullable|array',
         ]);
 
         if ($request->hasFile('image_path')) {
@@ -192,9 +227,7 @@ class ExternalEventController extends Controller
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
             $validated['secondary_image_path'] = '/storage/' . $path;
-        }
-        else {
-            // If not uploading a new file, do not update this field
+        } elseif (isset($request->secondary_image_path) && !is_string($request->secondary_image_path)) {
             unset($validated['secondary_image_path']);
         }
 
@@ -202,15 +235,18 @@ class ExternalEventController extends Controller
         $salesCenterIds = $validated['sales_centers'] ?? [];
         $salesCenterGroupIds = $validated['sales_center_groups'] ?? [];
         $categoryIds = $validated['categories'] ?? [];
+        $linkedEventIds = $validated['linked_events'] ?? [];
 
         unset($validated['sales_centers']);
         unset($validated['sales_center_groups']);
         unset($validated['categories']);
+        unset($validated['linked_events']);
 
         $event->update($validated);
         $event->salesCenters()->sync($salesCenterIds);
         $event->salesCenterGroups()->sync($salesCenterGroupIds);
         $event->categories()->sync($categoryIds);
+        $event->linkedEvents()->sync($linkedEventIds);
 
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }
@@ -237,5 +273,23 @@ class ExternalEventController extends Controller
         else {
             return redirect()->back()->with('error', $result['message']); // Ensure your HandleInertiaRequests middleware shares 'error'
         }
+    }
+
+    public function destroy(ExternalEvent $event)
+    {
+        $event->salesCenters()->detach();
+        $event->salesCenterGroups()->detach();
+        $event->categories()->detach();
+
+        if ($event->image_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
+        }
+        if ($event->secondary_image_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->secondary_image_path));
+        }
+
+        $event->delete();
+
+        return redirect()->route('admin.events.index')->with('success', 'Evento eliminado correctamente.');
     }
 }

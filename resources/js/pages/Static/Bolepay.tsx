@@ -124,7 +124,7 @@ export default function Bolepay() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#0a0a0a] dark:text-gray-100 font-['Instrument_Sans'] selection:bg-[#2563eb] selection:text-white overflow-x-hidden">
+        <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-background dark:text-gray-100 font-['Instrument_Sans'] selection:bg-[#2563eb] selection:text-white overflow-x-hidden">
             <Head title="Bolepay - Boletea" />
             <PublicHeader />
 
@@ -155,7 +155,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* What is Bolepay Section */}
-                <section className="py-16 bg-white dark:bg-[#0a0a0a]">
+                <section className="py-16 bg-white dark:bg-background">
                     <div className="container mx-auto px-6 text-center">
                         <FadeIn>
                             <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-8">¿Qué es <span className="text-[#2563eb]">Bolepay</span>?</h2>
@@ -163,13 +163,13 @@ export default function Bolepay() {
 
                         <div className="max-w-4xl mx-auto mb-16">
                             <FadeIn delay={200}>
-                                <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed mb-8">
+                                <p className="text-xl text-gray-600 dark:text-muted-foreground leading-relaxed mb-8">
                                     Bolepay es la primera plataforma en México que te permite pagar tus boletos de conciertos, shows y eventos en semanas,
                                     <span className="font-bold text-gray-900 dark:text-white"> sin necesidad de tarjeta de crédito.</span>
                                 </p>
                             </FadeIn>
                             <FadeIn delay={300}>
-                                <div className="px-8 py-6 rounded-2xl bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-white/5 inline-block shadow-sm">
+                                <div className="px-8 py-6 rounded-2xl bg-gray-50 dark:bg-card border border-gray-100 dark:border-border inline-block shadow-sm">
                                     <h3 className="text-xl font-bold text-[#2563eb] mb-2">Entretenimiento + Facilidad de pagos</h3>
                                     <p className="text-gray-500 font-medium">Compra hoy, paga en semanas</p>
                                 </div>
@@ -187,7 +187,7 @@ export default function Bolepay() {
                                 { icon: Search, text: "Sin letras chiquitas", color: "text-[#2563eb]" },
                             ].map((item, index) => (
                                 <FadeIn key={index} delay={index * 100} className="h-full">
-                                    <div className="group h-full flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-[#111] border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                                    <div className="group h-full flex flex-col items-center justify-center p-6 rounded-2xl bg-white dark:bg-card border border-gray-100 dark:border-border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
                                         {item.customIcon ? (
                                             <item.icon className={`w-10 h-10 mb-4 ${item.color} group-hover:scale-110 transition-transform`} />
                                         ) : (
@@ -202,7 +202,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* How it Works Section */}
-                <section id="como-funciona" className="py-20 bg-gray-50 dark:bg-[#111]/30 relative section-bg-pattern">
+                <section id="como-funciona" className="py-20 bg-gray-50 dark:bg-card/30 relative section-bg-pattern">
                     <div className="container mx-auto px-6">
                         <FadeIn>
                             <h2 className="text-3xl font-bold tracking-tight md:text-4xl mb-12 text-center">¿Cómo funciona?</h2>
@@ -214,7 +214,7 @@ export default function Bolepay() {
                                     onClick={() => setActiveMode('taquilla')}
                                     className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transition-all hover:scale-105 active:scale-95 transform duration-200 ${activeMode === 'taquilla'
                                         ? 'bg-[#2563eb] text-white shadow-blue-600/30 hover:bg-[#1d4ed8]'
-                                        : 'bg-white dark:bg-[#222] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800'
+                                        : 'bg-white dark:bg-background text-gray-600 dark:text-muted-foreground border border-gray-200 dark:border-border'
                                         }`}
                                 >
                                     <Ticket className="w-5 h-5" />
@@ -224,7 +224,7 @@ export default function Bolepay() {
                                     onClick={() => setActiveMode('website')}
                                     className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transition-all hover:scale-105 active:scale-95 transform duration-200 ${activeMode === 'website'
                                         ? 'bg-[#2563eb] text-white shadow-blue-600/30 hover:bg-[#1d4ed8]'
-                                        : 'bg-white dark:bg-[#222] text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-800'
+                                        : 'bg-white dark:bg-background text-gray-600 dark:text-muted-foreground border border-gray-200 dark:border-border'
                                         }`}
                                 >
                                     <CreditCard className="w-5 h-5" />
@@ -243,13 +243,13 @@ export default function Bolepay() {
                                     { number: 4, title: "Recibe tu boleto", desc: "Una vez que terminas de pagar (tienes 10 días previo a tu evento para liquidar)" },
                                 ].map((step, i) => (
                                     <FadeIn key={i} delay={i * 150} direction="left">
-                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5 hover:border-[#2563eb]/30 transition-all hover:shadow-lg">
+                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-8 rounded-2xl bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border hover:border-[#2563eb]/30 transition-all hover:shadow-lg">
                                             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
                                                 {step.number}
                                             </div>
                                             <div className="flex-grow">
                                                 <h3 className="text-xl font-bold mb-1 text-gray-900 dark:text-white">{step.title}</h3>
-                                                <p className="text-gray-600 dark:text-gray-400">{step.desc}</p>
+                                                <p className="text-gray-600 dark:text-muted-foreground">{step.desc}</p>
                                             </div>
                                             {step.action && (
                                                 <Link href={step.action.link} className="mt-4 md:mt-0 px-6 py-2 bg-[#f59e0b] hover:bg-[#d97706] text-white rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm hover:scale-105 transform duration-200">
@@ -268,7 +268,7 @@ export default function Bolepay() {
                             <div className="max-w-6xl mx-auto space-y-12">
                                 {/* Step 1: Selecciona tus lugares */}
                                 <FadeIn delay={0}>
-                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border">
                                         <div className="order-2 md:order-1">
                                             <div className="flex items-center gap-4 mb-4">
                                                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
@@ -276,7 +276,7 @@ export default function Bolepay() {
                                                 </div>
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Selecciona tus lugares</h3>
                                             </div>
-                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed">
+                                            <p className="text-gray-600 dark:text-muted-foreground text-lg leading-relaxed">
                                                 Primero selecciona tus lugares pulsando sobre la zona de interés en el mapa
                                             </p>
                                         </div>
@@ -292,7 +292,7 @@ export default function Bolepay() {
 
                                 {/* Step 2: Procede a realizar el pago inicial */}
                                 <FadeIn delay={150}>
-                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border">
                                         <div className="flex justify-center">
                                             <img
                                                 src="/images/bolepay/Step-2.png"
@@ -307,16 +307,16 @@ export default function Bolepay() {
                                                 </div>
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Aplica el código BOLEPAY</h3>
                                             </div>
-                                            <p className="text-gray-600 dark:text-gray-400 text-lg leading-relaxed mb-4">
+                                            <p className="text-gray-600 dark:text-muted-foreground text-lg leading-relaxed mb-4">
                                                 Aplica el código <span className="font-bold text-[#2563eb]">BOLEPAY</span> para habilitar la opción de comprar tus boletos en pagos.
                                             </p>
                                             <div className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 p-[2px] rounded-xl inline-block">
-                                                <div className="bg-white dark:bg-[#1a1a1a] px-6 py-3 rounded-xl">
-                                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Código promocional</p>
+                                                <div className="bg-white dark:bg-card px-6 py-3 rounded-xl">
+                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground mb-1">Código promocional</p>
                                                     <p className="text-2xl font-black text-[#2563eb]">BOLEPAY</p>
                                                 </div>
                                             </div>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                                            <p className="text-sm text-gray-500 dark:text-muted-foreground mt-4">
                                                 Con BOLEPAY pagas <span className="font-bold text-[#2563eb]">25% del costo del boleto + cargo por servicio</span>
                                             </p>
                                         </div>
@@ -325,7 +325,7 @@ export default function Bolepay() {
 
                                 {/* Step 3: Aplica el código BOLEPAY */}
                                 <FadeIn delay={300}>
-                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-[#1a1a1a] shadow-sm border border-gray-100 dark:border-white/5">
+                                    <div className="grid md:grid-cols-2 gap-8 items-center p-8 rounded-2xl bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border">
                                         <div className="order-2 md:order-1">
                                             <div className="flex items-center gap-4 mb-4">
                                                 <div className="flex-shrink-0 w-12 h-12 rounded-full bg-[#2563eb]/10 text-[#2563eb] flex items-center justify-center text-xl font-black">
@@ -333,7 +333,7 @@ export default function Bolepay() {
                                                 </div>
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Procede a realizar el pago inicial</h3>
                                             </div>
-                                            <div className="space-y-3 text-gray-600 dark:text-gray-400">
+                                            <div className="space-y-3 text-gray-600 dark:text-muted-foreground">
                                                 <div className="flex items-start gap-3">
                                                     <div className="w-2 h-2 rounded-full bg-[#2563eb] mt-2 flex-shrink-0"></div>
                                                     <p><span className="font-bold text-gray-900 dark:text-white">Total de compra:</span> Monto total de tus boletos</p>
@@ -376,15 +376,15 @@ export default function Bolepay() {
                                                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">¡RECUERDA!</h3>
                                             </div>
                                             <div className="space-y-4">
-                                                <div className="bg-white dark:bg-[#1a1a1a] p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                                                <div className="bg-white dark:bg-card p-4 rounded-xl border border-gray-200 dark:border-border">
                                                     <p className="text-gray-900 dark:text-white font-bold mb-2">Tus boletos serán enviados hasta liquidar el saldo pendiente.</p>
-                                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                                    <p className="text-gray-600 dark:text-muted-foreground text-sm">
                                                         Recibirás tus boletos digitales una vez que completes todos los pagos programados.
                                                     </p>
                                                 </div>
-                                                <div className="bg-white dark:bg-[#1a1a1a] p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                                                <div className="bg-white dark:bg-card p-4 rounded-xl border border-gray-200 dark:border-border">
                                                     <p className="text-gray-900 dark:text-white font-bold mb-2">Tienes hasta 8 días antes del evento para liquidar tu compra.</p>
-                                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                                    <p className="text-gray-600 dark:text-muted-foreground text-sm">
                                                         Si no liquidas el total, tu orden se cancelará automáticamente.
                                                     </p>
                                                 </div>
@@ -398,7 +398,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* Benefits Section */}
-                <section className="py-20 bg-white dark:bg-[#0a0a0a]">
+                <section className="py-20 bg-white dark:bg-background">
                     <div className="container mx-auto px-6">
                         <div className="text-center mb-16">
                             <FadeIn>
@@ -417,7 +417,7 @@ export default function Bolepay() {
                                 { icon: Clock, text: "Compra con anticipación sin complicaciones" },
                             ].map((benefit, i) => (
                                 <FadeIn key={i} delay={i * 100}>
-                                    <div className="h-full text-center p-8 rounded-2xl bg-gray-50 dark:bg-[#111] border border-gray-100 dark:border-white/5 hover:shadow-lg transition-all hover:bg-white dark:hover:bg-[#151515] hover:-translate-y-2 duration-300">
+                                    <div className="h-full text-center p-8 rounded-2xl bg-gray-50 dark:bg-card border border-gray-100 dark:border-border hover:shadow-lg transition-all hover:bg-white dark:hover:bg-slate-800 hover:-translate-y-2 duration-300">
                                         <benefit.icon className="w-12 h-12 mx-auto mb-4 text-[#2563eb]" />
                                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{benefit.text}</h3>
                                     </div>
@@ -428,7 +428,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* Trust/Testimonial Section */}
-                <section className="py-20 bg-gray-50 dark:bg-[#111]/50">
+                <section className="py-20 bg-gray-50 dark:bg-card/50">
                     <div className="container mx-auto px-6 text-center max-w-3xl">
                         <FadeIn>
                             <h2 className="text-3xl font-bold mb-12 tracking-tight md:text-4xl">¿Por qué confiar en nosotros?</h2>
@@ -436,7 +436,7 @@ export default function Bolepay() {
 
                         <FadeIn delay={200}>
                             <div className="mb-16">
-                                <blockquote className="text-2xl font-serif text-gray-700 dark:text-gray-300 relative inline-block italic">
+                                <blockquote className="text-2xl font-serif text-gray-700 dark:text-muted-foreground relative inline-block italic">
                                     "{/* Using simple quotes to avoid complex positioning issues, keeping it clean */}
                                     No tenía tarjeta y aún así fui al concierto de mi artista favorito. Con Bolepay, pude pagarlo a mi ritmo y vivir al máximo.
                                     "
@@ -448,7 +448,7 @@ export default function Bolepay() {
                         <FadeIn delay={400}>
                             <div className="flex flex-col items-center">
                                 <img src="images/logoBoletea.png" alt="Boletea" className="h-10 mb-6 opacity-70 grayscale transition-all hover:grayscale-0 hover:opacity-100" />
-                                <p className="text-gray-600 dark:text-gray-400 font-medium">
+                                <p className="text-gray-600 dark:text-muted-foreground font-medium">
                                     "Nos respalda Boletea, boletera con presencia nacional y más de 10 años de experiencia en eventos en vivo."
                                 </p>
                             </div>
@@ -457,7 +457,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* FAQ Section */}
-                <section className="py-20 bg-white dark:bg-[#0a0a0a]">
+                <section className="py-20 bg-white dark:bg-background">
                     <div className="container mx-auto px-6 max-w-3xl">
                         <FadeIn>
                             <h2 className="text-3xl font-bold text-center mb-12 tracking-tight md:text-4xl">Preguntas frecuentes</h2>
@@ -466,7 +466,7 @@ export default function Bolepay() {
                         <div className="space-y-4">
                             {faqs.map((faq, index) => (
                                 <FadeIn key={index} delay={index * 50} direction="left">
-                                    <div className="border border-gray-200 dark:border-white/10 rounded-2xl overflow-hidden bg-white dark:bg-[#111]">
+                                    <div className="border border-gray-200 dark:border-border rounded-2xl overflow-hidden bg-white dark:bg-card">
                                         <button
                                             onClick={() => toggleFaq(index)}
                                             className="w-full flex items-center justify-between p-6 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] transition-colors text-left font-bold text-gray-900 dark:text-white"
@@ -475,7 +475,7 @@ export default function Bolepay() {
                                             <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${openFaq === index ? 'rotate-180 text-[#2563eb]' : ''}`} />
                                         </button>
                                         <div className={`overflow-hidden transition-all duration-300 ${openFaq === index ? 'max-h-48' : 'max-h-0'}`}>
-                                            <div className="p-6 pt-0 text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-white/5 mt-2">
+                                            <div className="p-6 pt-0 text-gray-600 dark:text-muted-foreground leading-relaxed border-t border-gray-100 dark:border-border mt-2">
                                                 {faq.answer}
                                             </div>
                                         </div>
@@ -487,7 +487,7 @@ export default function Bolepay() {
                 </section>
 
                 {/* CTA Section */}
-                <section className="py-20 bg-gray-50 dark:bg-[#111]/30">
+                <section className="py-20 bg-gray-50 dark:bg-card/30">
                     <div className="container mx-auto px-6 text-center">
                         <div className="mb-16">
                             <FadeIn>
