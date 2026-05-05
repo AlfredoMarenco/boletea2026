@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Mail\DressCodeMail;
+use App\Mail\GenericHtmlMail;
 use App\Models\MailingCampaign;
 use App\Models\MailingList;
 use Illuminate\Bus\Queueable;
@@ -36,7 +36,7 @@ class SendCampaignMailJob implements ShouldQueue
     {
         try {
             Mail::to($this->recipient->email, $this->recipient->name)
-                ->send(new DressCodeMail($this->campaign, $this->recipient->name));
+                ->send(new GenericHtmlMail($this->campaign, $this->recipient->name));
 
             // Incrementar contador de enviados
             $this->campaign->increment('sent_count');

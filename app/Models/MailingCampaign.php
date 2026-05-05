@@ -14,10 +14,16 @@ class MailingCampaign extends Model
         'event_name',
         'status',
         'total_recipients',
+        'mailing_audience_id',
         'sent_count',
         'failed_count',
         'sent_at',
     ];
+
+    public function audience(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(MailingAudience::class, 'mailing_audience_id');
+    }
 
     protected $casts = [
         'sent_at' => 'datetime',

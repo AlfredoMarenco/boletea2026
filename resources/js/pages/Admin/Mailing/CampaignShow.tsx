@@ -35,22 +35,14 @@ const statusConfig: Record<Campaign['status'], { label: string; variant: 'defaul
 
 export default function CampaignShow({ campaign, totalContacts }: Props) {
     const { flash } = usePage<{ flash: { success?: string; error?: string } }>().props;
-    const [sending, setSending] = useState(false);
+    const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
 
-    const cfg = statusConfig[campaign.status];
-    const canSend = ['draft', 'failed'].includes(campaign.status);
-
-    const handleSend = () => {
-        if (!confirm(`¿Enviar esta campaña a ${totalContacts} contacto${totalContacts !== 1 ? 's' : ''} activo${totalContacts !== 1 ? 's' : ''}?\n\nEsta acción encolará todos los correos. No se puede deshacer.`)) return;
-        setSending(true);
-        router.post(route('admin.mailing.campaigns.send', campaign.id), {}, {
-            onFinish: () => setSending(false),
-        });
+    const getPreviewHtml = () => {
+        return campaign.message
+            .replace(/\[Nombre\]/g, 'Juan Pérez')
+            .replace(/\[Evento\]/g, campaign.event_name || 'Evento de Prueba')
+            .replace(/\[Nombre del Destinatario\]/g, 'Juan Pérez');
     };
-
-    const progress = campaign.total_recipients > 0
-        ? Math.round(((campaign.sent_count + campaign.failed_count) / campaign.total_recipients) * 100)
-        : 0;
 
     return (
         <AppLayout breadcrumbs={[
@@ -60,7 +52,7 @@ export default function CampaignShow({ campaign, totalContacts }: Props) {
         ]}>
             <Head title={`Campaña: ${campaign.name}`} />
 
-            <div className="p-6 max-w-3xl mx-auto space-y-6">
+            <div className="p-6 max-w-5xl mx-auto space-y-6">
 
                 {/* Flash */}
                 {flash?.success && (
@@ -99,7 +91,7 @@ export default function CampaignShow({ campaign, totalContacts }: Props) {
                                 size="sm"
                                 onClick={handleSend}
                                 disabled={sending || totalContacts === 0}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6"
                             >
                                 {sending ? 'Encolando…' : `Enviar a ${totalContacts} contactos`}
                             </Button>
@@ -110,7 +102,7 @@ export default function CampaignShow({ campaign, totalContacts }: Props) {
                 {/* No contacts warning */}
                 {totalContacts === 0 && canSend && (
                     <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-4 text-amber-800 dark:text-amber-300 text-sm">
-                        ⚠️ No hay contactos activos.{' '}
+                        ⚠️ No hay contactos activos en la audiencia seleccionada.{' '}
                         <Link href={route('admin.mailing.contacts.index')} className="underline font-medium">Agrega contactos</Link> para poder enviar.
                     </div>
                 )}
@@ -143,29 +135,49 @@ export default function CampaignShow({ campaign, totalContacts }: Props) {
                     </div>
                 )}
 
-                {/* Detalles */}
-                <div className="bg-white dark:bg-background border border-gray-200 dark:border-border rounded-lg p-5 space-y-4">
-                    <h2 className="font-semibold text-gray-800 dark:text-gray-100">Contenido del correo</h2>
-
-                    <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Asunto</p>
-                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{campaign.subject}</p>
+                {/* Detalles y Preview */}
+                <div className="bg-white dark:bg-background border border-gray-200 dark:border-border rounded-lg overflow-hidden flex flex-col min-h-[700px]">
+                    <div className="p-4 border-b border-border bg-gray-50 dark:bg-muted/30 flex items-center justify-between">
+                        <div>
+                            <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Cuerpo del correo</p>
+                            <p className="text-sm font-medium border-l-2 border-primary pl-2">{campaign.subject}</p>
+                        </div>
+                        <div className="flex bg-muted rounded-md p-1 gap-1">
+                            <button 
+                                type="button"
+                                onClick={() => setViewMode('desktop')}
+                                className={`p-1.5 rounded transition-all ${viewMode === 'desktop' ? 'bg-white shadow-sm ring-1 ring-black/5' : 'opacity-50 hover:opacity-100'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setViewMode('mobile')}
+                                className={`p-1.5 rounded transition-all ${viewMode === 'mobile' ? 'bg-white shadow-sm ring-1 ring-black/5' : 'opacity-50 hover:opacity-100'}`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="20" x="5" y="2" rx="2"/><path d="M12 18h.01"/></svg>
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Mensaje</p>
-                        <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap bg-gray-50 dark:bg-gray-900 rounded p-3 border border-gray-100 dark:border-gray-800">
-                            {campaign.message}
-                        </pre>
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-950 flex justify-center overflow-auto p-0 sm:p-4">
+                        <div className={`transition-all duration-300 bg-white shadow-2xl ${viewMode === 'desktop' ? 'w-full h-full min-h-[600px]' : 'w-[375px] h-[667px] my-4 rounded-3xl ring-8 ring-gray-200 dark:ring-gray-800 border-4 border-gray-900 overflow-hidden'}`}>
+                            <iframe
+                                title="Final Preview"
+                                srcDoc={getPreviewHtml()}
+                                className="w-full h-full border-0"
+                                sandbox="allow-popups allow-popups-to-escape-sandbox"
+                            />
+                        </div>
                     </div>
 
                     {campaign.image_path && (
-                        <div>
+                        <div className="p-4 border-t border-border bg-gray-50/50">
                             <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Imagen adjunta</p>
                             <img
                                 src={`/storage/${campaign.image_path}`}
                                 alt="Imagen de campaña"
-                                className="max-h-80 rounded-lg border border-gray-200 dark:border-border object-contain"
+                                className="max-h-60 rounded-lg border border-gray-200 dark:border-border object-contain shadow-sm"
                             />
                         </div>
                     )}
