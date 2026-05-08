@@ -333,3 +333,32 @@ Fortify is a headless authentication backend that provides authentication routes
 - Always consider the implications of concurrent ticket purchases, data integrity, and real-time syncing.
 - Ensure the frontend map builder is highly interactive, performant, and seamlessly integrated with the Laravel backend.
 </boletea-project-context>
+
+<boletea-laravel-best-practices>
+=== laravel best practices & conventions ===
+
+# Clean Code & Architecture
+- Use Single Responsibility Principle (SRP). Controllers should only handle HTTP requests and responses. Move business logic to Action classes, Services, or Repositories.
+- Fat Models, Skinny Controllers: Keep Eloquent scopes, relationships, and basic data manipulation inside the Model.
+- Avoid placing heavy logic in frontend React components; offload processing to the Laravel backend whenever possible.
+
+# Naming Conventions
+- Controllers: PascalCase, singular, suffixed with `Controller` (e.g., `TicketController`).
+- Models: PascalCase, singular (e.g., `Ticket`).
+- Database Tables: snake_case, plural (e.g., `tickets`).
+- Methods & Variables: camelCase (e.g., `calculateTotal()`, `$ticketPrice`).
+- Route Names: snake_case, separated by dots (e.g., `tickets.store`).
+- Action Classes: PascalCase, action-oriented (e.g., `CreateTicketAction`).
+
+# Eloquent & Database Optimization
+- N+1 Problem Prevention: Always use eager loading (`with()`) when iterating over relationships.
+- Chunking: Use `chunk()` or `lazy()` when processing large datasets to avoid memory exhaustion.
+- Use database transactions (`DB::transaction`) for operations that span multiple tables to ensure data integrity, especially during ticket purchases or seat reservations.
+- Use Form Requests for validation. Do not validate directly in the Controller.
+- Leverage Route Model Binding instead of manually fetching models by ID in the Controller.
+
+# APIs & Responses
+- Standardize JSON responses. Use API Resources (`JsonResource`) to transform models into structured JSON.
+- Never expose sensitive attributes (like passwords, hidden system flags). Ensure the `$hidden` array on Models is appropriately configured.
+- Return appropriate HTTP status codes (200 OK, 201 Created, 403 Forbidden, 404 Not Found, 422 Unprocessable Entity, 500 Internal Server Error).
+</boletea-laravel-best-practices>
