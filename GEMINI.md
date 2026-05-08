@@ -286,4 +286,79 @@ Wayfinder generates TypeScript functions for Laravel routes. Import from `@/acti
 - Always use existing Tailwind conventions; check project patterns before adding new ones.
 - IMPORTANT: Always use `search-docs` tool for version-specific Tailwind CSS documentation and updated code examples. Never rely on training data.
 - IMPORTANT: Activate `tailwindcss-development` every time you're working with a Tailwind CSS or styling-related task.
+
+=== laravel/fortify rules ===
+
+## Laravel Fortify
+
+Fortify is a headless authentication backend that provides authentication routes and controllers for Laravel applications.
+
+**Before implementing any authentication features, use the `search-docs` tool to get the latest docs for that specific feature.**
+
+### Configuration & Setup
+
+- Check `config/fortify.php` to see what's enabled. Use `search-docs` for detailed information on specific features.
+- Enable features by adding them to the `'features' => []` array: `Features::registration()`, `Features::resetPasswords()`, etc.
+- To see the all Fortify registered routes, use the `list-routes` tool with the `only_vendor: true` and `action: "Fortify"` parameters.
+- Fortify includes view routes by default (login, register). Set `'views' => false` in the configuration file to disable them if you're handling views yourself.
+
+### Customization
+
+- Views can be customized in `FortifyServiceProvider`'s `boot()` method using `Fortify::loginView()`, `Fortify::registerView()`, etc.
+- Customize authentication logic with `Fortify::authenticateUsing()` for custom user retrieval / validation.
+- Actions in `app/Actions/Fortify/` handle business logic (user creation, password reset, etc.). They're fully customizable, so you can modify them to change feature behavior.
+
+## Available Features
+
+- `Features::registration()` for user registration.
+- `Features::emailVerification()` to verify new user emails.
+- `Features::twoFactorAuthentication()` for 2FA with QR codes and recovery codes.
+  - Add options: `['confirmPassword' => true, 'confirm' => true]` to require password confirmation and OTP confirmation before enabling 2FA.
+- `Features::updateProfileInformation()` to let users update their profile.
+- `Features::updatePasswords()` to let users change their passwords.
+- `Features::resetPasswords()` for password reset via email.
 </laravel-boost-guidelines>
+
+<boletea-project-context>
+=== project context rules ===
+
+# Role & Expertise
+- You are a Senior Full-Stack Developer and an expert in Laravel and React.
+- You have extensive experience in building highly scalable applications, specifically in the domain of event ticketing systems and interactive map builders.
+
+# Project Context: Boletea 2026
+- We are currently developing a comprehensive ticketing system with an integrated map builder (which is already in progress).
+- Your solutions should be robust, production-ready, and adhere to best practices for a complex application.
+- Prioritize high-performance, maintainable code, and scalable architecture suitable for managing large volumes of ticket sales and complex interactive seat maps.
+- Always consider the implications of concurrent ticket purchases, data integrity, and real-time syncing.
+- Ensure the frontend map builder is highly interactive, performant, and seamlessly integrated with the Laravel backend.
+</boletea-project-context>
+
+<boletea-laravel-best-practices>
+=== laravel best practices & conventions ===
+
+# Clean Code & Architecture
+- Use Single Responsibility Principle (SRP). Controllers should only handle HTTP requests and responses. Move business logic to Action classes, Services, or Repositories.
+- Fat Models, Skinny Controllers: Keep Eloquent scopes, relationships, and basic data manipulation inside the Model.
+- Avoid placing heavy logic in frontend React components; offload processing to the Laravel backend whenever possible.
+
+# Naming Conventions
+- Controllers: PascalCase, singular, suffixed with `Controller` (e.g., `TicketController`).
+- Models: PascalCase, singular (e.g., `Ticket`).
+- Database Tables: snake_case, plural (e.g., `tickets`).
+- Methods & Variables: camelCase (e.g., `calculateTotal()`, `$ticketPrice`).
+- Route Names: snake_case, separated by dots (e.g., `tickets.store`).
+- Action Classes: PascalCase, action-oriented (e.g., `CreateTicketAction`).
+
+# Eloquent & Database Optimization
+- N+1 Problem Prevention: Always use eager loading (`with()`) when iterating over relationships.
+- Chunking: Use `chunk()` or `lazy()` when processing large datasets to avoid memory exhaustion.
+- Use database transactions (`DB::transaction`) for operations that span multiple tables to ensure data integrity, especially during ticket purchases or seat reservations.
+- Use Form Requests for validation. Do not validate directly in the Controller.
+- Leverage Route Model Binding instead of manually fetching models by ID in the Controller.
+
+# APIs & Responses
+- Standardize JSON responses. Use API Resources (`JsonResource`) to transform models into structured JSON.
+- Never expose sensitive attributes (like passwords, hidden system flags). Ensure the `$hidden` array on Models is appropriately configured.
+- Return appropriate HTTP status codes (200 OK, 201 Created, 403 Forbidden, 404 Not Found, 422 Unprocessable Entity, 500 Internal Server Error).
+</boletea-laravel-best-practices>
