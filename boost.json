@@ -1,0 +1,9 @@
+{
+    "agents": [
+        "gemini"
+    ],
+    "guidelines": true,
+    "packages": [
+        "laravel/fortify"
+    ]
+}
