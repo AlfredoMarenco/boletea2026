@@ -21,7 +21,7 @@ export default function GlobalLoader() {
         // Inertia event listeners
         const startListener = router.on('start', (event) => {
             // Don't show loader if navigating to admin
-            const url = new URL(event.detail.visit.url);
+            const url = new URL(event.detail.visit.url, window.location.origin);
             if (!url.pathname.startsWith('/admin')) {
                 setIsLoading(true);
             }
