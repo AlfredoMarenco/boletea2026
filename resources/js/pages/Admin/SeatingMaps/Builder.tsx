@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import AppLayout from '@/layouts/app-layout';
-import SeatingCanvas from '@/Components/SeatingBuilder/SeatingCanvas';
-import Inspector from '@/Components/SeatingBuilder/Inspector';
-import CalibrationWizard from '@/Components/SeatingBuilder/CalibrationWizard';
+import SeatingCanvas from '@/components/SeatingBuilder/SeatingCanvas';
+import Inspector from '@/components/SeatingBuilder/Inspector';
+import CalibrationWizard from '@/components/SeatingBuilder/CalibrationWizard';
 import { Button } from '@/components/ui/button';
 import { 
     Save, Eye, Edit3, Settings, MousePointer2, Grid, Square, LayoutList,
