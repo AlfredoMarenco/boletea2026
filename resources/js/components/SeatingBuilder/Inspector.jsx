@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
-    Settings, Hash, Map, Palette, Trash2, Layers, 
+    Settings, Hash, Map as MapIcon, Palette, Trash2, Layers, 
     AlignLeft, AlignRight, AlignStartVertical, AlignEndVertical,
     ChevronDown, ChevronRight, Info, Languages, Navigation,
     Image as ImageIcon, MoreHorizontal, ArrowLeftRight, ArrowUpDown,
-    Check
+    Check, Plus, Users, LayoutList
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
@@ -43,7 +43,34 @@ const PropertyRow = ({ label, children, info }) => (
     </div>
 );
 
-const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute }) => {
+const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, onAlign, onRedistribute }) => {
+    const categories = layout?.config?.categories || [];
+
+    const handleAddCategory = () => {
+        const newCat = {
+            id: 'cat-' + Math.random().toString(36).substr(2, 9),
+            name: 'Nueva Categoría',
+            color: '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')
+        };
+        onUpdateConfig({ categories: [...categories, newCat] });
+    };
+
+    const handleUpdateCategory = (id, field, value) => {
+        const updated = categories.map(c => c.id === id ? { ...c, [field]: value } : c);
+        onUpdateConfig({ categories: updated });
+    };
+
+    const handleDeleteCategory = (id) => {
+        const isAssigned = layout.nodes.some(n => n.category_id === id);
+        if (isAssigned) {
+            alert("No se puede eliminar esta categoría porque ya está asignada a algunos asientos.");
+            return;
+        }
+        onUpdateConfig({ categories: categories.filter(c => c.id !== id) });
+    };
+
+    const [isEditingCategories, setIsEditingCategories] = useState(false);
+
     const [sections, setSections] = useState({
         category: true,
         row: true,
@@ -71,11 +98,16 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
         rowLabelDisplayType: 'Row',
         seatLabelType: '123',
         seatLabelStart: 1,
-        seatLabelDirection: 'LR'
+        seatLabelDirection: 'LR',
+        category_id: null,
+        capacity: 100
+
     });
 
     // Tracking pending changes for structural fields
     const [pendingStructural, setPendingStructural] = useState({});
+
+    const selectedIdsStr = selectedNodes.map(n => n.id).sort().join(',');
 
     useEffect(() => {
         if (selectedNodes.length > 0) {
@@ -91,16 +123,26 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
             const rowUuids = Array.from(new Set(selectedNodes.map(n => n.row_uuid).filter(Boolean)));
             let commonNumSeats = 0;
             if (rowUuids.length > 0) {
-                const counts = rowUuids.map(uuid => selectedNodes.filter(n => n.row_uuid === uuid).length);
-                if (counts.every(v => v === counts[0])) commonNumSeats = counts[0];
+                const counts = rowUuids.map(uuid => layout?.nodes?.filter(n => n.row_uuid === uuid).length || 0);
+                if (counts.length > 0 && counts.every(v => v === counts[0])) commonNumSeats = counts[0];
             }
+
+            const tableUuids = Array.from(new Set(selectedNodes.map(n => n.table_uuid).filter(Boolean)));
+            if (tableUuids.length > 0 && layout?.nodes) {
+                const counts = tableUuids.map(uuid => layout.nodes.filter(n => n.table_uuid === uuid && n.type === 'seat').length);
+                if (counts.length > 0 && counts.every(v => v === counts[0])) commonNumSeats = counts[0];
+            }
+
 
             const data = {
                 section: getCommon('section'),
-                row: rowUuids.length === 1 ? first.row : '', // Only show specific row label if 1 row selected
+                category_id: getCommon('category_id', null),
+                capacity: getCommon('capacity', 100),
+                row: rowUuids.length === 1 ? (first.row || '') : '',
                 fill: getCommon('fill', '#94a3b8'),
                 radius: getCommon('radius', 10),
-                numSeats: commonNumSeats || (rowUuids.length === 0 ? selectedNodes.length : 0),
+                shape: getCommon('shape', 'circle'),
+                numSeats: commonNumSeats || (rowUuids.length === 0 && tableUuids.length === 0 ? selectedNodes.length : 0),
                 curve: getCommon('curvature', 0),
                 seatSpacing: getCommon('spacing', 35),
                 seatLabelDirection: getCommon('seat_label_direction', 'LR'),
@@ -108,11 +150,12 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
                 rowLabelPosition: getCommon('row_label_position', 'both'),
                 rowLabelOverride: getCommon('row_label_override', ''),
                 rowLabelDisplayType: getCommon('row_label_display_type', 'Row'),
-                // Section Container properties
-                name: getCommon('name', 'Nueva Sección'),
-                width: getCommon('width', 400),
-                height: getCommon('height', 300),
+                name: getCommon('name', ''),
+                width: getCommon('width', 0),
+                height: getCommon('height', 0),
                 stroke: getCommon('stroke', '#3b82f6'),
+                showTitle: getCommon('showTitle', true),
+                titlePosition: getCommon('titlePosition', 'top'),
             };
             
             // If it's a block, we might want to prioritize specific block row start
@@ -123,7 +166,7 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
             setFormData(prev => ({ ...prev, ...data }));
             setPendingStructural({}); 
         }
-    }, [selectedNodes]);
+    }, [selectedIdsStr]);
 
     // Helper to count seats in row
     function nodesInRow(uuid) {
@@ -143,25 +186,71 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
     };
 
     const handlePendingChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
         setPendingStructural(prev => ({ ...prev, [field]: value }));
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
-    const applyStructuralChanges = () => {
+    const handleStructuralBlur = () => {
         if (Object.keys(pendingStructural).length > 0) {
             onUpdate(pendingStructural);
             setPendingStructural({});
         }
     };
 
+    const applyStructuralChanges = () => {
+        // Obsolete
+    };
+
     if (selectedNodes.length === 0) {
         return (
-            <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-4 opacity-60">
-                <div className="p-4 rounded-full bg-muted">
-                    <Settings className="h-8 w-8 text-muted-foreground" />
+            <div className="flex-1 overflow-y-auto px-4 pb-12 space-y-4 pt-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center">
+                        <Palette className="h-4 w-4 mr-2" />
+                        Categorías de Precio
+                    </h3>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleAddCategory}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
+                    </Button>
                 </div>
-                <p className="text-sm font-medium uppercase tracking-widest">Inspector Vacío</p>
-                <p className="text-xs text-muted-foreground max-w-[200px]">Selecciona asientos o bloques para configurarlos.</p>
+                
+                <div className="space-y-3">
+                    {categories.map(cat => (
+                        <div key={cat.id} className="p-3 bg-muted/20 border rounded-lg space-y-2 relative group">
+                            <button 
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </button>
+                            <div className="flex items-center gap-2 pr-6">
+                                <input 
+                                    type="color" 
+                                    value={cat.color} 
+                                    onChange={(e) => handleUpdateCategory(cat.id, 'color', e.target.value)}
+                                    className="w-6 h-6 rounded border-none cursor-pointer"
+                                />
+                                <Input 
+                                    value={cat.name} 
+                                    onChange={(e) => handleUpdateCategory(cat.id, 'name', e.target.value)}
+                                    className="h-7 text-xs flex-1 font-bold"
+                                    placeholder="Nombre"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    {categories.length === 0 && (
+                        <div className="text-center p-4 border border-dashed rounded-lg text-xs text-muted-foreground">
+                            No hay categorías creadas
+                        </div>
+                    )}
+                </div>
+                
+                <Separator className="my-4" />
+                <div className="flex flex-col items-center justify-center text-center space-y-2 opacity-60 py-4">
+                    <p className="text-sm font-medium uppercase tracking-widest">Inspector Vacío</p>
+                    <p className="text-xs text-muted-foreground max-w-[200px]">Selecciona asientos o bloques para configurarlos.</p>
+                </div>
             </div>
         );
     }
@@ -176,7 +265,7 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
                 <>
                 <SectionHeader 
                     title="Configuración de Sección" 
-                    icon={Map} 
+                    icon={MapIcon} 
                     isOpen={sections.category} 
                     onToggle={() => toggleSection('category')} 
                 />
@@ -217,6 +306,23 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
                             </div>
                         </div>
                     </PropertyRow>
+                    <PropertyRow label="Mostrar Título">
+                        <Checkbox 
+                            checked={formData.showTitle !== false}
+                            onCheckedChange={(val) => handleImmediateChange('showTitle', val)}
+                        />
+                    </PropertyRow>
+                    <PropertyRow label="Posición Título">
+                        <select 
+                            value={formData.titlePosition || 'top'}
+                            onChange={(e) => handleImmediateChange('titlePosition', e.target.value)}
+                            className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
+                        >
+                            <option value="top">Arriba</option>
+                            <option value="center">Centro</option>
+                            <option value="bottom">Abajo</option>
+                        </select>
+                    </PropertyRow>
                 </div>
                 <Separator className="opacity-50" />
                 </>
@@ -228,24 +334,239 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
                 icon={Palette} 
                 isOpen={sections.category} 
                 onToggle={() => toggleSection('category')} 
+                Action={() => (
+                    <div className="flex items-center gap-1">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-6 w-6", isEditingCategories && "text-blue-500 bg-blue-500/10")}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEditingCategories(!isEditingCategories);
+                            }}
+                            title="Gestionar Categorías"
+                        >
+                            <Settings className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddCategory();
+                                if (!isEditingCategories) setIsEditingCategories(true);
+                            }}
+                            title="Nueva Categoría"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>
+                    </div>
+                )}
             />
             {sections.category && (
                 <div className="px-1 py-3 space-y-3 pb-6">
-                    <div className="flex items-center gap-3">
-                        <div 
-                            className="h-8 w-8 rounded-lg shadow-inner border border-white/20" 
-                            style={{ backgroundColor: formData.fill }}
-                        />
-                        <div className="flex-1 bg-muted/40 rounded-full px-4 py-2 text-[11px] font-medium text-muted-foreground border border-border/50">
-                            {formData.fill === '#94a3b8' ? 'Sin categoría asignada' : `Color: ${formData.fill.toUpperCase()}`}
-                        </div>
+                    <div className="flex flex-col gap-2">
+                        {categories.map(cat => (
+                            <div key={cat.id} className="group relative">
+                                {isEditingCategories ? (
+                                    <div className="flex items-center gap-2 p-2 rounded-lg border bg-muted/10 border-blue-500/30">
+                                        <input 
+                                            type="color" 
+                                            value={cat.color} 
+                                            onChange={(e) => handleUpdateCategory(cat.id, 'color', e.target.value)}
+                                            className="w-6 h-6 rounded border-none cursor-pointer shrink-0"
+                                        />
+                                        <Input 
+                                            value={cat.name} 
+                                            onChange={(e) => handleUpdateCategory(cat.id, 'name', e.target.value)}
+                                            className="h-7 text-xs flex-1 font-bold bg-transparent border-none focus-visible:ring-0 px-1"
+                                            placeholder="Nombre"
+                                        />
+                                        <button 
+                                            onClick={() => handleDeleteCategory(cat.id)}
+                                            className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            handleImmediateChange('category_id', cat.id);
+                                            handleImmediateChange('fill', cat.color);
+                                        }}
+                                        className={cn(
+                                            "w-full flex items-center gap-3 p-2 rounded-lg border text-left transition-colors",
+                                            formData.category_id === cat.id ? "border-blue-500 bg-blue-500/10" : "border-transparent hover:bg-muted/50"
+                                        )}
+                                    >
+                                        <div 
+                                            className="h-6 w-6 rounded-md shadow-inner border border-white/20 shrink-0" 
+                                            style={{ backgroundColor: cat.color }}
+                                        />
+                                        <div className="flex-1 overflow-hidden">
+                                            <div className="text-xs font-bold truncate">{cat.name}</div>
+                                        </div>
+                                        {formData.category_id === cat.id && <Check className="h-4 w-4 text-blue-500 shrink-0" />}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {categories.length === 0 && (
+                            <div className="text-center p-4 border border-dashed rounded-lg">
+                                <p className="text-[10px] text-muted-foreground mb-2">No hay categorías de precio</p>
+                                <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={handleAddCategory}>
+                                    Crear Primera Categoría
+                                </Button>
+                            </div>
+                        )}
+                        {!isEditingCategories && (
+                            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-muted">
+                                 <Label className="text-[10px] text-muted-foreground shrink-0">Color Libre:</Label>
+                                 <div className="flex items-center gap-2 flex-1">
+                                    <input 
+                                        type="color" 
+                                        value={formData.fill?.startsWith('rgba') ? '#94a3b8' : (formData.fill || '#94a3b8')} 
+                                        onChange={(e) => {
+                                            handleImmediateChange('category_id', null);
+                                            handleImmediateChange('fill', e.target.value);
+                                        }}
+                                        className="w-5 h-5 rounded border-none cursor-pointer"
+                                    />
+                                    <span className="text-[10px] text-muted-foreground truncate uppercase font-mono">
+                                        {formData.fill}
+                                    </span>
+                                 </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
 
             <Separator className="opacity-50" />
 
-            {/* 2. ROW PROPERTIES */}
+            {/* STANDING ZONE PROPERTIES */}
+            {selectedNodes.some(n => n.type === 'standing') && (
+                <>
+                <SectionHeader 
+                    title="Acceso General" 
+                    icon={Users} 
+                    isOpen={true} 
+                    onToggle={() => {}} 
+                />
+                <div className="px-1 py-3 space-y-3 pb-4">
+                    <PropertyRow label="Nombre">
+                        <Input 
+                            value={formData.name || ''} 
+                            onChange={(e) => handleImmediateChange('name', e.target.value)}
+                            className="h-7 text-xs bg-muted/20"
+                        />
+                    </PropertyRow>
+                    <PropertyRow label="Capacidad" info="Cantidad de personas permitidas">
+                        <Input 
+                            type="number"
+                            value={formData.capacity || 0} 
+                            onChange={(e) => handleImmediateChange('capacity', parseInt(e.target.value))}
+                            className="h-7 text-xs bg-muted/20 text-center font-mono text-emerald-600 font-bold"
+                        />
+                    </PropertyRow>
+                    <PropertyRow label="Ancho">
+                        <Input 
+                            type="number"
+                            value={formData.width || 0} 
+                            onChange={(e) => handleImmediateChange('width', parseInt(e.target.value))}
+                            className="h-7 text-xs bg-muted/20 text-center"
+                        />
+                    </PropertyRow>
+                    <PropertyRow label="Alto">
+                        <Input 
+                            type="number"
+                            value={formData.height || 0} 
+                            onChange={(e) => handleImmediateChange('height', parseInt(e.target.value))}
+                            className="h-7 text-xs bg-muted/20 text-center"
+                        />
+                    </PropertyRow>
+                </div>
+                <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* 2. TABLE PROPERTIES */}
+            {selectedNodes.some(n => n.type === 'table_shape') && (
+                <>
+                <SectionHeader 
+                    title="Configuración de Mesa" 
+                    icon={LayoutList} 
+                    isOpen={true} 
+                    onToggle={() => {}} 
+                />
+                <div className="px-1 py-3 space-y-3 pb-4">
+                    <PropertyRow label="Nombre">
+                        <Input 
+                            value={formData.name || ''} 
+                            onChange={(e) => handleImmediateChange('name', e.target.value)}
+                            className="h-7 text-xs bg-muted/20"
+                        />
+                    </PropertyRow>
+                    <PropertyRow label="Forma">
+                        <select 
+                            value={formData.shape || 'circle'}
+                            onChange={(e) => handleImmediateChange('shape', e.target.value)}
+                            className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
+                        >
+                            <option value="circle">Redonda</option>
+                            <option value="rect">Cuadrada/Rectangular</option>
+                        </select>
+                    </PropertyRow>
+                    <PropertyRow label="Número de asientos">
+                        <Input 
+                            type="number"
+                            value={formData.numSeats || ''} 
+                            onChange={(e) => handlePendingChange('numSeats', parseInt(e.target.value))}
+                            onBlur={handleStructuralBlur}
+                            className="h-7 text-xs bg-muted/20 text-center font-mono"
+                        />
+                    </PropertyRow>
+                    {formData.shape === 'circle' ? (
+                        <PropertyRow label="Radio">
+                            <Input 
+                                type="number"
+                                value={formData.radius || 0} 
+                                onChange={(e) => handlePendingChange('radius', parseInt(e.target.value))}
+                                onBlur={handleStructuralBlur}
+                                className="h-7 text-xs bg-muted/20 text-center"
+                            />
+                        </PropertyRow>
+                    ) : (
+                        <>
+                            <PropertyRow label="Ancho">
+                                <Input 
+                                    type="number"
+                                    value={formData.width || 0} 
+                                    onChange={(e) => handlePendingChange('width', parseInt(e.target.value))}
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 text-xs bg-muted/20 text-center"
+                                />
+                            </PropertyRow>
+                            <PropertyRow label="Alto">
+                                <Input 
+                                    type="number"
+                                    value={formData.height || 0} 
+                                    onChange={(e) => handlePendingChange('height', parseInt(e.target.value))}
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 text-xs bg-muted/20 text-center"
+                                />
+                            </PropertyRow>
+                        </>
+                    )}
+                </div>
+                <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* 3. ROW PROPERTIES */}
             <SectionHeader 
                 title="Fila" 
                 icon={Hash} 
@@ -282,16 +603,7 @@ const Inspector = ({ selectedNodes, onUpdate, onDelete, onAlign, onRedistribute 
                         </div>
                     </PropertyRow>
                     
-                    {hasPending && (
-                        <div className="pt-2 animate-in fade-in zoom-in-95 duration-200">
-                            <Button 
-                                onClick={applyStructuralChanges}
-                                className="w-full h-8 text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-lg"
-                            >
-                                <Check className="h-3 w-3" /> APLICAR CAMBIOS
-                            </Button>
-                        </div>
-                    )}
+
                 </div>
             )}
 

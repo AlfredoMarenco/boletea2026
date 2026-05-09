@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { 
     Save, Eye, Edit3, Settings, MousePointer2, Grid, Square, LayoutList,
     Circle as CircleIcon, Type, Trash2, Undo2, Redo2, Hexagon, PenTool, Hand, Maximize2,
-    ChevronRight, MoreHorizontal, Users, Image as ImageIcon, Plus, Layers
+    ChevronRight, MoreHorizontal, Users, Image as ImageIcon, Plus, Layers, AlertTriangle
 } from 'lucide-react';
 import { 
     Tooltip,
@@ -41,6 +41,18 @@ interface Props {
 
 const isPointInRect = (px: number, py: number, rx: number, ry: number, rw: number, rh: number) => {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+};
+
+const isPointInPolygon = (px: number, py: number, points: number[], offsetX = 0, offsetY = 0) => {
+    let inside = false;
+    for (let i = 0, j = points.length - 2; i < points.length; i += 2) {
+        const xi = points[i] + offsetX, yi = points[i+1] + offsetY;
+        const xj = points[j] + offsetX, yj = points[j+1] + offsetY;
+        const intersect = ((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+        j = i;
+    }
+    return inside;
 };
 
 export default function Builder({ seatingMap }: Props) {
@@ -75,26 +87,35 @@ export default function Builder({ seatingMap }: Props) {
         const structuralFields = [
             'numSeats', 'curve', 'seatSpacing', 'rowSpacing', 
             'row', 'rowLabelStart', 'rowLabelType', 'rowLabelSkip',
-            'seatLabelType', 'seatLabelStart', 'seatLabelDirection'
+            'seatLabelType', 'seatLabelStart', 'seatLabelDirection',
+            'shape' // For tables
         ];
         const isStructural = Object.keys(properties).some(key => structuralFields.includes(key));
 
-        if (isStructural && canvasRef.current && selectedIds.length > 0) {
+        if (canvasRef.current && selectedIds.length > 0) {
             const selectedNodes = layout.nodes.filter((n: any) => selectedIds.includes(n.id));
-            const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
             
-            if (blockUuid) {
-                canvasRef.current.updateBlockStructure(blockUuid, properties);
+            const tableUuid = selectedNodes.find(n => n.table_uuid)?.table_uuid;
+            if (tableUuid && (isStructural || properties.name || properties.radius || properties.width || properties.height)) {
+                canvasRef.current.updateTableStructure(tableUuid, properties);
                 return;
             }
 
-            const uniqueRowUuids = Array.from(new Set(
-                selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
-            ));
+            if (isStructural) {
+                const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
+                if (blockUuid) {
+                    canvasRef.current.updateBlockStructure(blockUuid, properties);
+                    return;
+                }
 
-            if (uniqueRowUuids.length === 1) {
-                canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
-                return;
+                const uniqueRowUuids = Array.from(new Set(
+                    selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
+                ));
+
+                if (uniqueRowUuids.length === 1) {
+                    canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                    return;
+                }
             }
         }
 
@@ -108,17 +129,50 @@ export default function Builder({ seatingMap }: Props) {
             return node?.type === 'section_container';
         });
 
-        if (sectionUpdates.length > 0 && (properties.name || properties.fill)) {
+        if (sectionUpdates.length > 0 && (properties.name || properties.fill || properties.category_id)) {
             sectionUpdates.forEach(sectionId => {
                 const sectionNode = updatedNodes.find((n: any) => n.id === sectionId);
                 if (!sectionNode) return;
 
                 updatedNodes = updatedNodes.map((node: any) => {
-                    if (node.type === 'seat' && isPointInRect(node.x, node.y, sectionNode.x, sectionNode.y, sectionNode.width || 400, sectionNode.height || 300)) {
+                    let isInside = false;
+                    if (node.type === 'seat') {
+                        if (sectionNode.points) {
+                            isInside = isPointInPolygon(node.x, node.y, sectionNode.points, sectionNode.x, sectionNode.y);
+                        } else {
+                            isInside = isPointInRect(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.width || 400) * (sectionNode.scaleX || 1), (sectionNode.height || 300) * (sectionNode.scaleY || 1));
+                        }
+                    }
+                    if (isInside) {
                         return { 
                             ...node, 
                             section: properties.name || node.section,
-                            fill: properties.fill || node.fill 
+                            fill: properties.fill || node.fill,
+                            category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
+                        };
+                    }
+                    return node;
+                });
+            });
+        }
+
+        // Cascading updates for tables
+        const tableUpdates = selectedIds.filter(id => {
+            const node = layout.nodes.find((n: any) => n.id === id);
+            return node?.type === 'table_shape';
+        });
+
+        if (tableUpdates.length > 0 && (properties.fill || properties.category_id)) {
+            tableUpdates.forEach(tableId => {
+                const tableNode = updatedNodes.find((n: any) => n.id === tableId);
+                if (!tableNode) return;
+                const tableUuid = tableNode.table_uuid;
+                updatedNodes = updatedNodes.map((node: any) => {
+                    if (node.table_uuid === tableUuid && node.type === 'seat') {
+                        return {
+                            ...node,
+                            fill: properties.fill || node.fill,
+                            category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
                         };
                     }
                     return node;
@@ -181,6 +235,30 @@ export default function Builder({ seatingMap }: Props) {
 
     const selectedNodes = layout.nodes.filter((n: any) => selectedIds.includes(n.id));
 
+    const duplicateWarnings = useMemo(() => {
+        const seats = layout.nodes.filter((n: any) => n.type === 'seat');
+        const seen = new Set();
+        const duplicates = new Set();
+
+        for (const seat of seats) {
+            const section = seat.section?.trim() || 'General';
+            const row = seat.row?.trim() || '';
+            const number = seat.number;
+            const key = `${section}|${row}|${number}`;
+            
+            if (seen.has(key)) {
+                duplicates.add(key);
+            } else {
+                seen.add(key);
+            }
+        }
+
+        return Array.from(duplicates).map((key: any) => {
+            const [section, row, number] = key.split('|');
+            return `Duplicado: ${section} > Fila ${row} > Asiento ${number}`;
+        });
+    }, [layout.nodes]);
+
     return (
         <AppLayout breadcrumbs={[
             { title: 'Mapas de Asientos', href: route('admin.seating-maps.index') },
@@ -241,6 +319,32 @@ export default function Builder({ seatingMap }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2">
+                        {duplicateWarnings.length > 0 && (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="destructive" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 animate-pulse">
+                                        <AlertTriangle className="h-3.5 w-3.5 mr-2" />
+                                        {duplicateWarnings.length} Error{duplicateWarnings.length > 1 ? 'es' : ''}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent side="bottom" align="end" className="w-80 p-0 shadow-2xl border-red-200">
+                                    <div className="bg-red-50 text-red-900 px-4 py-3 border-b border-red-100 flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                                        <div>
+                                            <h4 className="font-bold text-sm">Asientos Duplicados</h4>
+                                            <p className="text-xs opacity-80">Hay asientos con la misma numeración en la misma sección.</p>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-64 overflow-y-auto p-2 space-y-1">
+                                        {duplicateWarnings.map((warn, i) => (
+                                            <div key={i} className="text-xs bg-white px-3 py-2 rounded border border-red-100 text-red-800 shadow-sm">
+                                                {warn}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        )}
                         <Button variant="outline" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100" onClick={() => setIsCalibrationOpen(true)}>
                             <Maximize2 className="h-3.5 w-3.5 mr-2" />
                             Calibrar Plano
@@ -284,8 +388,8 @@ export default function Builder({ seatingMap }: Props) {
                                     <PopoverTrigger asChild>
                                         <ToolButton 
                                             icon={<MoreHorizontal />} 
-                                            active={['seat', 'row', 'rect_block', 'honeycomb_block'].includes(activeTool)} 
-                                            tooltip="Asientos" 
+                                            active={['seat', 'row', 'rect_block', 'honeycomb_block', 'table'].includes(activeTool)} 
+                                            tooltip="Asientos y Mesas" 
                                             hasArrow
                                         />
                                     </PopoverTrigger>
@@ -318,6 +422,13 @@ export default function Builder({ seatingMap }: Props) {
                                                 shortcut="H"
                                                 onClick={() => { setActiveTool('honeycomb_block'); setOpenPopover(null); }}
                                                 active={activeTool === 'honeycomb_block'}
+                                            />
+                                            <ToolMenuItem 
+                                                icon={<CircleIcon className="text-orange-500" />} 
+                                                title="Mesa con Asientos" 
+                                                shortcut="M"
+                                                onClick={() => { setActiveTool('table'); setOpenPopover(null); }}
+                                                active={activeTool === 'table'}
                                             />
                                         </div>
                                     </PopoverContent>
@@ -412,6 +523,7 @@ export default function Builder({ seatingMap }: Props) {
                             snapToGrid={snapToGrid}
                             onSelectionChange={setSelectedIds}
                             onChange={setLayout} 
+                            onToolComplete={() => setActiveTool('select')}
                         />
                     </div>
 
@@ -425,6 +537,8 @@ export default function Builder({ seatingMap }: Props) {
                         </div>
                         
                         <Inspector 
+                            layout={layout}
+                            onUpdateConfig={handleUpdateConfig}
                             selectedNodes={selectedNodes}
                             onUpdate={handleUpdateNodes}
                             onDelete={handleDeleteSelected}
