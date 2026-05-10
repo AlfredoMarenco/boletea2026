@@ -16,6 +16,12 @@ const isPointInRect = (px, py, rx, ry, rw, rh) => {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
 };
 
+const isPointInCircle = (px, py, cx, cy, radius) => {
+    const dx = px - cx;
+    const dy = py - cy;
+    return Math.sqrt(dx * dx + dy * dy) <= radius;
+};
+
 export const isPointInPolygon = (px, py, points, offsetX = 0, offsetY = 0) => {
     let inside = false;
     for (let i = 0, j = points.length - 2; i < points.length; i += 2) {
@@ -30,21 +36,23 @@ export const isPointInPolygon = (px, py, points, offsetX = 0, offsetY = 0) => {
 
 // --- MEMOIZED COMPONENTS FOR PERFORMANCE ---
 
-const SeatNode = React.memo(({ node, mode, isSelected, isHovered, isInCart, stageScale, onMouseEnter, onMouseLeave, onDragStart, onDragMove, onDragEnd }) => {
+const SeatNode = React.memo(({ node, mode, isSelected, isHovered, isInCart, stageScale, onMouseEnter, onMouseLeave, onDragStart, onDragMove, onDragEnd, onTransformEnd }) => {
     return (
         <Group 
             id={node.id}
             name="selectable"
             x={node.x} 
             y={node.y}
+            scaleX={node.scaleX || 1}
+            scaleY={node.scaleY || 1}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             draggable={mode === 'edit'}
-            transformsEnabled="position"
             perfectDrawEnabled={false}
             onDragStart={onDragStart}
             onDragMove={onDragMove}
             onDragEnd={onDragEnd}
+            onTransformEnd={onTransformEnd}
         >
             <Circle
                 id={node.id}
@@ -82,15 +90,18 @@ const SeatNode = React.memo(({ node, mode, isSelected, isHovered, isInCart, stag
     );
 });
 
-const TableNode = React.memo(({ node, mode, isSelected, onDragEnd }) => {
+const TableNode = React.memo(({ node, mode, isSelected, onDragEnd, onTransformEnd }) => {
     return (
         <Group 
             id={node.id}
             name="selectable"
             x={node.x}
             y={node.y}
+            scaleX={node.scaleX || 1}
+            scaleY={node.scaleY || 1}
             draggable={mode === 'edit'}
             onDragEnd={onDragEnd}
+            onTransformEnd={onTransformEnd}
         >
             {node.shape === 'circle' ? (
                 <Circle radius={node.radius} fill={node.fill} stroke={isSelected ? '#3b82f6' : node.stroke} strokeWidth={isSelected ? 3 : 2} />
@@ -112,36 +123,74 @@ const TableNode = React.memo(({ node, mode, isSelected, onDragEnd }) => {
     );
 });
 
-const SectionNode = React.memo(({ node, isSelected, onDragStart, onDragMove, onDragEnd, onTransformEnd }) => {
+const SectionNode = React.memo(({ node, isSelected, onDragStart, onDragMove, onDragEnd, onTransformEnd, stageScale }) => {
+    const renderShape = () => {
+        if (node.points || node.type === 'zone') {
+            return (
+                <Line
+                    points={node.points}
+                    fill={node.fill || 'rgba(59, 130, 246, 0.1)'}
+                    stroke={isSelected ? '#fbbf24' : (node.stroke || '#3b82f6')}
+                    strokeWidth={isSelected ? 3 : (node.strokeWidth || 2)}
+                    closed={true}
+                    name={`selectable ${node.id}-shape`}
+                    id={node.id}
+                />
+            );
+        }
+        
+        if (node.type === 'circle_zone') {
+            return (
+                <Circle
+                    radius={node.radius || 80}
+                    fill={node.fill || 'rgba(236, 72, 153, 0.2)'}
+                    stroke={isSelected ? '#fbbf24' : (node.stroke || '#ec4899')}
+                    strokeWidth={isSelected ? 3 : (node.strokeWidth || 2)}
+                    name={`selectable ${node.id}-shape`}
+                    id={node.id}
+                />
+            );
+        }
+
+        // Default to Rect (rect_zone or fallback)
+        return (
+            <Rect
+                width={node.width || 200}
+                height={node.height || 150}
+                fill={node.fill || 'rgba(16, 185, 129, 0.1)'}
+                stroke={isSelected ? '#fbbf24' : (node.stroke || '#10b981')}
+                strokeWidth={isSelected ? 3 : (node.strokeWidth || 2)}
+                name={`selectable ${node.id}-shape`}
+                id={node.id}
+                cornerRadius={node.type === 'section_container' ? 4 : 0}
+            />
+        );
+    };
+
     return (
         <Group
             id={node.id}
             x={node.x}
             y={node.y}
+            scaleX={node.scaleX || 1}
+            scaleY={node.scaleY || 1}
             draggable
             onDragStart={onDragStart}
             onDragMove={onDragMove}
             onDragEnd={onDragEnd}
             onTransformEnd={onTransformEnd}
         >
-            <Line
-                points={node.points}
-                fill={node.fill || 'rgba(59, 130, 246, 0.1)'}
-                stroke={isSelected ? '#fbbf24' : (node.stroke || '#3b82f6')}
-                strokeWidth={isSelected ? 3 : (node.strokeWidth || 2)}
-                closed={true}
-                name="selectable"
-                id={node.id}
-            />
+            {renderShape()}
             {node.showTitle !== false && (
                 <Text
                     text={node.name}
                     x={0}
-                    y={node.titlePosition === 'center' ? 150 : (node.titlePosition === 'bottom' ? 300 : -25)}
-                    width={400}
+                    y={node.type === 'circle_zone' ? -(node.radius || 80) - 20 : (node.titlePosition === 'center' ? (node.height || 150) / 2 : (node.titlePosition === 'bottom' ? (node.height || 150) + 10 : -25))}
+                    width={node.type === 'circle_zone' ? (node.radius || 80) * 2 : (node.width || 200)}
+                    offsetX={node.type === 'circle_zone' ? (node.radius || 80) : 0}
                     align="center"
-                    fill={node.stroke || '#3b82f6'}
-                    fontSize={16}
+                    fill={node.stroke || (node.type === 'circle_zone' ? '#ec4899' : '#3b82f6')}
+                    fontSize={stageScale < 0.5 ? Math.max(16, 20 / stageScale) : 16}
                     fontStyle="bold"
                     listening={false}
                 />
@@ -150,25 +199,40 @@ const SectionNode = React.memo(({ node, isSelected, onDragStart, onDragMove, onD
     );
 });
 
-const StandingNode = React.memo(({ node, isSelected, onDragEnd }) => {
+const StandingNode = React.memo(({ node, isSelected, onDragEnd, onTransformEnd, stageScale }) => {
     return (
         <Group 
             x={node.x} 
             y={node.y} 
             id={node.id}
+            scaleX={node.scaleX || 1}
+            scaleY={node.scaleY || 1}
             draggable
             onDragEnd={onDragEnd}
+            onTransformEnd={onTransformEnd}
         >
-            <Rect
-                id={node.id}
-                width={node.width || 400}
-                height={node.height || 300}
-                fill={node.fill || 'rgba(16, 185, 129, 0.1)'}
-                stroke={isSelected ? '#fbbf24' : (node.stroke || '#10b981')}
-                strokeWidth={isSelected ? 3 : 2}
-                name="selectable"
-                cornerRadius={4}
-            />
+            {node.points ? (
+                <Line
+                    id={node.id}
+                    points={node.points}
+                    fill={node.fill || 'rgba(16, 185, 129, 0.1)'}
+                    stroke={isSelected ? '#fbbf24' : (node.stroke || '#10b981')}
+                    strokeWidth={isSelected ? 3 : 2}
+                    closed={true}
+                    name={`selectable ${node.id}-shape`}
+                />
+            ) : (
+                <Rect
+                    id={node.id}
+                    width={node.width || 400}
+                    height={node.height || 300}
+                    fill={node.fill || 'rgba(16, 185, 129, 0.1)'}
+                    stroke={isSelected ? '#fbbf24' : (node.stroke || '#10b981')}
+                    strokeWidth={isSelected ? 3 : 2}
+                    name="selectable"
+                    cornerRadius={4}
+                />
+            )}
             {node.showTitle !== false && (
                 <Text
                     text={`${node.name}\n(Capacidad: ${node.capacity || 0})`}
@@ -177,7 +241,7 @@ const StandingNode = React.memo(({ node, isSelected, onDragEnd }) => {
                     width={node.width || 400}
                     align="center"
                     fill={node.stroke || '#10b981'}
-                    fontSize={14}
+                    fontSize={stageScale < 0.5 ? Math.max(14, 18 / stageScale) : 14}
                     fontStyle="bold"
                     listening={false}
                 />
@@ -353,15 +417,17 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             const dx = last.x - anchor.x;
             const dy = last.y - anchor.y;
             const angle = Math.atan2(dy, dx);
+            const totalDistance = Math.sqrt(dx * dx + dy * dy);
+            const effectiveSpacing = rowNodes.length > 1 ? totalDistance / (rowNodes.length - 1) : (anchor.spacing || 35);
             
             const config = {
                 count: newProps.numSeats || rowNodes.length,
                 startX: anchor.x,
                 startY: anchor.y,
-                spacing: newProps.seatSpacing || anchor.spacing || 35,
+                spacing: newProps.seatSpacing !== undefined ? newProps.seatSpacing : effectiveSpacing,
                 curvature: newProps.curve !== undefined ? newProps.curve : (anchor.curvature || 0),
                 section: newProps.section || anchor.section,
-                rowLabel: newProps.row || anchor.row,
+                rowLabel: newProps.row !== undefined ? newProps.row : anchor.row,
                 rowLabelEnabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : (anchor.row_label_enabled ?? true),
                 rowLabelPosition: newProps.rowLabelPosition || anchor.row_label_position || 'both',
                 rowLabelOverride: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : (anchor.row_label_override || ''),
@@ -375,12 +441,39 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 blockUuid: anchor.block_uuid
             };
 
+            // Optimization: If only non-structural properties changed, update directly
+            const structuralKeys = ['numSeats', 'curve', 'seatSpacing', 'seatLabelType', 'seatLabelStart', 'seatLabelDirection'];
+            const isStructural = structuralKeys.some(k => newProps[k] !== undefined);
+
+            if (!isStructural) {
+                const updatedNodes = currentNodes.map(n => {
+                    if (n.row_uuid === rowUuid) {
+                        return { 
+                            ...n, 
+                            ...newProps,
+                            // Ensure 'row' label is updated even if passed as 'row' in props
+                            row: newProps.row !== undefined ? newProps.row : n.row,
+                            row_label_enabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : n.row_label_enabled,
+                            row_label_position: newProps.rowLabelPosition !== undefined ? newProps.rowLabelPosition : n.row_label_position,
+                            row_label_override: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : n.row_label_override,
+                            row_label_display_type: newProps.rowLabelDisplayType !== undefined ? newProps.rowLabelDisplayType : n.row_label_display_type,
+                            seat_label_direction: newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : n.seat_label_direction
+                        };
+                    }
+                    return n;
+                });
+                setNodes(updatedNodes);
+                pushToHistory(updatedNodes);
+                onChange({ ...layout, nodes: updatedNodes });
+                return;
+            }
+
             const updatedNodes = [
                 ...currentNodes.filter(n => n.row_uuid !== rowUuid),
                 ...generateRow(config).map((seat, index) => {
-                    const oldSeat = rowNodes[index];
-                    const seatId = oldSeat ? oldSeat.id : seat.id;
-                    const permUuid = oldSeat ? oldSeat.permanent_uuid : seat.permanent_uuid;
+                    const oldSeat = rowNodes[index] || rowNodes[0]; // Use first seat as fallback for new seats
+                    const seatId = rowNodes[index] ? rowNodes[index].id : seat.id;
+                    const permUuid = rowNodes[index] ? rowNodes[index].permanent_uuid : seat.permanent_uuid;
 
                     const i = seat.number - config.seatStartNumber;
                     const lx = i * config.spacing;
@@ -397,6 +490,8 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         permanent_uuid: permUuid,
                         x: anchor.x + rx,
                         y: anchor.y + ry,
+                        scaleX: oldSeat?.scaleX || 1,
+                        scaleY: oldSeat?.scaleY || 1,
                         curvature: config.curvature,
                         seat_label_direction: config.seatLabelDirection,
                         row_label_enabled: config.rowLabelEnabled,
@@ -423,6 +518,32 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 return { uuid, y: Math.min(...rowSeats.map(s => s.y)), nodes: rowSeats };
             }).sort((a, b) => a.y - b.y);
 
+            // Optimization: If only non-structural properties changed, update directly
+            const structuralKeys = ['rowLabelType', 'rowLabelStart', 'rowLabelSkip', 'numSeats', 'curve', 'seatSpacing', 'seatLabelType', 'seatLabelStart', 'seatLabelDirection'];
+            const isStructural = structuralKeys.some(k => newProps[k] !== undefined);
+
+            if (!isStructural) {
+                const updatedNodes = initialNodes.map(n => {
+                    if (n.block_uuid === blockUuid) {
+                        return { 
+                            ...n, 
+                            ...newProps,
+                            row: newProps.row !== undefined ? newProps.row : n.row,
+                            row_label_enabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : n.row_label_enabled,
+                            row_label_position: newProps.rowLabelPosition !== undefined ? newProps.rowLabelPosition : n.row_label_position,
+                            row_label_override: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : n.row_label_override,
+                            row_label_display_type: newProps.rowLabelDisplayType !== undefined ? newProps.rowLabelDisplayType : n.row_label_display_type,
+                            seat_label_direction: newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : n.seat_label_direction
+                        };
+                    }
+                    return n;
+                });
+                setNodes(updatedNodes);
+                pushToHistory(updatedNodes);
+                onChange({ ...layout, nodes: updatedNodes });
+                return;
+            }
+
             let currentNodes = [...initialNodes];
 
             rows.forEach((row, index) => {
@@ -442,12 +563,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 const dx = last.x - anchor.x;
                 const dy = last.y - anchor.y;
                 const angle = Math.atan2(dy, dx);
+                const totalDistance = Math.sqrt(dx * dx + dy * dy);
+                const effectiveSpacing = rowNodes.length > 1 ? totalDistance / (rowNodes.length - 1) : (anchor.spacing || 35);
                 
                 const config = {
                     count: rowProps.numSeats || rowNodes.length,
                     startX: anchor.x,
                     startY: anchor.y,
-                    spacing: rowProps.seatSpacing || anchor.spacing || 35,
+                    spacing: rowProps.seatSpacing !== undefined ? rowProps.seatSpacing : effectiveSpacing,
                     curvature: rowProps.curve !== undefined ? rowProps.curve : (anchor.curvature || 0),
                     section: rowProps.section || anchor.section,
                     rowLabel: rowProps.row,
@@ -467,23 +590,27 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 currentNodes = [
                     ...currentNodes.filter(n => n.row_uuid !== row.uuid),
                     ...generateRow(config).map((seat, index) => {
-                        const oldSeat = rowNodes[index];
-                        const seatId = oldSeat ? oldSeat.id : seat.id;
-                        const permUuid = oldSeat ? oldSeat.permanent_uuid : seat.permanent_uuid;
+                        const oldSeat = rowNodes[index] || rowNodes[0];
+                        const seatId = rowNodes[index] ? rowNodes[index].id : seat.id;
+                        const permUuid = rowNodes[index] ? rowNodes[index].permanent_uuid : seat.permanent_uuid;
 
                         const i = seat.number - config.seatStartNumber;
                         const lx = i * config.spacing;
                         const mid = (config.count - 1) / 2;
                         const cOffset = i - mid;
                         const curveY = config.curvature * Math.pow(cOffset, 2) * (config.spacing / 10);
+                        
                         const rx = lx * Math.cos(angle) - curveY * Math.sin(angle);
                         const ry = lx * Math.sin(angle) + curveY * Math.cos(angle);
-                        return { 
-                            ...seat, 
+                        
+                        return {
+                            ...seat,
                             id: seatId,
                             permanent_uuid: permUuid,
-                            x: anchor.x + rx, 
-                            y: anchor.y + ry, 
+                            x: anchor.x + rx,
+                            y: anchor.y + ry,
+                            scaleX: oldSeat?.scaleX || 1,
+                            scaleY: oldSeat?.scaleY || 1,
                             curvature: config.curvature,
                             seat_label_direction: config.seatLabelDirection,
                             row_label_enabled: config.rowLabelEnabled,
@@ -534,9 +661,9 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             // Generate new seats
             const newSeats = [];
             for (let i = 0; i < config.count; i++) {
-                const oldSeat = seats[i];
-                const seatId = oldSeat ? oldSeat.id : 'seat-' + uuidv4();
-                const permUuid = oldSeat ? oldSeat.permanent_uuid : uuidv4();
+                const oldSeat = seats[i] || seats[0];
+                const seatId = seats[i] ? seats[i].id : 'seat-' + uuidv4();
+                const permUuid = seats[i] ? seats[i].permanent_uuid : uuidv4();
                 
                 let sx = tableNode.x;
                 let sy = tableNode.y;
@@ -578,9 +705,10 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                     fill: oldSeat ? oldSeat.fill : '#cbd5e1',
                     section: tableNode.section || 'General',
                     row: config.name,
-                    number: i + 1,
                     table_uuid: tableUuid,
-                    permanent_uuid: permUuid,
+                    number: i + 1,
+                    scaleX: oldSeat?.scaleX || 1,
+                    scaleY: oldSeat?.scaleY || 1
                 });
             }
 
@@ -597,11 +725,13 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
     }));
 
     // Sync with props
+    const lastPropNodesRef = useRef(layout?.nodes);
     useEffect(() => {
-        if (layout?.nodes && layout.nodes !== nodes) {
+        if (layout?.nodes && layout.nodes !== lastPropNodesRef.current) {
             setNodes(layout.nodes);
+            lastPropNodesRef.current = layout.nodes;
         }
-    }, [layout, nodes]);
+    }, [layout?.nodes]);
 
     // Sync Transformer
     useEffect(() => {
@@ -779,13 +909,17 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         newNode.category_id = null;
                     }
 
-                    const updatedNodes = [...nodes, newNode];
-                    setNodes(updatedNodes);
-                    setDrawingPoints([]);
-                    setCurrentMousePos(null);
-                    pushToHistory(updatedNodes);
-                    onChange({ ...layout, nodes: updatedNodes });
-                    if (onToolComplete) onToolComplete();
+                    setNodes(prev => {
+                        const updated = [...prev, newNode];
+                        setDrawingPoints([]);
+                        setCurrentMousePos(null);
+                        pushToHistory(updated);
+                        onChange({ ...layout, nodes: updated });
+                        if (onToolComplete) {
+                            setTimeout(onToolComplete, 0);
+                        }
+                        return updated;
+                    });
                     return;
                 }
             }
@@ -795,29 +929,35 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
         }
 
         if (tool === 'seat') {
-            const sections = nodes.filter(n => n.type === 'section_container');
-            const parentSection = sections.find(s => {
-                if (s.points) return isPointInPolygon(relativePos.x, relativePos.y, s.points, s.x, s.y);
-                return isPointInRect(relativePos.x, relativePos.y, s.x, s.y, s.width, s.height);
-            });
+            const sections = nodes.filter(n => ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(n.type));
+            setNodes(prev => {
+                const sections = prev.filter(n => ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(n.type));
+                const parentSection = sections.find(s => {
+                    if (s.points) return isPointInPolygon(relativePos.x, relativePos.y, s.points, s.x, s.y);
+                    if (s.type === 'circle_zone') return isPointInCircle(relativePos.x, relativePos.y, s.x, s.y, s.radius);
+                    return isPointInRect(relativePos.x, relativePos.y, s.x, s.y, (s.width || 400) * (s.scaleX || 1), (s.height || 300) * (s.scaleY || 1));
+                });
 
-            const newSeat = {
-                id: 'seat-' + uuidv4(),
-                type: 'seat',
-                x: relativePos.x,
-                y: relativePos.y,
-                radius: layout?.config?.defaultRadius || 10,
-                fill: parentSection?.fill || '#e2e8f0',
-                section: parentSection?.name || 'General',
-                row: '?',
-                number: nodes.filter(n => n.type === 'seat' && n.section === (parentSection?.name || 'General')).length + 1,
-                permanent_uuid: uuidv4()
-            };
-            const updatedNodes = [...nodes, newSeat];
-            setNodes(updatedNodes);
-            pushToHistory(updatedNodes);
-            onChange({ ...layout, nodes: updatedNodes });
-            if (onToolComplete) onToolComplete();
+                const newSeat = {
+                    id: 'seat-' + uuidv4(),
+                    type: 'seat',
+                    x: relativePos.x,
+                    y: relativePos.y,
+                    radius: layout?.config?.defaultRadius || 10,
+                    fill: parentSection?.fill || '#e2e8f0',
+                    section: parentSection?.name || 'General',
+                    row: '?',
+                    number: prev.filter(n => n.type === 'seat' && n.section === (parentSection?.name || 'General')).length + 1,
+                    permanent_uuid: uuidv4()
+                };
+                const updated = [...prev, newSeat];
+                pushToHistory(updated);
+                onChange({ ...layout, nodes: updated });
+                if (onToolComplete) {
+                    setTimeout(onToolComplete, 0);
+                }
+                return updated;
+            });
             return;
         }
 
@@ -843,10 +983,11 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             const tableRadius = 45;
             const seatRadius = layout?.config?.defaultRadius || 10;
             
-            const sections = nodes.filter(n => n.type === 'section_container');
+            const sections = nodes.filter(n => ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(n.type));
             const parentSection = sections.find(s => {
                 if (s.points) return isPointInPolygon(relativePos.x, relativePos.y, s.points, s.x, s.y);
-                return isPointInRect(relativePos.x, relativePos.y, s.x, s.y, s.width, s.height);
+                if (s.type === 'circle_zone') return isPointInCircle(relativePos.x, relativePos.y, s.x, s.y, (s.radius || 80) * (s.scaleX || 1));
+                return isPointInRect(relativePos.x, relativePos.y, s.x, s.y, (s.width || 200) * (s.scaleX || 1), (s.height || 150) * (s.scaleY || 1));
             });
 
             const tableNumber = nodes.filter(n => n.type === 'table_shape').length + 1;
@@ -1022,10 +1163,11 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             const rowMap = {}; // rowIndex -> uuid
             
             // Auto-detect section based on start position
-            const sections = nodesRef.current.filter(n => n.type === 'section_container');
+            const sections = nodesRef.current.filter(n => ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(n.type));
             const parentSection = sections.find(s => {
                 if (s.points) return isPointInPolygon(rowStartPos.x, rowStartPos.y, s.points, s.x, s.y);
-                return isPointInRect(rowStartPos.x, rowStartPos.y, s.x, s.y, s.width, s.height);
+                if (s.type === 'circle_zone') return isPointInCircle(rowStartPos.x, rowStartPos.y, s.x, s.y, (s.radius || 80) * (s.scaleX || 1));
+                return isPointInRect(rowStartPos.x, rowStartPos.y, s.x, s.y, (s.width || 200) * (s.scaleX || 1), (s.height || 150) * (s.scaleY || 1));
             });
             const section = parentSection?.name || 'General';
             
@@ -1136,10 +1278,12 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             spacingY: 35,
             section: 'General Panal'
         });
-        const updatedNodes = [...nodes, ...newSeats];
-        setNodes(updatedNodes);
-        pushToHistory(updatedNodes);
-        onChange({ ...layout, nodes: updatedNodes });
+        setNodes(prev => {
+            const updated = [...prev, ...newSeats];
+            pushToHistory(updated);
+            onChange({ ...layout, nodes: updated });
+            return updated;
+        });
     };
 
     const addRectZone = (x = 100, y = 100) => {
@@ -1151,14 +1295,23 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             width: 200,
             height: 150,
             fill: 'rgba(52, 211, 153, 0.2)',
-            name: 'Nueva Sección Rect'
+            stroke: '#10b981',
+            strokeWidth: 2,
+            name: 'Nueva Sección Rect',
+            showTitle: true,
+            titlePosition: 'top'
         };
-        const updatedNodes = [...nodes, newZone];
-            setNodes(updatedNodes);
-            pushToHistory(updatedNodes);
-            onChange({ ...layout, nodes: updatedNodes });
-            if (onToolComplete) onToolComplete();
-        };
+        
+        setNodes(prev => {
+            const updated = [...prev, newZone];
+            pushToHistory(updated);
+            onChange({ ...layout, nodes: updated });
+            if (onToolComplete) {
+                setTimeout(onToolComplete, 0);
+            }
+            return updated;
+        });
+    };
 
     const addCircleZone = (x = 100, y = 100) => {
         const newZone = {
@@ -1168,13 +1321,22 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             y: y,
             radius: 80,
             fill: 'rgba(59, 130, 246, 0.2)',
-            name: 'Nueva Sección Circ'
+            stroke: '#3b82f6',
+            strokeWidth: 2,
+            name: 'Nueva Sección Circ',
+            showTitle: true,
+            titlePosition: 'top'
         };
-        const updatedNodes = [...nodes, newZone];
-        setNodes(updatedNodes);
-        pushToHistory(updatedNodes);
-        onChange({ ...layout, nodes: updatedNodes });
-        if (onToolComplete) onToolComplete();
+        
+        setNodes(prev => {
+            const updated = [...prev, newZone];
+            pushToHistory(updated);
+            onChange({ ...layout, nodes: updated });
+            if (onToolComplete) {
+                setTimeout(onToolComplete, 0);
+            }
+            return updated;
+        });
     };
 
     return (
@@ -1258,11 +1420,12 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                 </Layer>
                 <Layer name="zones">
                     {zones.map(node => {
-                        if (node.type === 'section_container') {
+                        if (['section_container', 'zone', 'rect_zone', 'circle_zone'].includes(node.type)) {
                             return (
                                 <SectionNode 
                                     key={node.id}
                                     node={node}
+                                    stageScale={stageScale}
                                     isSelected={selectedIds.includes(node.id)}
                                     onDragStart={(e) => {
                                         if (e.target.id() !== node.id) return;
@@ -1321,6 +1484,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 <StandingNode 
                                     key={node.id}
                                     node={node}
+                                    stageScale={stageScale}
                                     isSelected={selectedIds.includes(node.id)}
                                     onDragEnd={(e) => {
                                         const updatedNodes = nodesRef.current.map(n => 
@@ -1330,6 +1494,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                         pushToHistory(updatedNodes);
                                         onChange({ ...layout, nodes: updatedNodes });
                                     }}
+                                    onTransformEnd={(e) => {
+                                        const n = e.target;
+                                        const updatedNodes = nodesRef.current.map(item => 
+                                            item.id === node.id ? { ...item, x: n.x(), y: n.y(), scaleX: n.scaleX(), scaleY: n.scaleY() } : item
+                                        );
+                                        setNodes(updatedNodes);
+                                        onChange({ ...layout, nodes: updatedNodes });
+                                    }}
                                 />
                             );
                         }
@@ -1337,7 +1509,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                     })}
                 </Layer>
                 <Layer name="seats" className="seats">
-                    {seats.map((node) => (
+                    {stageScale > 0.5 && seats.map((node) => (
                         <SeatNode 
                             key={node.id}
                             node={node}
@@ -1415,6 +1587,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 onChange({ ...layout, nodes: updatedNodes });
                                 dragStartRef.current = null;
                             }}
+                            onTransformEnd={(e) => {
+                                const n = e.target;
+                                const updatedNodes = nodesRef.current.map(item => 
+                                    item.id === node.id ? { ...item, x: n.x(), y: n.y(), scaleX: n.scaleX(), scaleY: n.scaleY() } : item
+                                );
+                                setNodes(updatedNodes);
+                                onChange({ ...layout, nodes: updatedNodes });
+                            }}
                             onClick={handleClick}
                             onTap={handleClick}
                         />
@@ -1422,7 +1602,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
 
                     
                     {/* Row Labels Layer (Duales: Inicio y Fin) */}
-                    {(() => {
+                    {stageScale > 0.5 && (() => {
                         const rowGroups = {};
                         nodes.forEach(n => {
                             if (n.type === 'seat' && n.row_uuid) {
@@ -1535,10 +1715,11 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                     ))}
 
                     {/* Render Tables */}
-                    {tables.map(node => (
+                    {stageScale > 0.5 && tables.map(node => (
                         <TableNode 
                             key={node.id}
                             node={node}
+                            stageScale={stageScale}
                             mode={mode}
                             isSelected={selectedIds.includes(node.id)}
                             onDragEnd={(e) => {
@@ -1556,6 +1737,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 });
                                 setNodes(updatedNodes);
                                 pushToHistory(updatedNodes);
+                                onChange({ ...layout, nodes: updatedNodes });
+                            }}
+                            onTransformEnd={(e) => {
+                                const n = e.target;
+                                const updatedNodes = nodesRef.current.map(item => 
+                                    item.id === node.id ? { ...item, x: n.x(), y: n.y(), scaleX: n.scaleX(), scaleY: n.scaleY() } : item
+                                );
+                                setNodes(updatedNodes);
                                 onChange({ ...layout, nodes: updatedNodes });
                             }}
                         />
