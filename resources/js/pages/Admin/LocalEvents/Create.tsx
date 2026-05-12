@@ -28,8 +28,10 @@ export default function Create({ venues, seatingMaps }: Props) {
         name: '',
         description: '',
         start_date: '',
+        end_date: '',
         venue_id: '',
         seating_map_id: '',
+        image: null as File | null,
     });
 
     const filteredMaps = seatingMaps.filter(map => !data.venue_id || map.venue_id === parseInt(data.venue_id));
@@ -61,15 +63,27 @@ export default function Create({ venues, seatingMaps }: Props) {
                         {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="start_date">Fecha y Hora</Label>
-                        <Input 
-                            id="start_date" 
-                            type="datetime-local"
-                            value={data.start_date} 
-                            onChange={e => setData('start_date', e.target.value)} 
-                        />
-                        {errors.start_date && <p className="text-sm text-red-500">{errors.start_date}</p>}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="start_date">Fecha y Hora de Inicio</Label>
+                            <Input 
+                                id="start_date" 
+                                type="datetime-local"
+                                value={data.start_date} 
+                                onChange={e => setData('start_date', e.target.value)} 
+                            />
+                            {errors.start_date && <p className="text-sm text-red-500">{errors.start_date}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="end_date">Fecha y Hora de Fin</Label>
+                            <Input 
+                                id="end_date" 
+                                type="datetime-local"
+                                value={data.end_date} 
+                                onChange={e => setData('end_date', e.target.value)} 
+                            />
+                            {errors.end_date && <p className="text-sm text-red-500">{errors.end_date}</p>}
+                        </div>
                     </div>
 
                     <div className="space-y-2">
@@ -117,6 +131,17 @@ export default function Create({ venues, seatingMaps }: Props) {
                             onChange={e => setData('description', e.target.value)} 
                             rows={4}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="image">Imagen del Evento (Opcional)</Label>
+                        <Input 
+                            id="image" 
+                            type="file" 
+                            accept="image/*"
+                            onChange={e => setData('image', e.target.files ? e.target.files[0] : null)} 
+                        />
+                        {errors.image && <p className="text-sm text-red-500">{errors.image}</p>}
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t">

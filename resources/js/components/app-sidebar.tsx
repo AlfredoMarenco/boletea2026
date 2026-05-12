@@ -23,9 +23,14 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Eventos',
+        title: 'Eventos Externos (Cartelera)',
         href: route('admin.events.index'),
         icon: BookOpen,
+    },
+    {
+        title: 'Eventos Locales (Venta)',
+        href: route('admin.local-events.index'),
+        icon: LayoutGrid,
     },
     {
         title: 'Puntos de Venta',

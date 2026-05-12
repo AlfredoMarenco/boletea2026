@@ -40,7 +40,10 @@ Route::resource('categories', CategoryController::class);
 Route::resource('venues', VenueController::class);
 Route::resource('users', UserController::class);
 Route::resource('seating-maps', SeatingMapController::class);
-Route::resource('local-events', LocalEventController::class);
+Route::get('local-events/{event}/prices', [LocalEventController::class, 'prices'])->name('local-events.prices');
+Route::post('local-events/{event}/prices', [LocalEventController::class, 'updatePrices'])->name('local-events.prices.update');
+Route::post('local-events/{event}/inventory', [LocalEventController::class, 'generateInventory'])->name('local-events.inventory');
+Route::resource('local-events', LocalEventController::class)->parameters(['local-events' => 'event']);
 
 Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
 Route::post('settings', [SiteSettingController::class, 'update'])->name('settings.update');
