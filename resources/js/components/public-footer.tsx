@@ -32,10 +32,10 @@ export default function PublicFooter() {
                             Tu plataforma de confianza para los mejores eventos, conciertos y experiencias en vivo. Compra seguro, vive al máximo.
                         </p>
                         <div className="flex items-center gap-4">
-                            <SocialLink href="https://facebook.com/boletea" icon={Facebook} />
+                            <SocialLink href="https://facebook.com/boleteaoficial" icon={Facebook} />
                             <SocialLink href="https://instagram.com/boletea" icon={Instagram} />
-                            <SocialLink href="https://twitter.com/boletea" icon={Twitter} />
-                            <SocialLink href="https://tiktok.com/@boletea" icon={TiktokIcon} />
+                            <SocialLink href="https://twitter.com/boleteamx" icon={Twitter} />
+                            <SocialLink href="https://tiktok.com/@boleteamx" icon={TiktokIcon} />
                         </div>
                     </div>
 
