@@ -131,7 +131,15 @@ export default function Create({ externalEvents }: Props) {
                                 {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
                             </div>
                         </div>
-
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Notas / Descripción</Label>
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                placeholder="Detalles adicionales..."
+                                className="rounded-xl min-h-[100px]"
+                            />
                             {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
                         </div>
 
