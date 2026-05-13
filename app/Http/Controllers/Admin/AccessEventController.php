@@ -188,6 +188,18 @@ class AccessEventController extends Controller
         ]);
     }
 
+    public function postbackLogs(AccessEvent $event)
+    {
+        $logs = \App\Models\AccessPostbackLog::where('access_event_id', $event->id)
+            ->orderBy('scanned_at', 'desc')
+            ->paginate(100);
+
+        return Inertia::render('Admin/Access/Events/PostbackLogs', [
+            'event' => $event,
+            'logs' => $logs,
+        ]);
+    }
+
     public function devices(AccessEvent $event)
     {
         $sections = DB::table('access_codes')

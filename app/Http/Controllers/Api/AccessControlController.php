@@ -118,6 +118,15 @@ class AccessControlController extends Controller
                 'result' => 'invalid',
                 'scanned_at' => $scannedAt,
             ]);
+
+            \App\Jobs\SendAccessPostback::dispatch(
+                $event->id,
+                $request->code,
+                'invalid',
+                $device->name,
+                $device->device_identifier,
+                $scannedAt->toDateTimeString()
+            );
             return response()->json(['status' => 'invalid', 'message' => 'Código no encontrado.'], 422);
         }
 
@@ -138,6 +147,15 @@ class AccessControlController extends Controller
                 'result' => 'duplicate',
                 'scanned_at' => $scannedAt,
             ]);
+
+            \App\Jobs\SendAccessPostback::dispatch(
+                $event->id,
+                $request->code,
+                'duplicate',
+                $device->name,
+                $device->device_identifier,
+                $scannedAt->toDateTimeString()
+            );
             
             return response()->json([
                 'status' => 'duplicate', 
@@ -166,6 +184,15 @@ class AccessControlController extends Controller
                     'result' => 'invalid_zone',
                     'scanned_at' => $scannedAt,
                 ]);
+
+                \App\Jobs\SendAccessPostback::dispatch(
+                    $event->id,
+                    $request->code,
+                    'invalid_zone',
+                    $device->name,
+                    $device->device_identifier,
+                    $scannedAt->toDateTimeString()
+                );
                 return response()->json([
                     'status' => 'invalid_zone', 
                     'message' => "Acceso denegado. Este código pertenece a la zona '{$codeSection}', la cual no está habilitada para esta puerta."
@@ -188,6 +215,15 @@ class AccessControlController extends Controller
             'metadata' => $accessCode->metadata,
             'scanned_at' => $scannedAt,
         ]);
+
+        \App\Jobs\SendAccessPostback::dispatch(
+            $event->id,
+            $request->code,
+            'success',
+            $device->name,
+            $device->device_identifier,
+            $scannedAt->toDateTimeString()
+        );
 
         return response()->json([
             'status' => 'success',
@@ -257,6 +293,15 @@ class AccessControlController extends Controller
                 'metadata' => $accessCode ? $accessCode->metadata : null,
                 'scanned_at' => $scannedAt,
             ]);
+
+            \App\Jobs\SendAccessPostback::dispatch(
+                $event->id,
+                $codeStr,
+                $result,
+                $device->name,
+                $device->device_identifier,
+                $scannedAt->toDateTimeString()
+            );
         }
 
         return response()->json([

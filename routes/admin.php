@@ -90,6 +90,7 @@ Route::prefix('access')->name('access.')->group(function () {
     Route::get('events/{event}/codes', [AccessEventController::class, 'codes'])->name('events.codes');
     Route::get('events/{event}/stats', [AccessEventController::class, 'stats'])->name('events.stats');
     Route::get('events/{event}/logs', [AccessEventController::class, 'logs'])->name('events.logs');
+    Route::get('events/{event}/postback-logs', [AccessEventController::class, 'postbackLogs'])->name('events.postback-logs');
     Route::get('events/{event}/devices', [AccessEventController::class, 'devices'])->name('events.devices');
     Route::post('events/{event}/devices', [AccessEventController::class, 'assignDevice'])->name('events.devices.assign');
     Route::delete('events/{event}/clear', [AccessEventController::class, 'clearCodes'])->name('events.clear');
