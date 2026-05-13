@@ -123,8 +123,8 @@ class AccessControlController extends Controller
                 $event->id,
                 $request->code,
                 'invalid',
-                $device->name,
-                $device->device_identifier,
+                'Desconocido',
+                $device->id,
                 $scannedAt->toDateTimeString()
             );
             return response()->json(['status' => 'invalid', 'message' => 'Código no encontrado.'], 422);
@@ -152,8 +152,8 @@ class AccessControlController extends Controller
                 $event->id,
                 $request->code,
                 'duplicate',
-                $device->name,
-                $device->device_identifier,
+                $accessCode->type ?? 'Desconocido',
+                $device->id,
                 $scannedAt->toDateTimeString()
             );
             
@@ -189,8 +189,8 @@ class AccessControlController extends Controller
                     $event->id,
                     $request->code,
                     'invalid_zone',
-                    $device->name,
-                    $device->device_identifier,
+                    $accessCode->type ?? 'Desconocido',
+                    $device->id,
                     $scannedAt->toDateTimeString()
                 );
                 return response()->json([
@@ -220,8 +220,8 @@ class AccessControlController extends Controller
             $event->id,
             $request->code,
             'success',
-            $device->name,
-            $device->device_identifier,
+            $accessCode->type ?? 'Desconocido',
+            $device->id,
             $scannedAt->toDateTimeString()
         );
 
@@ -298,8 +298,8 @@ class AccessControlController extends Controller
                 $event->id,
                 $codeStr,
                 $result,
-                $device->name,
-                $device->device_identifier,
+                $accessCode ? ($accessCode->type ?? 'Desconocido') : 'Desconocido',
+                $device->id,
                 $scannedAt->toDateTimeString()
             );
         }

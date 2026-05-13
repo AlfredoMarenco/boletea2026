@@ -13,8 +13,8 @@ class SendAccessPostback implements ShouldQueue
         public int $eventId,
         public string $barcode,
         public string $result,
-        public string $deviceName,
-        public string $scannerId,
+        public string $section,
+        public int $scannerId,
         public string $scannedAt
     ) {
     }
@@ -29,7 +29,7 @@ class SendAccessPostback implements ShouldQueue
         $status = $this->result === 'success' ? '1' : '0';
 
         $payload = [
-            'Resultado' => $this->deviceName,
+            'Resultado' => $this->section,
             'HoraPostback' => now()->format('Y-m-d H:i:s'),
             'EstatusEscaneo' => $status,
             'Barcode' => $this->barcode,
@@ -38,7 +38,9 @@ class SendAccessPostback implements ShouldQueue
         ];
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(10)->post($postbackUrl, $payload);
+            $response = \Illuminate\Support\Facades\Http::asForm()
+                ->timeout(15)
+                ->post($postbackUrl, $payload);
             
             \App\Models\AccessPostbackLog::create([
                 'access_event_id' => $this->eventId,
