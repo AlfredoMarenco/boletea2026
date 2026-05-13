@@ -123,6 +123,34 @@ class AccessEventController extends Controller
         ]);
     }
 
+    public function storeCode(Request $request, AccessEvent $event)
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:255',
+            'type' => 'required|string|max:255',
+            'owner' => 'nullable|string|max:255',
+            'details' => 'nullable|string|max:255',
+            'row' => 'nullable|string|max:50',
+            'seat' => 'nullable|string|max:50',
+        ]);
+
+        $event->codes()->create([
+            'code' => $validated['code'],
+            'type' => $validated['type'],
+            'status' => 'pending',
+            'metadata' => [
+                'owner' => $validated['owner'] ?? '',
+                'details' => $validated['details'] ?? '',
+                'row' => $validated['row'] ?? '',
+                'seat' => $validated['seat'] ?? '',
+                'manual_entry' => true,
+                'created_at' => now()->toDateTimeString(),
+            ]
+        ]);
+
+        return redirect()->back()->with('success', 'Código añadido correctamente a la base.');
+    }
+
     public function import(Request $request, AccessEvent $event)
     {
         $request->validate([
