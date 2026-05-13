@@ -48,6 +48,7 @@ class AccessEventController extends Controller
             'external_event_id' => 'nullable|exists:external_events,id',
             'date' => 'nullable|date',
             'description' => 'nullable|string',
+            'postback_url' => 'nullable|url',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -73,6 +74,7 @@ class AccessEventController extends Controller
             'external_event_id' => 'nullable|exists:external_events,id',
             'date' => 'nullable|date',
             'description' => 'nullable|string',
+            'postback_url' => 'nullable|url',
             'status' => 'required|in:active,inactive',
         ]);
 

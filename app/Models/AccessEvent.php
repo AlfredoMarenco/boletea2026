@@ -11,6 +11,7 @@ class AccessEvent extends Model
         'name',
         'date',
         'description',
+        'postback_url',
         'status',
     ];
 

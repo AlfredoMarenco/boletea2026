@@ -20,40 +20,52 @@ interface ExternalEvent {
     title: string;
 }
 
+interface AccessEvent {
+    id: number;
+    name: string;
+    external_event_id: number | null;
+    date: string | null;
+    description: string | null;
+    postback_url: string | null;
+    status: 'active' | 'inactive';
+}
+
 interface Props {
+    event: AccessEvent;
     externalEvents: ExternalEvent[];
 }
 
-export default function Create({ externalEvents }: Props) {
-    const { data, setData, post, processing, errors } = useForm({
-        name: '',
-        external_event_id: '',
-        date: '',
-        description: '',
-        postback_url: '',
-        status: 'active',
+export default function Edit({ event, externalEvents }: Props) {
+    const { data, setData, put, processing, errors } = useForm({
+        name: event.name || '',
+        external_event_id: event.external_event_id ? String(event.external_event_id) : '',
+        date: event.date ? new Date(event.date).toISOString().split('T')[0] : '',
+        description: event.description || '',
+        postback_url: event.postback_url || '',
+        status: event.status || 'active',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('admin.access.events.store'));
+        put(route('admin.access.events.update', event.id));
     };
 
     return (
         <AppLayout breadcrumbs={[
             { title: 'Control de Acceso', href: route('admin.access.events.index') },
-            { title: 'Crear Base', href: '#' }
+            { title: event.name, href: route('admin.access.events.stats', event.id) },
+            { title: 'Editar Base', href: '#' }
         ]}>
-            <Head title="Crear Base de Acceso" />
+            <Head title={`Editar - ${event.name}`} />
 
             <div className="p-6 max-w-4xl mx-auto pb-32">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-black text-gray-900 dark:text-white">
-                            Nueva Base de Acceso
+                            Editar Base de Acceso
                         </h1>
                         <p className="text-gray-500 dark:text-gray-400 mt-1">
-                            Define la base de datos de códigos para el control de entrada.
+                            Modifica la configuración de la base de datos de códigos.
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -132,6 +144,15 @@ export default function Create({ externalEvents }: Props) {
                             </div>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Notas / Descripción</Label>
+                            <Textarea
+                                id="description"
+                                value={data.description}
+                                onChange={(e) => setData('description', e.target.value)}
+                                placeholder="Detalles adicionales..."
+                                className="rounded-xl min-h-[100px]"
+                            />
                             {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
                         </div>
 
@@ -153,7 +174,7 @@ export default function Create({ externalEvents }: Props) {
                     <div className="flex justify-end pt-4">
                         <Button type="submit" disabled={processing} className="bg-primary hover:bg-primary/90 rounded-xl h-11 px-8 font-bold">
                             <Save className="size-4 mr-2" />
-                            {processing ? 'Guardando...' : 'Crear Base de Acceso'}
+                            {processing ? 'Guardando...' : 'Actualizar Base de Acceso'}
                         </Button>
                     </div>
                 </form>
