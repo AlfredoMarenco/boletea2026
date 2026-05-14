@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AccessEvent;
-use App\Models\ExternalEvent;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
+use App\Models\AccessEvent;
+use App\Models\ExternalEvent;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class AccessEventController extends Controller
 {
@@ -28,14 +29,14 @@ class AccessEventController extends Controller
             'events' => $events,
             'filters' => [
                 'search' => $search,
-            ]
+            ],
         ]);
     }
 
     public function create()
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
-        
+
         return Inertia::render('Admin/Access/Events/Create', [
             'externalEvents' => $externalEvents,
         ]);
@@ -60,7 +61,7 @@ class AccessEventController extends Controller
     public function edit(AccessEvent $event)
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
-        
+
         return Inertia::render('Admin/Access/Events/Edit', [
             'event' => $event,
             'externalEvents' => $externalEvents,
@@ -86,6 +87,7 @@ class AccessEventController extends Controller
     public function destroy(AccessEvent $event)
     {
         $event->delete();
+
         return redirect()->route('admin.access.events.index')->with('success', 'Base de acceso eliminada.');
     }
 
@@ -103,7 +105,7 @@ class AccessEventController extends Controller
         return Inertia::render('Admin/Access/Events/Codes', [
             'event' => $event,
             'codes' => $codes,
-            'filters' => ['search' => $search]
+            'filters' => ['search' => $search],
         ]);
     }
 
@@ -126,12 +128,19 @@ class AccessEventController extends Controller
     public function storeCode(Request $request, AccessEvent $event)
     {
         $validated = $request->validate([
-            'code' => 'required|string|max:255',
+            'code' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('access_codes', 'code')->where('access_event_id', $event->id),
+            ],
             'type' => 'required|string|max:255',
             'owner' => 'nullable|string|max:255',
             'details' => 'nullable|string|max:255',
             'row' => 'nullable|string|max:50',
             'seat' => 'nullable|string|max:50',
+        ], [
+            'code.unique' => 'Este código ya existe en esta base de acceso.',
         ]);
 
         $event->codes()->create([
@@ -145,7 +154,7 @@ class AccessEventController extends Controller
                 'seat' => $validated['seat'] ?? '',
                 'manual_entry' => true,
                 'created_at' => now()->toDateTimeString(),
-            ]
+            ],
         ]);
 
         return redirect()->back()->with('success', 'Código añadido correctamente a la base.');
@@ -159,19 +168,33 @@ class AccessEventController extends Controller
 
         $file = $request->file('file');
         $path = $file->getRealPath();
-        
         $handle = fopen($path, 'r');
-        
-        $count = 0;
+
+        $totalInserted = 0;
+        $totalRows = 0;
         $batch = [];
-        
+        $existingInFile = [];
+
         while (($row = fgetcsv($handle)) !== false) {
-            if (empty($row[0])) continue;
-            if (str_contains($row[0], 'Codigo') || str_contains($row[0], 'Código')) continue;
+            if (empty($row[0])) {
+                continue;
+            }
+            if (str_contains($row[0], 'Codigo') || str_contains($row[0], 'Código')) {
+                continue;
+            }
+
+            $totalRows++;
+            $code = $row[0];
+
+            // Skip if duplicate in the same file
+            if (isset($existingInFile[$code])) {
+                continue;
+            }
+            $existingInFile[$code] = true;
 
             $batch[] = [
                 'access_event_id' => $event->id,
-                'code' => $row[0],
+                'code' => $code,
                 'type' => $row[3] ?? 'General',
                 'metadata' => json_encode([
                     'owner' => mb_convert_encoding($row[1] ?? '', 'UTF-8', 'auto'),
@@ -187,22 +210,28 @@ class AccessEventController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
-            
-            $count++;
-            
+
             if (count($batch) >= 500) {
-                AccessCode::insert($batch);
+                $totalInserted += DB::table('access_codes')->insertOrIgnore($batch);
                 $batch = [];
             }
         }
-        
-        if (!empty($batch)) {
-            AccessCode::insert($batch);
+
+        if (! empty($batch)) {
+            $totalInserted += DB::table('access_codes')->insertOrIgnore($batch);
         }
-        
+
         fclose($handle);
-        
-        return redirect()->back()->with('success', "Se han importado {$count} códigos correctamente siguiendo la estructura de Boletea.");
+
+        $skipped = $totalRows - $totalInserted;
+        $message = "Se han procesado {$totalRows} registros: {$totalInserted} nuevos importados";
+        if ($skipped > 0) {
+            $message .= " y {$skipped} omitidos por ser duplicados.";
+        } else {
+            $message .= ' correctamente.';
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function logs(AccessEvent $event)
@@ -238,13 +267,14 @@ class AccessEventController extends Controller
             ->selectRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.details')) as section")
             ->distinct()
             ->pluck('section')
-            ->filter(fn($val) => !is_null($val) && $val !== '' && $val !== 'null')
+            ->filter(fn ($val) => ! is_null($val) && $val !== '' && $val !== 'null')
             ->values();
 
         $devices = AccessDevice::orderBy('name')->get();
 
         $assignments = $event->devices()->get()->mapWithKeys(function ($device) {
             $allowed = $device->configuration->allowed_sections;
+
             return [$device->id => $allowed ? json_decode($allowed, true) : []];
         });
 
@@ -267,27 +297,28 @@ class AccessEventController extends Controller
 
         if (empty($sections)) {
             $event->devices()->syncWithoutDetaching([
-                $request->device_id => ['allowed_sections' => null]
+                $request->device_id => ['allowed_sections' => null],
             ]);
         } else {
             $event->devices()->syncWithoutDetaching([
-                $request->device_id => ['allowed_sections' => json_encode($sections)]
+                $request->device_id => ['allowed_sections' => json_encode($sections)],
             ]);
         }
 
         return redirect()->back()->with('success', 'Configuración de puertas actualizada.');
     }
+
     public function clearCodes(AccessEvent $event)
     {
         $event->codes()->delete();
-        
+
         return back()->with('success', 'Base de datos de códigos vaciada correctamente. Los reportes de escaneo se han conservado.');
     }
 
     public function updateCodeStatus(AccessEvent $event, AccessCode $code, Request $request)
     {
         $request->validate([
-            'status' => 'required|in:pending,used,cancelled'
+            'status' => 'required|in:pending,used,cancelled',
         ]);
 
         $code->update(['status' => $request->status]);
