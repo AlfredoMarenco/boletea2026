@@ -312,7 +312,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         )}
 
                         {/* CDV Prices */}
-                        {visibleCdvPrices.length > 0 && !isGridMode && (
+                        {isSalesOpen && visibleCdvPrices.length > 0 && !isGridMode && (
                             <section className="relative rounded-2xl border border-[#c90000]/20 bg-white/50 dark:bg-[#1a1c20]/50 p-6 shadow-lg shadow-[#c90000]/5 overflow-hidden transition-all duration-300">
                                 {/* Pulse Glow Effect Background */}
                                 <div className="absolute inset-0 bg-[#c90000]/5 animate-pulse pointer-events-none"></div>
