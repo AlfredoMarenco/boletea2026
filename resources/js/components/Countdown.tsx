@@ -56,8 +56,8 @@ export default function Countdown({ targetDate, onComplete }: { targetDate: stri
         }
 
         timerComponents.push(
-            <div key={interval} className="flex flex-col items-center justify-center p-2 sm:p-3 bg-gray-50/80 rounded-xl border border-gray-100 dark:bg-white/[0.03] dark:border-white/5 min-w-[65px] sm:min-w-[75px] transition-all">
-                <span className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter text-[#c90000]">
+            <div key={interval} className="flex flex-col items-center justify-center p-1.5 sm:p-2 bg-gray-50/80 rounded-xl border border-gray-100 dark:bg-white/[0.03] dark:border-white/5 min-w-[55px] sm:min-w-[70px] transition-all">
+                <span className="text-lg sm:text-2xl font-black tabular-nums tracking-tighter text-[#c90000]">
                     {(timeLeft[key] || 0).toString().padStart(2, '0')}
                 </span>
                 <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mt-0.5">
@@ -70,7 +70,7 @@ export default function Countdown({ targetDate, onComplete }: { targetDate: stri
     });
 
     return (
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3">
             {timerComponents.length ? timerComponents : (
                 <span className="px-6 py-2 bg-green-500/10 text-green-500 rounded-full text-xs font-black uppercase tracking-widest border border-green-500/20">
                     ¡Venta Disponible!

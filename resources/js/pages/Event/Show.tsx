@@ -462,7 +462,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                                     {format(new Date(event.sales_start_date), "d 'de' MMMM 'a las' h:mm a", { locale: es })}
                                                 </p>
 
-                                                <div className="grid grid-cols-4 gap-2 text-center">
+                                                <div className="flex justify-center w-full">
                                                     <Countdown
                                                         targetDate={event.sales_start_date}
                                                         onComplete={() => setIsSalesOpen(true)}
