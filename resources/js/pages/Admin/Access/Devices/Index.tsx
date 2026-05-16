@@ -4,8 +4,8 @@ import { route } from 'ziggy-js';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QRCodeSVG } from 'qrcode.react';
-import { QrCode, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { QrCode, Copy, Check, Upload, Smartphone } from 'lucide-react';
+import { useState, useRef } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -66,6 +66,7 @@ export default function Index({ devices }: Props) {
                         <p className="text-sm text-gray-500">Gestión de dispositivos autorizados para escaneo</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-4">
+                        <ApkManagerDialog />
                         <Button asChild variant="default">
                             <Link href={route('admin.access.devices.create')}>Registrar Dispositivo</Link>
                         </Button>
@@ -239,6 +240,100 @@ function PairDialog({ device }: { device: AccessDevice }) {
                                 </span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function ApkManagerDialog() {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        apk: null as File | null,
+    });
+    
+    const [open, setOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const downloadUrl = route('scanner.download');
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('admin.access.apk.upload'), {
+            forceFormData: true,
+            onSuccess: () => {
+                setOpen(false);
+                reset();
+            },
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
+                    <Smartphone className="size-4" />
+                    Actualizar App Scanner
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl">Gestión de App Scanner (APK)</DialogTitle>
+                    <DialogDescription>
+                        Sube una nueva versión de la aplicación para los dispositivos Zebra. Al subirla, se reemplazará la versión anterior.
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="grid md:grid-cols-2 gap-6 py-4">
+                    {/* Sección de Descarga */}
+                    <div className="flex flex-col items-center space-y-4 p-4 border rounded-xl bg-slate-50 dark:bg-slate-900">
+                        <h3 className="font-semibold text-sm text-slate-500 uppercase">Descargar / Instalar</h3>
+                        <div className="bg-white p-3 rounded-xl shadow-sm">
+                            <QRCodeSVG 
+                                value={downloadUrl} 
+                                size={150} 
+                                level="M" 
+                            />
+                        </div>
+                        <p className="text-xs text-center text-slate-500 px-2">
+                            Escanea este código con el dispositivo Zebra para descargar la última versión del APK.
+                        </p>
+                        <Button variant="secondary" size="sm" asChild className="w-full">
+                            <a href={downloadUrl} download>
+                                Descargar APK Directo
+                            </a>
+                        </Button>
+                    </div>
+
+                    {/* Sección de Subida */}
+                    <div className="flex flex-col space-y-4 p-4 border rounded-xl">
+                        <h3 className="font-semibold text-sm text-slate-500 uppercase">Subir Nueva Versión</h3>
+                        <form onSubmit={submit} className="flex flex-col flex-1 justify-between space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Archivo .apk</label>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept=".apk"
+                                    className="hidden"
+                                    onChange={(e) => setData('apk', e.target.files?.[0] || null)}
+                                />
+                                <div 
+                                    className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${data.apk ? 'border-primary bg-primary/5' : 'border-slate-300 hover:border-primary/50'}`}
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    <Upload className={`size-8 mx-auto mb-2 ${data.apk ? 'text-primary' : 'text-slate-400'}`} />
+                                    <p className="text-sm font-medium truncate">
+                                        {data.apk ? data.apk.name : 'Seleccionar APK'}
+                                    </p>
+                                </div>
+                                {errors.apk && <p className="text-xs text-red-500">{errors.apk}</p>}
+                            </div>
+
+                            <Button type="submit" disabled={!data.apk || processing} className="w-full">
+                                {processing ? 'Subiendo...' : 'Subir y Reemplazar'}
+                            </Button>
+                        </form>
                     </div>
                 </div>
             </DialogContent>

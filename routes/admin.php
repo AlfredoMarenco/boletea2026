@@ -100,4 +100,5 @@ Route::prefix('access')->name('access.')->group(function () {
 
     Route::resource('devices', AccessDeviceController::class);
     Route::post('devices/{device}/toggle', [AccessDeviceController::class, 'toggle'])->name('devices.toggle');
+    Route::post('apk/upload', [AccessDeviceController::class, 'uploadApk'])->name('apk.upload');
 });

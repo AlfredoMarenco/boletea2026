@@ -36,5 +36,15 @@ Route::get('/bolepay', function () {
 
 Route::get('/puntos-de-venta', [SalesCenterController::class , 'index'])->name('sales-centers.public');
 
+Route::get('/app-scanner/download', function () {
+    $path = storage_path('app/public/scanner/boleteaccessos.apk');
+    if (!file_exists($path)) {
+        abort(404, 'La aplicación no está disponible aún.');
+    }
+    return response()->download($path, 'boleteaccessos.apk', [
+        'Content-Type' => 'application/vnd.android.package-archive',
+    ]);
+})->name('scanner.download');
+
 
 require __DIR__ . '/settings.php';

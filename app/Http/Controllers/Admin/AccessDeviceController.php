@@ -75,4 +75,23 @@ class AccessDeviceController extends Controller
 
         return redirect()->route('admin.access.devices.index')->with('success', 'Dispositivo eliminado.');
     }
+
+    public function uploadApk(Request $request)
+    {
+        $request->validate([
+            'apk' => 'required|file|mimetypes:application/vnd.android.package-archive',
+        ]);
+
+        $file = $request->file('apk');
+        $path = storage_path('app/public/scanner');
+
+        if (!file_exists($path)) {
+            mkdir($path, 0755, true);
+        }
+
+        // Overwrite the existing file to always keep just one version
+        $file->move($path, 'boleteaccessos.apk');
+
+        return redirect()->back()->with('success', 'Aplicación actualizada correctamente.');
+    }
 }
