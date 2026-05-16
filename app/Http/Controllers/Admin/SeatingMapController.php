@@ -16,16 +16,18 @@ class SeatingMapController extends Controller
             ->select('id', 'name', 'venue_id', 'is_active', 'created_at', 'updated_at')
             ->latest()
             ->get();
+
         return Inertia::render('Admin/SeatingMaps/Index', [
-            'seatingMaps' => $seatingMaps
+            'seatingMaps' => $seatingMaps,
         ]);
     }
 
     public function create()
     {
         $venues = Venue::all();
+
         return Inertia::render('Admin/SeatingMaps/Create', [
-            'venues' => $venues
+            'venues' => $venues,
         ]);
     }
 
@@ -45,8 +47,8 @@ class SeatingMapController extends Controller
                     'width' => 1200,
                     'height' => 800,
                     'gridSize' => 20,
-                ]
-            ]
+                ],
+            ],
         ]);
 
         return redirect()->route('admin.seating-maps.edit', $seatingMap->id);
@@ -55,8 +57,9 @@ class SeatingMapController extends Controller
     public function edit(SeatingMap $seatingMap)
     {
         $seatingMap->load('venue');
+
         return Inertia::render('Admin/SeatingMaps/Builder', [
-            'seatingMap' => $seatingMap
+            'seatingMap' => $seatingMap,
         ]);
     }
 
@@ -79,6 +82,7 @@ class SeatingMapController extends Controller
     public function destroy(SeatingMap $seatingMap)
     {
         $seatingMap->delete();
+
         return redirect()->route('admin.seating-maps.index');
     }
 }

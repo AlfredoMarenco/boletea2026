@@ -7,7 +7,7 @@ use Illuminate\Foundation\Queue\Queueable;
 
 class SendAccessPostback implements ShouldQueue
 {
-    use Queueable, \Illuminate\Foundation\Bus\Dispatchable, \Illuminate\Queue\InteractsWithQueue, \Illuminate\Queue\SerializesModels;
+    use \Illuminate\Foundation\Bus\Dispatchable, \Illuminate\Queue\InteractsWithQueue, \Illuminate\Queue\SerializesModels, Queueable;
 
     public function __construct(
         public int $eventId,
@@ -16,14 +16,13 @@ class SendAccessPostback implements ShouldQueue
         public string $section,
         public int $scannerId,
         public string $scannedAt
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {
         $event = \App\Models\AccessEvent::find($this->eventId);
-        $postbackUrl = ($event && $event->postback_url) 
-            ? $event->postback_url 
+        $postbackUrl = ($event && $event->postback_url)
+            ? $event->postback_url
             : config('services.postback.url', 'https://boletea.com.mx/AccessControl_PostbackScan.asp');
 
         $status = $this->result === 'success' ? '1' : '0';
@@ -41,7 +40,7 @@ class SendAccessPostback implements ShouldQueue
             $response = \Illuminate\Support\Facades\Http::asForm()
                 ->timeout(15)
                 ->post($postbackUrl, $payload);
-            
+
             \App\Models\AccessPostbackLog::create([
                 'access_event_id' => $this->eventId,
                 'barcode' => $this->barcode,

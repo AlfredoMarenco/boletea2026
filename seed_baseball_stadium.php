@@ -27,31 +27,32 @@ $map = SeatingMap::create([
                 ['id' => 'cat-reserve', 'name' => 'Reserve Level', 'color' => '#d97706'], // Amber 600
                 ['id' => 'cat-outfield', 'name' => 'Pavilion', 'color' => '#7c3aed'],    // Violet 600
                 ['id' => 'cat-standing', 'name' => 'General Admission', 'color' => '#4b5563'], // Gray 600
-            ]
+            ],
         ],
-        'nodes' => []
-    ]
+        'nodes' => [],
+    ],
 ]);
 
 $nodes = [];
 
 // Helper to generate a complex section with multiple rows
-function generateComplexSection(&$nodes, $sectionName, $catId, $color, $centerX, $centerY, $startRadius, $rowCount, $seatsPerRow, $startAngle, $endAngle, $startRowLabel = 'A') {
+function generateComplexSection(&$nodes, $sectionName, $catId, $color, $centerX, $centerY, $startRadius, $rowCount, $seatsPerRow, $startAngle, $endAngle, $startRowLabel = 'A')
+{
     $rowSpacing = 45;
     $seatSpacing = 30;
-    
+
     for ($r = 0; $r < $rowCount; $r++) {
         $radius = $startRadius + ($r * $rowSpacing);
         $rowUuid = Str::uuid()->toString();
         $rowLabel = getRowLabel($r, 'ABC', $startRowLabel);
-        
+
         for ($s = 0; $s < $seatsPerRow; $s++) {
             $angle = $startAngle + ($endAngle - $startAngle) * ($s / ($seatsPerRow - 1));
             $x = $centerX + cos($angle) * $radius;
             $y = $centerY + sin($angle) * $radius;
-            
+
             $nodes[] = [
-                'id' => 'seat-' . Str::uuid()->toString(),
+                'id' => 'seat-'.Str::uuid()->toString(),
                 'type' => 'seat',
                 'x' => $x,
                 'y' => $y,
@@ -69,9 +70,13 @@ function generateComplexSection(&$nodes, $sectionName, $catId, $color, $centerX,
 }
 
 // Helper for row labels (simplified version of the one in JS)
-function getRowLabel($index, $type, $start) {
-    if ($type === '123') return (string)($start + $index);
+function getRowLabel($index, $type, $start)
+{
+    if ($type === '123') {
+        return (string) ($start + $index);
+    }
     $startVal = ord($start);
+
     return chr($startVal + $index);
 }
 
@@ -117,9 +122,9 @@ for ($sec = 201; $sec <= 215; $sec++) {
 
 // --- 5. OUTFIELD PAVILIONS ---
 // Left Pavilion
-generateComplexSection($nodes, "Left Pavilion", 'cat-outfield', '#7c3aed', $homeX, $homeY, 3500, 20, 80, deg2rad(100), deg2rad(140), '1');
+generateComplexSection($nodes, 'Left Pavilion', 'cat-outfield', '#7c3aed', $homeX, $homeY, 3500, 20, 80, deg2rad(100), deg2rad(140), '1');
 // Right Pavilion
-generateComplexSection($nodes, "Right Pavilion", 'cat-outfield', '#7c3aed', $homeX, $homeY, 3500, 20, 80, deg2rad(40), deg2rad(80), '1');
+generateComplexSection($nodes, 'Right Pavilion', 'cat-outfield', '#7c3aed', $homeX, $homeY, 3500, 20, 80, deg2rad(40), deg2rad(80), '1');
 
 // --- 6. GENERAL ADMISSION / PICNIC AREA ---
 $nodes[] = [
@@ -133,7 +138,7 @@ $nodes[] = [
     'capacity' => 1500,
     'fill' => 'rgba(75, 85, 99, 0.2)',
     'category_id' => 'cat-standing',
-    'showTitle' => true
+    'showTitle' => true,
 ];
 
 // --- 7. VIP TABLES (Terrace) ---
@@ -141,9 +146,9 @@ for ($t = 1; $t <= 8; $t++) {
     $tableUuid = Str::uuid()->toString();
     $tx = $homeX - 1500 + ($t * 300);
     $ty = $homeY - 1200;
-    
+
     $nodes[] = [
-        'id' => 'table-' . $tableUuid,
+        'id' => 'table-'.$tableUuid,
         'type' => 'table_shape',
         'table_uuid' => $tableUuid,
         'x' => $tx,
@@ -153,13 +158,13 @@ for ($t = 1; $t <= 8; $t++) {
         'name' => "VIP Terrace $t",
         'fill' => '#dc2626',
         'section' => 'VIP Terrace',
-        'category_id' => 'cat-diamond'
+        'category_id' => 'cat-diamond',
     ];
-    
+
     for ($s = 0; $s < 8; $s++) {
         $angle = (pi() * 2 * $s) / 8;
         $nodes[] = [
-            'id' => 'seat-' . Str::uuid()->toString(),
+            'id' => 'seat-'.Str::uuid()->toString(),
             'type' => 'seat',
             'x' => $tx + cos($angle) * 85,
             'y' => $ty + sin($angle) * 85,
@@ -192,15 +197,15 @@ $nodes[] = [
         0, 0,
         1600, 0,
         1400, 500,
-        200, 500
-    ]
+        200, 500,
+    ],
 ];
 
 $map->layout_json = [
     'config' => $map->layout_json['config'],
-    'nodes' => $nodes
+    'nodes' => $nodes,
 ];
 $map->save();
 
-echo "Estadio 'Excelente' creado. Total nodos: " . count($nodes) . "\n";
-echo "ID: " . $map->id . "\n";
+echo "Estadio 'Excelente' creado. Total nodos: ".count($nodes)."\n";
+echo 'ID: '.$map->id."\n";

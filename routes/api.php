@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\AccessControlController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AccessControlController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 Route::prefix('v1/access')->group(function () {
     // Endpoints públicos o con autenticación básica de dispositivo
     Route::post('/login-device', [AccessControlController::class, 'loginDevice']);
+    Route::get('/check-apk', [\App\Http\Controllers\Api\ApkUpdateController::class, 'check']);
 
     // Endpoints protegidos por Sanctum (Dispositivos registrados)
     Route::middleware('auth:sanctum')->group(function () {

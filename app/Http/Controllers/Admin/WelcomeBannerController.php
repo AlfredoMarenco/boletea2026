@@ -3,19 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\WelcomeBanner;
 use App\Models\ExternalEvent;
-use Inertia\Inertia;
+use App\Models\WelcomeBanner;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class WelcomeBannerController extends Controller
 {
     public function index()
     {
         $banners = WelcomeBanner::with('event')->orderBy('created_at', 'desc')->get();
+
         return Inertia::render('Admin/Banners/Index', [
-            'banners' => $banners
+            'banners' => $banners,
         ]);
     }
 
@@ -28,7 +29,7 @@ class WelcomeBannerController extends Controller
             ->get();
 
         return Inertia::render('Admin/Banners/Create', [
-            'events' => $events
+            'events' => $events,
         ]);
     }
 
@@ -43,17 +44,17 @@ class WelcomeBannerController extends Controller
             'is_active' => 'boolean',
         ]);
 
-        $banner = new WelcomeBanner();
+        $banner = new WelcomeBanner;
         $banner->title = $validated['title'] ?? null;
         $banner->is_active = $validated['is_active'] ?? true;
-        
+
         if ($validated['type'] === 'manual') {
             $banner->external_link = $validated['external_link'] ?? null;
             $banner->external_event_id = null;
-            
+
             if ($request->hasFile('image_file')) {
                 $path = $request->file('image_file')->store('banners', 'public');
-                $banner->image_path = '/storage/' . $path;
+                $banner->image_path = '/storage/'.$path;
             } else {
                 return back()->withErrors(['image_file' => 'La imagen es requerida para banners manuales.']);
             }
@@ -61,8 +62,8 @@ class WelcomeBannerController extends Controller
             $banner->external_event_id = $validated['external_event_id'] ?? null;
             $banner->image_path = null;
             $banner->external_link = null;
-            
-            if (!$banner->external_event_id) {
+
+            if (! $banner->external_event_id) {
                 return back()->withErrors(['external_event_id' => 'Debes seleccionar un evento.']);
             }
         }
@@ -98,17 +99,17 @@ class WelcomeBannerController extends Controller
             if ($request->hasFile('image_file')) {
                 // Delete old image if it exists and was stored locally
                 if ($banner->image_path && strpos($banner->image_path, '/storage/') === 0) {
-                     Storage::disk('public')->delete(str_replace('/storage/', '', $banner->image_path));
+                    Storage::disk('public')->delete(str_replace('/storage/', '', $banner->image_path));
                 }
 
                 $path = $request->file('image_file')->store('banners', 'public');
-                $banner->image_path = '/storage/' . $path;
-            } else if (!$banner->image_path && !$request->hasFile('image_file')) {
-                 return back()->withErrors(['image_file' => 'La imagen es requerida para banners manuales.']);
+                $banner->image_path = '/storage/'.$path;
+            } elseif (! $banner->image_path && ! $request->hasFile('image_file')) {
+                return back()->withErrors(['image_file' => 'La imagen es requerida para banners manuales.']);
             }
         } else {
             $banner->external_event_id = $validated['external_event_id'] ?? null;
-            
+
             // Si cambia a evento, borramos la imagen manual que existía si la había
             if ($banner->image_path && strpos($banner->image_path, '/storage/') === 0) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $banner->image_path));
@@ -116,7 +117,7 @@ class WelcomeBannerController extends Controller
             $banner->image_path = null;
             $banner->external_link = null;
 
-            if (!$banner->external_event_id) {
+            if (! $banner->external_event_id) {
                 return back()->withErrors(['external_event_id' => 'Debes seleccionar un evento.']);
             }
         }

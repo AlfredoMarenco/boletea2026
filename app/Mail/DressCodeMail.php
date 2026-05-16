@@ -32,9 +32,9 @@ class DressCodeMail extends Mailable
             view: 'emails.dress-code',
             with: [
                 'recipientName' => $this->recipientName,
-                'message'       => $this->campaign->message,
-                'eventName'     => $this->campaign->event_name,
-                'imagePath'     => $this->campaign->image_path,
+                'message' => $this->campaign->message,
+                'eventName' => $this->campaign->event_name,
+                'imagePath' => $this->campaign->image_path,
             ],
         );
     }
@@ -43,7 +43,7 @@ class DressCodeMail extends Mailable
     {
         $attachments = [];
 
-        if ($this->campaign->image_path && file_exists(storage_path('app/public/' . $this->campaign->image_path))) {
+        if ($this->campaign->image_path && file_exists(storage_path('app/public/'.$this->campaign->image_path))) {
             $attachments[] = Attachment::fromStorageDisk('public', $this->campaign->image_path)
                 ->as('dress-code.jpg')
                 ->withMime('image/jpeg');

@@ -8,6 +8,7 @@ use Laravel\Sanctum\HasApiTokens;
 class AccessDevice extends Model
 {
     use HasApiTokens;
+
     protected $fillable = [
         'name',
         'device_identifier',

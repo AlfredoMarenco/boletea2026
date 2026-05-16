@@ -7,16 +7,17 @@ use App\Models\Event;
 use App\Models\SeatingMap;
 use App\Models\Venue;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 
 class LocalEventController extends Controller
 {
     public function index()
     {
         $events = Event::with('venue')->latest()->get();
+
         return Inertia::render('Admin/LocalEvents/Index', [
-            'events' => $events
+            'events' => $events,
         ]);
     }
 
@@ -24,9 +25,10 @@ class LocalEventController extends Controller
     {
         $venues = Venue::all();
         $seatingMaps = SeatingMap::all();
+
         return Inertia::render('Admin/LocalEvents/Create', [
             'venues' => $venues,
-            'seatingMaps' => $seatingMaps
+            'seatingMaps' => $seatingMaps,
         ]);
     }
 
@@ -49,7 +51,7 @@ class LocalEventController extends Controller
 
         $event = Event::create([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']) . '-' . uniqid(),
+            'slug' => Str::slug($validated['name']).'-'.uniqid(),
             'description' => $validated['description'] ?? null,
             'start_date' => $validated['start_date'],
             'end_date' => $validated['end_date'] ?? null,
@@ -61,7 +63,7 @@ class LocalEventController extends Controller
         // Create the EventMap instance
         $event->eventMaps()->create([
             'seating_map_id' => $validated['seating_map_id'],
-            'settings_json' => []
+            'settings_json' => [],
         ]);
 
         return redirect()->route('admin.local-events.index');
@@ -70,10 +72,11 @@ class LocalEventController extends Controller
     public function edit(Event $event)
     {
         $event->load(['venue', 'eventMaps.seatingMap']);
+
         return Inertia::render('Admin/LocalEvents/Edit', [
             'event' => $event,
             'venues' => Venue::all(),
-            'seatingMaps' => SeatingMap::all()
+            'seatingMaps' => SeatingMap::all(),
         ]);
     }
 
@@ -104,13 +107,14 @@ class LocalEventController extends Controller
     public function destroy(Event $event)
     {
         $event->delete();
+
         return redirect()->route('admin.local-events.index');
     }
 
     public function prices(Event $event)
     {
         $event->load(['prices', 'eventMaps.seatingMap']);
-        
+
         $mapCategories = [];
         $eventMap = $event->eventMaps->first();
         if ($eventMap && $eventMap->seatingMap) {
@@ -155,7 +159,7 @@ class LocalEventController extends Controller
                 $existingIds[] = $price->id;
             }
         }
-        
+
         $event->prices()->whereNotIn('id', $existingIds)->delete();
 
         return back()->with('success', 'Precios actualizados correctamente.');
@@ -165,14 +169,14 @@ class LocalEventController extends Controller
     {
         $event->load(['prices', 'eventMaps.seatingMap']);
         $eventMap = $event->eventMaps->first();
-        
-        if (!$eventMap || !$eventMap->seatingMap) {
+
+        if (! $eventMap || ! $eventMap->seatingMap) {
             return back()->withErrors(['error' => 'El evento no tiene un mapa asignado.']);
         }
 
         $layout = $eventMap->seatingMap->layout_json;
         $nodes = $layout['nodes'] ?? [];
-        
+
         $prices = $event->prices->keyBy('name');
 
         $inventories = [];
@@ -210,7 +214,7 @@ class LocalEventController extends Controller
         }
 
         $event->update(['status' => 'published']);
-        
-        return back()->with('success', 'Inventario generado exitosamente con ' . count($inventories) . ' asientos. Evento publicado.');
+
+        return back()->with('success', 'Inventario generado exitosamente con '.count($inventories).' asientos. Evento publicado.');
     }
 }

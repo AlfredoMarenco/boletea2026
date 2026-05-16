@@ -1,18 +1,17 @@
 <?php
 
-use App\Http\Controllers\SalesCenterController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\SalesCenterController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-Route::post('/location', [LocationController::class , 'store'])->name('location.store');
+Route::post('/location', [LocationController::class, 'store'])->name('location.store');
 
-Route::get('/evento/{slug}', [EventController::class , 'show'])->name('event.show');
+Route::get('/evento/{slug}', [EventController::class, 'show'])->name('event.show');
 
 Route::get('/quienessomos', function () {
     return Inertia::render('Static/About');
@@ -34,17 +33,31 @@ Route::get('/bolepay', function () {
     return Inertia::render('Static/Bolepay');
 })->name('static.bolepay');
 
-Route::get('/puntos-de-venta', [SalesCenterController::class , 'index'])->name('sales-centers.public');
+Route::get('/puntos-de-venta', [SalesCenterController::class, 'index'])->name('sales-centers.public');
 
 Route::get('/app-scanner/download', function () {
-    $path = storage_path('app/public/scanner/boleteaccessos.apk');
-    if (!file_exists($path)) {
+    $latest = \App\Models\ApkVersion::where('is_active', true)->orderBy('version_code', 'desc')->first();
+
+    if (! $latest) {
+        // Fallback for old way or if no version in DB
+        $path = storage_path('app/public/scanner/boleteaccessos.apk');
+        if (! file_exists($path)) {
+            abort(404, 'La aplicación no está disponible aún.');
+        }
+
+        return response()->download($path, 'boleteaccessos.apk', [
+            'Content-Type' => 'application/vnd.android.package-archive',
+        ]);
+    }
+
+    $path = public_path($latest->apk_path);
+    if (! file_exists($path)) {
         abort(404, 'La aplicación no está disponible aún.');
     }
-    return response()->download($path, 'boleteaccessos.apk', [
+
+    return response()->download($path, 'boleteaccessos_'.$latest->version_code.'.apk', [
         'Content-Type' => 'application/vnd.android.package-archive',
     ]);
 })->name('scanner.download');
 
-
-require __DIR__ . '/settings.php';
+require __DIR__.'/settings.php';

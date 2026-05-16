@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
-use App\Models\SalesCenter;
 use Inertia\Inertia;
 
 class SalesCenterController extends Controller
@@ -18,7 +15,7 @@ class SalesCenterController extends Controller
         }])->get();
 
         return Inertia::render('Static/SalesCenters', [
-            'states' => $states
+            'states' => $states,
         ]);
     }
 }

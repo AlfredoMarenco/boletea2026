@@ -250,6 +250,10 @@ function PairDialog({ device }: { device: AccessDevice }) {
 function ApkManagerDialog() {
     const { data, setData, post, processing, errors, reset } = useForm({
         apk: null as File | null,
+        version_name: '',
+        version_code: '',
+        description: '',
+        force_update: false,
     });
     
     const [open, setOpen] = useState(false);
@@ -276,17 +280,17 @@ function ApkManagerDialog() {
                     Actualizar App Scanner
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-xl">Gestión de App Scanner (APK)</DialogTitle>
                     <DialogDescription>
-                        Sube una nueva versión de la aplicación para los dispositivos Zebra. Al subirla, se reemplazará la versión anterior.
+                        Sube una nueva versión de la aplicación para los dispositivos Zebra.
                     </DialogDescription>
                 </DialogHeader>
                 
-                <div className="grid md:grid-cols-2 gap-6 py-4">
+                <div className="grid md:grid-cols-5 gap-6 py-4">
                     {/* Sección de Descarga */}
-                    <div className="flex flex-col items-center space-y-4 p-4 border rounded-xl bg-slate-50 dark:bg-slate-900">
+                    <div className="flex flex-col items-center space-y-4 p-4 border rounded-xl bg-slate-50 dark:bg-slate-900 md:col-span-2">
                         <h3 className="font-semibold text-sm text-slate-500 uppercase">Descargar / Instalar</h3>
                         <div className="bg-white p-3 rounded-xl shadow-sm">
                             <QRCodeSVG 
@@ -306,10 +310,62 @@ function ApkManagerDialog() {
                     </div>
 
                     {/* Sección de Subida */}
-                    <div className="flex flex-col space-y-4 p-4 border rounded-xl">
+                    <div className="flex flex-col space-y-4 p-4 border rounded-xl md:col-span-3">
                         <h3 className="font-semibold text-sm text-slate-500 uppercase">Subir Nueva Versión</h3>
-                        <form onSubmit={submit} className="flex flex-col flex-1 justify-between space-y-4">
+                        <form onSubmit={submit} className="flex flex-col flex-1 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Nombre de Versión (Ej: 1.0.5)</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={data.version_name}
+                                        onChange={(e) => setData('version_name', e.target.value)}
+                                        placeholder="1.0.5"
+                                    />
+                                    {errors.version_name && <p className="text-xs text-red-500">{errors.version_name}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Código de Versión (Ej: 5)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        value={data.version_code}
+                                        onChange={(e) => setData('version_code', e.target.value)}
+                                        placeholder="5"
+                                    />
+                                    {errors.version_code && <p className="text-xs text-red-500">{errors.version_code}</p>}
+                                </div>
+                            </div>
+
                             <div className="space-y-2">
+                                <label className="text-sm font-medium">Descripción de Cambios</label>
+                                <textarea
+                                    className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    value={data.description}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                    placeholder="- Corrección de errores\n- Mejoras en escaneo"
+                                />
+                                {errors.description && <p className="text-xs text-red-500">{errors.description}</p>}
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    type="checkbox"
+                                    id="force_update"
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    checked={data.force_update}
+                                    onChange={(e) => setData('force_update', e.target.checked)}
+                                />
+                                <label htmlFor="force_update" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    Forzar actualización
+                                </label>
+                                {errors.force_update && <p className="text-xs text-red-500">{errors.force_update}</p>}
+                            </div>
+
+                            <div className="space-y-2 pt-2">
                                 <label className="text-sm font-medium">Archivo .apk</label>
                                 <input
                                     type="file"
@@ -330,8 +386,8 @@ function ApkManagerDialog() {
                                 {errors.apk && <p className="text-xs text-red-500">{errors.apk}</p>}
                             </div>
 
-                            <Button type="submit" disabled={!data.apk || processing} className="w-full">
-                                {processing ? 'Subiendo...' : 'Subir y Reemplazar'}
+                            <Button type="submit" disabled={!data.apk || processing || !data.version_name || !data.version_code} className="w-full mt-auto">
+                                {processing ? 'Subiendo...' : 'Publicar Versión'}
                             </Button>
                         </form>
                     </div>

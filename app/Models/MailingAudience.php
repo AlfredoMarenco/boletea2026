@@ -15,6 +15,6 @@ class MailingAudience extends Model
     public function contacts(): BelongsToMany
     {
         return $this->belongsToMany(MailingList::class, 'mailing_audience_contact', 'mailing_audience_id', 'mailing_list_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 }
