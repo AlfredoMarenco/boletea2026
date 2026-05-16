@@ -22,6 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import TicketProgressBar from '@/components/TicketProgressBar';
 
 interface PaginationLink {
     url: string | null;
@@ -248,7 +249,7 @@ function PairDialog({ device }: { device: AccessDevice }) {
 }
 
 function ApkManagerDialog() {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, progress } = useForm({
         apk: null as File | null,
         version_name: '',
         version_code: '',
@@ -385,6 +386,8 @@ function ApkManagerDialog() {
                                 </div>
                                 {errors.apk && <p className="text-xs text-red-500">{errors.apk}</p>}
                             </div>
+
+                            <TicketProgressBar show={!!progress} progress={progress?.percentage || 0} text="Subiendo APK..." />
 
                             <Button type="submit" disabled={!data.apk || processing || !data.version_name || !data.version_code} className="w-full mt-auto">
                                 {processing ? 'Subiendo...' : 'Publicar Versión'}

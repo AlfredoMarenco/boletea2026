@@ -79,7 +79,7 @@ class AccessDeviceController extends Controller
     public function uploadApk(Request $request)
     {
         $request->validate([
-            'apk' => 'required|file|mimetypes:application/vnd.android.package-archive',
+            'apk' => 'required|file|extensions:apk',
             'version_name' => 'required|string',
             'version_code' => 'required|integer',
             'description' => 'nullable|string',

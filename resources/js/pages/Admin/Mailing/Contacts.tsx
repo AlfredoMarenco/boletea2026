@@ -27,6 +27,7 @@ import {
     X,
     UserCheck
 } from 'lucide-react';
+import TicketProgressBar from '@/components/TicketProgressBar';
 
 interface Audience {
     id: number;
@@ -89,18 +90,26 @@ export default function Contacts({ contacts, audiences, currentAudienceId }: Pro
     const [csvFile, setCsvFile] = useState<File | null>(null);
     const csvRef = useRef<HTMLInputElement>(null);
     const [importing, setImporting] = useState(false);
+    const [importProgress, setImportProgress] = useState(0);
 
     const handleImport = (e: React.FormEvent) => {
         e.preventDefault();
         if (!csvFile || !data.audience_id) return;
         setImporting(true);
+        setImportProgress(0);
         const fd = new FormData();
         fd.append('csv_file', csvFile);
         fd.append('audience_id', data.audience_id);
 
         router.post(route('admin.mailing.contacts.import'), fd as any, {
+            onProgress: (progressEvent) => {
+                if (progressEvent && progressEvent.percentage) {
+                    setImportProgress(progressEvent.percentage);
+                }
+            },
             onFinish: () => {
                 setImporting(false);
+                setImportProgress(0);
                 setCsvFile(null);
                 if (csvRef.current) csvRef.current.value = '';
             },
@@ -261,6 +270,7 @@ export default function Contacts({ contacts, audiences, currentAudienceId }: Pro
                                     className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90"
                                 />
                             </div>
+                            <TicketProgressBar show={importing && importProgress > 0} progress={importProgress} text="Importando CSV..." />
                             <Button type="submit" disabled={!csvFile || importing || !data.audience_id} className="w-full" variant="secondary">
                                 {importing ? 'Importando...' : 'Comenzar Importación'}
                             </Button>

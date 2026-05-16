@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { PlusCircle, Image as ImageIcon, Settings2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import TicketProgressBar from '@/components/TicketProgressBar';
 
 interface ExternalEvent {
     id: number;
@@ -49,7 +50,7 @@ export default function Index({ settings, events, banners }: Props) {
     });
 
     // Form for New Banner (Modal)
-    const { data: bannerData, setData: setBannerData, post: postBanner, processing: processingBanner, reset: resetBanner, errors } = useForm({
+    const { data: bannerData, setData: setBannerData, post: postBanner, processing: processingBanner, reset: resetBanner, errors, progress: progressBanner } = useForm({
         title: '',
         type: 'manual',
         image_file: null as File | null,
@@ -286,13 +287,14 @@ export default function Index({ settings, events, banners }: Props) {
                                             )}
 
                                         </div>
+                                        <TicketProgressBar show={!!progressBanner} progress={progressBanner?.percentage || 0} text="Subiendo banner..." />
                                         <div className="flex w-full items-center justify-between border-t border-gray-100 pt-4">
                                             <div className="flex items-center gap-2">
                                                 <Switch checked={bannerData.is_active} onCheckedChange={(val) => setBannerData('is_active', val)} id="banner_active" />
                                                 <Label htmlFor="banner_active">Encendido</Label>
                                             </div>
                                             <Button type="submit" disabled={processingBanner} className="px-8">
-                                                Guardar
+                                                {processingBanner ? 'Guardando...' : 'Guardar'}
                                             </Button>
                                         </div>
                                     </form>
