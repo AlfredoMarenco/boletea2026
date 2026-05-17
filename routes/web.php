@@ -50,9 +50,11 @@ Route::get('/app-scanner/download', function () {
         ]);
     }
 
-    $path = public_path($latest->apk_path);
+    $relativePath = str_replace('storage/', '', $latest->apk_path);
+    $path = storage_path('app/public/' . $relativePath);
+    
     if (! file_exists($path)) {
-        abort(404, 'La aplicación no está disponible aún.');
+        abort(404, 'La aplicación no está disponible aún. Path: ' . $path);
     }
 
     return response()->download($path, 'boleteaccessos_'.$latest->version_code.'.apk', [

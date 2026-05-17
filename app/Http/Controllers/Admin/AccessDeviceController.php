@@ -91,13 +91,21 @@ class AccessDeviceController extends Controller
 
         if (! file_exists($path)) {
             mkdir($path, 0755, true);
+        } else {
+            // Eliminar archivos APK anteriores para liberar espacio
+            $files = glob($path . '/*.apk');
+            foreach ($files as $f) {
+                if (is_file($f)) {
+                    unlink($f);
+                }
+            }
         }
 
-        // Generate a unique name or just use the same to save space, but for versioning it's good to keep track.
         $filename = 'boleteaccessos_'.$request->version_code.'.apk';
         $file->move($path, $filename);
 
-        \App\Models\ApkVersion::where('is_active', true)->update(['is_active' => false]);
+        // Limpiar el historial en la BD
+        \App\Models\ApkVersion::query()->delete();
 
         \App\Models\ApkVersion::create([
             'version_name' => $request->version_name,
