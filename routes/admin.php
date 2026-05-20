@@ -1,17 +1,19 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\ExternalEventController;
-use Inertia\Inertia;
-use App\Http\Controllers\Admin\SalesCenterController;
-use App\Http\Controllers\Admin\StateController;
-use App\Http\Controllers\Admin\CityController;
-use App\Http\Controllers\Admin\ImageController; // Added this line
-use App\Http\Controllers\Admin\SalesCenterGroupController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CityController;
+use App\Http\Controllers\Admin\ExternalEventController;
+use App\Http\Controllers\Admin\ImageController;
+use App\Http\Controllers\Admin\LocalEventController;
+use App\Http\Controllers\Admin\SalesCenterController;
+use App\Http\Controllers\Admin\SalesCenterGroupController; // Added this line
+use App\Http\Controllers\Admin\SeatingMapController;
+use App\Http\Controllers\Admin\SiteSettingController;
+use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VenueController;
-use App\Http\Controllers\Admin\SiteSettingController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('dashboard');
@@ -22,13 +24,13 @@ Route::get('images', [ImageController::class, 'index'])->name('images.index');
 Route::post('images', [ImageController::class, 'store'])->name('images.store');
 Route::delete('images/{image}', [ImageController::class, 'destroy'])->name('images.destroy');
 
-Route::get('/events', [ExternalEventController::class , 'index'])->name('events.index');
-Route::get('/events/create', [ExternalEventController::class , 'create'])->name('events.create');
-Route::post('/events', [ExternalEventController::class , 'store'])->name('events.store');
-Route::get('/events/{event}/edit', [ExternalEventController::class , 'edit'])->name('events.edit');
-Route::put('/events/{event}', [ExternalEventController::class , 'update'])->name('events.update');
-Route::delete('/events/{event}', [ExternalEventController::class , 'destroy'])->name('events.destroy');
-Route::post('/events/sync', [ExternalEventController::class , 'sync'])->name('events.sync');
+Route::get('/events', [ExternalEventController::class, 'index'])->name('events.index');
+Route::get('/events/create', [ExternalEventController::class, 'create'])->name('events.create');
+Route::post('/events', [ExternalEventController::class, 'store'])->name('events.store');
+Route::get('/events/{event}/edit', [ExternalEventController::class, 'edit'])->name('events.edit');
+Route::put('/events/{event}', [ExternalEventController::class, 'update'])->name('events.update');
+Route::delete('/events/{event}', [ExternalEventController::class, 'destroy'])->name('events.destroy');
+Route::post('/events/sync', [ExternalEventController::class, 'sync'])->name('events.sync');
 
 Route::resource('sales-centers', SalesCenterController::class);
 Route::resource('states', StateController::class);
@@ -37,13 +39,22 @@ Route::resource('sales-center-groups', SalesCenterGroupController::class);
 Route::resource('categories', CategoryController::class);
 Route::resource('venues', VenueController::class);
 Route::resource('users', UserController::class);
+Route::resource('seating-maps', SeatingMapController::class);
+Route::get('local-events/{event}/prices', [LocalEventController::class, 'prices'])->name('local-events.prices');
+Route::post('local-events/{event}/prices', [LocalEventController::class, 'updatePrices'])->name('local-events.prices.update');
+Route::post('local-events/{event}/inventory', [LocalEventController::class, 'generateInventory'])->name('local-events.inventory');
+Route::resource('local-events', LocalEventController::class)->parameters(['local-events' => 'event']);
 
 Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
 Route::post('settings', [SiteSettingController::class, 'update'])->name('settings.update');
 
 use App\Http\Controllers\Admin\WelcomeBannerController;
+
 Route::resource('banners', WelcomeBannerController::class)->except(['index', 'create', 'show', 'edit']);
 
+use App\Http\Controllers\Admin\PostbackUrlController;
+
+Route::resource('postback-urls', PostbackUrlController::class)->only(['store', 'update', 'destroy']);
 // ─── Mailing ──────────────────────────────────────────────────────────────────
 use App\Http\Controllers\Admin\MailingController;
 
@@ -54,7 +65,7 @@ Route::prefix('mailing')->name('mailing.')->group(function () {
     Route::post('contacts/import', [MailingController::class, 'contactsImport'])->name('contacts.import');
     Route::delete('contacts/{contact}', [MailingController::class, 'contactsDestroy'])->name('contacts.destroy');
     Route::patch('contacts/{contact}/toggle', [MailingController::class, 'contactsToggle'])->name('contacts.toggle');
-    
+
     // Acciones masivas
     Route::post('contacts/bulk-destroy', [MailingController::class, 'contactsBulkDestroy'])->name('contacts.bulk-destroy');
     Route::post('contacts/bulk-assign', [MailingController::class, 'contactsBulkAssign'])->name('contacts.bulk-assign');
@@ -74,8 +85,8 @@ Route::prefix('mailing')->name('mailing.')->group(function () {
 });
 
 // ─── Access Control ───────────────────────────────────────────────────────────
-use App\Http\Controllers\Admin\AccessEventController;
 use App\Http\Controllers\Admin\AccessDeviceController;
+use App\Http\Controllers\Admin\AccessEventController;
 
 Route::prefix('access')->name('access.')->group(function () {
     Route::resource('events', AccessEventController::class);
@@ -83,6 +94,8 @@ Route::prefix('access')->name('access.')->group(function () {
     Route::get('events/{event}/codes', [AccessEventController::class, 'codes'])->name('events.codes');
     Route::get('events/{event}/stats', [AccessEventController::class, 'stats'])->name('events.stats');
     Route::get('events/{event}/logs', [AccessEventController::class, 'logs'])->name('events.logs');
+    Route::get('events/{event}/postback-logs', [AccessEventController::class, 'postbackLogs'])->name('events.postback-logs');
+    Route::post('events/{event}/codes', [AccessEventController::class, 'storeCode'])->name('events.codes.store');
     Route::get('events/{event}/devices', [AccessEventController::class, 'devices'])->name('events.devices');
     Route::post('events/{event}/devices', [AccessEventController::class, 'assignDevice'])->name('events.devices.assign');
     Route::delete('events/{event}/clear', [AccessEventController::class, 'clearCodes'])->name('events.clear');
@@ -91,4 +104,5 @@ Route::prefix('access')->name('access.')->group(function () {
 
     Route::resource('devices', AccessDeviceController::class);
     Route::post('devices/{device}/toggle', [AccessDeviceController::class, 'toggle'])->name('devices.toggle');
+    Route::post('apk/upload', [AccessDeviceController::class, 'uploadApk'])->name('apk.upload');
 });

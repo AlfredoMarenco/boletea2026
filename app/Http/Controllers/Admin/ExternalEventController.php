@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\Category;
+use App\Models\City;
 use App\Models\ExternalEvent;
 use App\Models\SalesCenter;
 use App\Models\SalesCenterGroup;
 use App\Models\State;
-use App\Models\City;
-use App\Models\Category;
 use App\Models\Venue;
 use App\Services\EventImportService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ExternalEventController extends Controller
@@ -27,12 +27,12 @@ class ExternalEventController extends Controller
             $query->where('title', 'like', "%{$search}%");
         }
 
-        if (!$showPast) {
+        if (! $showPast) {
             // Include active/upcoming events
             $query->where(function ($q) {
                 $q->where(function ($q2) {
                     $q2->whereNull('end_date')
-                       ->where('start_date', '>=', now()->startOfDay());
+                        ->where('start_date', '>=', now()->startOfDay());
                 })->orWhere('end_date', '>=', now()->startOfDay());
             });
         } else {
@@ -40,7 +40,7 @@ class ExternalEventController extends Controller
             $query->where(function ($q) {
                 $q->where(function ($q2) {
                     $q2->whereNull('end_date')
-                       ->where('start_date', '<', now()->startOfDay());
+                        ->where('start_date', '<', now()->startOfDay());
                 })->orWhere('end_date', '<', now()->startOfDay());
             });
         }
@@ -52,7 +52,7 @@ class ExternalEventController extends Controller
             'filters' => [
                 'show_past' => $showPast,
                 'search' => $search,
-            ]
+            ],
         ]);
     }
 
@@ -145,8 +145,8 @@ class ExternalEventController extends Controller
                 'image_path' => 'image|max:10240', // 10MB
             ]);
             $path = $request->file('image_path')->store('events', 'public');
-            $validated['image_path'] = '/storage/' . $path;
-        } elseif (isset($request->image_path) && !is_string($request->image_path)) {
+            $validated['image_path'] = '/storage/'.$path;
+        } elseif (isset($request->image_path) && ! is_string($request->image_path)) {
             unset($validated['image_path']);
         }
 
@@ -155,7 +155,7 @@ class ExternalEventController extends Controller
                 'secondary_image_path' => 'image|max:10240', // 10MB
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
-            $validated['secondary_image_path'] = '/storage/' . $path;
+            $validated['secondary_image_path'] = '/storage/'.$path;
         }
 
         $salesCenterIds = $validated['sales_centers'] ?? [];
@@ -167,8 +167,8 @@ class ExternalEventController extends Controller
         unset($validated['sales_center_groups']);
         unset($validated['categories']);
         unset($validated['linked_events']);
-        
-        $validated['external_id'] = 'MANUAL_' . uniqid();
+
+        $validated['external_id'] = 'MANUAL_'.uniqid();
 
         $event = ExternalEvent::create($validated);
         $event->salesCenters()->sync($salesCenterIds);
@@ -183,7 +183,7 @@ class ExternalEventController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:external_events,slug,' . $event->id,
+            'slug' => 'nullable|string|max:255|unique:external_events,slug,'.$event->id,
             'performance_url' => 'nullable|string',
             'image_path' => 'nullable',
             'sales_start_date' => 'nullable|date',
@@ -216,8 +216,8 @@ class ExternalEventController extends Controller
                 'image_path' => 'image|max:10240', // 10MB
             ]);
             $path = $request->file('image_path')->store('events', 'public');
-            $validated['image_path'] = '/storage/' . $path;
-        } elseif (isset($request->image_path) && !is_string($request->image_path)) {
+            $validated['image_path'] = '/storage/'.$path;
+        } elseif (isset($request->image_path) && ! is_string($request->image_path)) {
             unset($validated['image_path']);
         }
 
@@ -226,8 +226,8 @@ class ExternalEventController extends Controller
                 'secondary_image_path' => 'image|max:10240', // 10MB
             ]);
             $path = $request->file('secondary_image_path')->store('events', 'public');
-            $validated['secondary_image_path'] = '/storage/' . $path;
-        } elseif (isset($request->secondary_image_path) && !is_string($request->secondary_image_path)) {
+            $validated['secondary_image_path'] = '/storage/'.$path;
+        } elseif (isset($request->secondary_image_path) && ! is_string($request->secondary_image_path)) {
             unset($validated['secondary_image_path']);
         }
 
@@ -257,8 +257,7 @@ class ExternalEventController extends Controller
 
         if ($result['success']) {
             return redirect()->back()->with('success', $result['message']);
-        }
-        else {
+        } else {
             return redirect()->back()->with('error', $result['message']); // Ensure your HandleInertiaRequests middleware shares 'error'
         }
     }

@@ -70,6 +70,11 @@ export default function Stats({ event, stats }: Props) {
                                 Reporte de Escaneos
                             </Link>
                         </Button>
+                        <Button asChild variant="outline" className="border-blue-200 text-blue-600 dark:border-blue-900 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                            <Link href={route('admin.access.events.postback-logs', event.id)}>
+                                Logs de Postback
+                            </Link>
+                        </Button>
                         <Button asChild variant="outline">
                             <Link href={route('admin.access.events.codes', event.id)}>
                                 Ver Listado de Códigos

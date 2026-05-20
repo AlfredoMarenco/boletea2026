@@ -1,4 +1,4 @@
-import { useState, FormEventHandler } from 'react';
+import { useState, FormEventHandler, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
@@ -12,8 +12,9 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { PlusCircle, Image as ImageIcon, Settings2, Trash2 } from 'lucide-react';
+import { PlusCircle, Image as ImageIcon, Settings2, Trash2, Link2, Edit } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import TicketProgressBar from '@/components/TicketProgressBar';
 
 interface ExternalEvent {
     id: number;
@@ -31,15 +32,27 @@ interface WelcomeBanner {
     external_event_id: number | null;
 }
 
+interface PostbackUrl {
+    id: number;
+    name: string;
+    url: string;
+    is_active: boolean;
+}
+
 interface Props {
     settings: Record<string, string>;
     events: ExternalEvent[];
     banners: WelcomeBanner[];
+    postback_urls: PostbackUrl[];
 }
 
-export default function Index({ settings, events, banners }: Props) {
-    const [activeTab, setActiveTab] = useState<'general' | 'banners'>('general');
+export default function Index({ settings, events, banners, postback_urls = [] }: Props) {
+    const [activeTab, setActiveTab] = useState<'general' | 'banners' | 'postbacks'>('general');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    
+    // Postback Dialog State
+    const [isPostbackDialogOpen, setIsPostbackDialogOpen] = useState(false);
+    const [editingPostback, setEditingPostback] = useState<PostbackUrl | null>(null);
 
     // Form for General Settings
     const { data: generalData, setData: setGeneralData, post: postGeneral, processing: processingGeneral } = useForm({
@@ -49,12 +62,19 @@ export default function Index({ settings, events, banners }: Props) {
     });
 
     // Form for New Banner (Modal)
-    const { data: bannerData, setData: setBannerData, post: postBanner, processing: processingBanner, reset: resetBanner, errors } = useForm({
+    const { data: bannerData, setData: setBannerData, post: postBanner, processing: processingBanner, reset: resetBanner, errors, progress: progressBanner } = useForm({
         title: '',
         type: 'manual',
         image_file: null as File | null,
         external_link: '',
         external_event_id: '',
+        is_active: true,
+    });
+
+    // Form for Postback URLs
+    const { data: pbData, setData: setPbData, post: postPb, put: putPb, delete: destroyPb, processing: processingPb, reset: resetPb, errors: pbErrors } = useForm({
+        name: '',
+        url: '',
         is_active: true,
     });
 
@@ -90,6 +110,38 @@ export default function Index({ settings, events, banners }: Props) {
         }
     };
 
+    const openPostbackDialog = (pb?: PostbackUrl) => {
+        if (pb) {
+            setEditingPostback(pb);
+            setPbData({ name: pb.name, url: pb.url, is_active: pb.is_active });
+        } else {
+            setEditingPostback(null);
+            resetPb();
+        }
+        setIsPostbackDialogOpen(true);
+    };
+
+    const submitPostback: FormEventHandler = (e) => {
+        e.preventDefault();
+        if (editingPostback) {
+            putPb(route('admin.postback-urls.update', editingPostback.id), {
+                preserveScroll: true,
+                onSuccess: () => { setIsPostbackDialogOpen(false); resetPb(); }
+            });
+        } else {
+            postPb(route('admin.postback-urls.store'), {
+                preserveScroll: true,
+                onSuccess: () => { setIsPostbackDialogOpen(false); resetPb(); }
+            });
+        }
+    };
+
+    const deletePostback = (id: number) => {
+        if (confirm('¿Estás seguro de que deseas eliminar esta URL?')) {
+            destroyPb(route('admin.postback-urls.destroy', id), { preserveScroll: true });
+        }
+    };
+
     return (
         <AppLayout breadcrumbs={[
             { title: 'Dashboard', href: route('admin.dashboard') },
@@ -120,6 +172,13 @@ export default function Index({ settings, events, banners }: Props) {
                     >
                         Tarjetas y Banners Flotantes
                         <Badge variant="secondary" className="ml-1 px-1.5 min-w-5 text-[10px]">{banners.length}</Badge>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('postbacks')}
+                        className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'postbacks' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                        Servicio Postback
+                        <Badge variant="secondary" className="ml-1 px-1.5 min-w-5 text-[10px]">{postback_urls.length}</Badge>
                     </button>
                 </div>
 
@@ -286,13 +345,14 @@ export default function Index({ settings, events, banners }: Props) {
                                             )}
 
                                         </div>
+                                        <TicketProgressBar show={!!progressBanner} progress={progressBanner?.percentage || 0} text="Subiendo banner..." />
                                         <div className="flex w-full items-center justify-between border-t border-gray-100 pt-4">
                                             <div className="flex items-center gap-2">
                                                 <Switch checked={bannerData.is_active} onCheckedChange={(val) => setBannerData('is_active', val)} id="banner_active" />
                                                 <Label htmlFor="banner_active">Encendido</Label>
                                             </div>
                                             <Button type="submit" disabled={processingBanner} className="px-8">
-                                                Guardar
+                                                {processingBanner ? 'Guardando...' : 'Guardar'}
                                             </Button>
                                         </div>
                                     </form>
@@ -350,6 +410,98 @@ export default function Index({ settings, events, banners }: Props) {
                             </div>
                         )}
                         
+                    </div>
+                )}
+
+                {/* TAB: Postback URLs Manager */}
+                {activeTab === 'postbacks' && (
+                    <div className="animate-in fade-in zoom-in-95 duration-200 w-full">
+                        <div className="flex sm:items-center justify-between flex-col sm:flex-row gap-4 mb-6">
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Servicio Postback</h2>
+                                <p className="text-sm text-gray-500 leading-relaxed mt-1">
+                                    Administra las URLs para enviar eventos postback desde el control de accesos.
+                                </p>
+                            </div>
+                            <Button className="gap-2 shrink-0" onClick={() => openPostbackDialog()}>
+                                <PlusCircle className="w-4 h-4" /> Nueva URL
+                            </Button>
+                        </div>
+
+                        {postback_urls && postback_urls.length > 0 ? (
+                            <div className="bg-white dark:bg-card border border-gray-200 dark:border-border rounded-xl shadow-sm overflow-hidden">
+                                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800 dark:text-gray-400">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-4">Nombre</th>
+                                            <th scope="col" className="px-6 py-4">URL</th>
+                                            <th scope="col" className="px-6 py-4">Estado</th>
+                                            <th scope="col" className="px-6 py-4 text-right">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {postback_urls.map((pb) => (
+                                            <tr key={pb.id} className="bg-white dark:bg-card border-b border-gray-100 dark:border-border hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{pb.name}</td>
+                                                <td className="px-6 py-4 text-gray-500 break-all max-w-sm">{pb.url}</td>
+                                                <td className="px-6 py-4">
+                                                    <Badge variant={pb.is_active ? 'default' : 'secondary'}>{pb.is_active ? 'Activo' : 'Inactivo'}</Badge>
+                                                </td>
+                                                <td className="px-6 py-4 text-right space-x-2">
+                                                    <Button size="icon" variant="ghost" onClick={() => openPostbackDialog(pb)} className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                                                        <Edit className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" onClick={() => deletePostback(pb.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-card border border-dashed border-gray-300 rounded-xl">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <Link2 className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <h3 className="text-lg font-medium text-gray-900 mb-1">No hay URLs registradas</h3>
+                                <p className="text-gray-500 text-center max-w-sm mb-6 text-sm">
+                                    Comienza agregando tu primera URL de postback para usarla en los eventos de control de acceso.
+                                </p>
+                                <Button variant="outline" onClick={() => openPostbackDialog()}>
+                                    Agregar Primera URL
+                                </Button>
+                            </div>
+                        )}
+
+                        <Dialog open={isPostbackDialogOpen} onOpenChange={setIsPostbackDialogOpen}>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>{editingPostback ? 'Editar URL de Postback' : 'Nueva URL de Postback'}</DialogTitle>
+                                </DialogHeader>
+                                <form onSubmit={submitPostback} className="space-y-4 pt-4">
+                                    <div>
+                                        <Label htmlFor="pb-name">Nombre Identificador</Label>
+                                        <Input id="pb-name" value={pbData.name} onChange={(e) => setPbData('name', e.target.value)} placeholder="Ej: Zapier Webhook" required className="mt-1.5" />
+                                        {pbErrors.name && <span className="text-red-500 text-xs mt-1">{pbErrors.name}</span>}
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="pb-url">URL Destino</Label>
+                                        <Input id="pb-url" type="url" value={pbData.url} onChange={(e) => setPbData('url', e.target.value)} placeholder="https://..." required className="mt-1.5" />
+                                        {pbErrors.url && <span className="text-red-500 text-xs mt-1">{pbErrors.url}</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <Switch id="pb-active" checked={pbData.is_active} onCheckedChange={(val) => setPbData('is_active', val)} />
+                                        <Label htmlFor="pb-active" className="cursor-pointer">URL Activa</Label>
+                                    </div>
+                                    <DialogFooter className="pt-4">
+                                        <Button type="button" variant="outline" onClick={() => setIsPostbackDialogOpen(false)}>Cancelar</Button>
+                                        <Button type="submit" disabled={processingPb}>Guardar</Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 )}
             </div>

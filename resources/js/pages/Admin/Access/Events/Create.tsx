@@ -20,16 +20,23 @@ interface ExternalEvent {
     title: string;
 }
 
-interface Props {
-    externalEvents: ExternalEvent[];
+interface PostbackUrl {
+    id: number;
+    name: string;
 }
 
-export default function Create({ externalEvents }: Props) {
+interface Props {
+    externalEvents: ExternalEvent[];
+    postbackUrls: PostbackUrl[];
+}
+
+export default function Create({ externalEvents, postbackUrls = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         external_event_id: '',
         date: '',
         description: '',
+        postback_url_id: '',
         status: 'active',
     });
 
@@ -130,7 +137,6 @@ export default function Create({ externalEvents }: Props) {
                                 {errors.status && <p className="text-red-500 text-sm">{errors.status}</p>}
                             </div>
                         </div>
-
                         <div className="space-y-2">
                             <Label htmlFor="description">Notas / Descripción</Label>
                             <Textarea
@@ -141,6 +147,42 @@ export default function Create({ externalEvents }: Props) {
                                 className="rounded-xl min-h-[100px]"
                             />
                             {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
+                        </div>
+
+                        <div className="space-y-4">
+                            <Label>URL de Postback (Servicio externo)</Label>
+                            <div className="space-y-2 border rounded-xl p-4 bg-gray-50/50 dark:bg-black/20">
+                                <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                    <input 
+                                        type="radio" 
+                                        name="postback_url_id" 
+                                        value=""
+                                        checked={data.postback_url_id === ''}
+                                        onChange={() => setData('postback_url_id', '')}
+                                        className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                        Ninguno (Deshabilitado)
+                                    </span>
+                                </label>
+                                {postbackUrls.map(pb => (
+                                    <label key={pb.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                        <input 
+                                            type="radio" 
+                                            name="postback_url_id" 
+                                            value={pb.id}
+                                            checked={String(data.postback_url_id) === String(pb.id)}
+                                            onChange={() => setData('postback_url_id', String(pb.id))}
+                                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                                        />
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                            {pb.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-gray-500 italic">Selecciona el servicio al cual se notificarán los escaneos.</p>
+                            {errors.postback_url_id && <p className="text-red-500 text-sm">{errors.postback_url_id}</p>}
                         </div>
                     </div>
 

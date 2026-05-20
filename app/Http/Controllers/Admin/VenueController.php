@@ -12,8 +12,9 @@ class VenueController extends Controller
     public function index()
     {
         $venues = Venue::latest()->get();
+
         return Inertia::render('Admin/Venues/Index', [
-            'venues' => $venues
+            'venues' => $venues,
         ]);
     }
 
@@ -39,7 +40,7 @@ class VenueController extends Controller
     public function edit(Venue $venue)
     {
         return Inertia::render('Admin/Venues/Edit', [
-            'venue' => $venue
+            'venue' => $venue,
         ]);
     }
 
@@ -60,6 +61,7 @@ class VenueController extends Controller
     public function destroy(Venue $venue)
     {
         $venue->delete();
+
         return redirect()->route('admin.venues.index');
     }
 }
