@@ -20,9 +20,9 @@ class SendAccessPostback implements ShouldQueue
 
     public function handle(): void
     {
-        $event = \App\Models\AccessEvent::find($this->eventId);
-        $postbackUrl = ($event && $event->postback_url)
-            ? $event->postback_url
+        $event = \App\Models\AccessEvent::with('postback')->find($this->eventId);
+        $postbackUrl = ($event && $event->postback && $event->postback->is_active)
+            ? $event->postback->url
             : config('services.postback.url', 'https://boletea.com.mx/AccessControl_PostbackScan.asp');
 
         $status = $this->result === 'success' ? '1' : '0';

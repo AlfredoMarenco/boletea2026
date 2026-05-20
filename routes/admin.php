@@ -52,6 +52,9 @@ use App\Http\Controllers\Admin\WelcomeBannerController;
 
 Route::resource('banners', WelcomeBannerController::class)->except(['index', 'create', 'show', 'edit']);
 
+use App\Http\Controllers\Admin\PostbackUrlController;
+
+Route::resource('postback-urls', PostbackUrlController::class)->only(['store', 'update', 'destroy']);
 // ─── Mailing ──────────────────────────────────────────────────────────────────
 use App\Http\Controllers\Admin\MailingController;
 

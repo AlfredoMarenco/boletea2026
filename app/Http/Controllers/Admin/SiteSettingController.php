@@ -26,10 +26,13 @@ class SiteSettingController extends Controller
         // Option append resolved to the whole collection
         $banners->each->append(['resolved_image', 'resolved_link', 'resolved_title']);
 
+        $postback_urls = \App\Models\PostbackUrl::orderBy('name')->get();
+
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
             'events' => $events,
             'banners' => $banners,
+            'postback_urls' => $postback_urls,
         ]);
     }
 

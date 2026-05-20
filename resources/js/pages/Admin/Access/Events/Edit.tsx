@@ -28,20 +28,27 @@ interface AccessEvent {
     description: string | null;
     postback_url: string | null;
     status: 'active' | 'inactive';
+    postback_url_id: number | null;
+}
+
+interface PostbackUrl {
+    id: number;
+    name: string;
 }
 
 interface Props {
     event: AccessEvent;
     externalEvents: ExternalEvent[];
+    postbackUrls: PostbackUrl[];
 }
 
-export default function Edit({ event, externalEvents }: Props) {
+export default function Edit({ event, externalEvents, postbackUrls = [] }: Props) {
     const { data, setData, put, processing, errors } = useForm({
         name: event.name || '',
         external_event_id: event.external_event_id ? String(event.external_event_id) : '',
         date: event.date ? new Date(event.date).toISOString().split('T')[0] : '',
         description: event.description || '',
-        postback_url: event.postback_url || '',
+        postback_url_id: event.postback_url_id ? String(event.postback_url_id) : '',
         status: event.status || 'active',
     });
 
@@ -156,18 +163,40 @@ export default function Edit({ event, externalEvents }: Props) {
                             {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="postback_url">URL de Postback (Opcional)</Label>
-                            <Input
-                                id="postback_url"
-                                type="url"
-                                value={data.postback_url}
-                                onChange={(e) => setData('postback_url', e.target.value)}
-                                placeholder="https://tuservidor.com/postback"
-                                className="rounded-xl h-11"
-                            />
-                            <p className="text-[10px] text-gray-500 italic">Si se deja vacío, se usará la URL por defecto del sistema.</p>
-                            {errors.postback_url && <p className="text-red-500 text-sm">{errors.postback_url}</p>}
+                        <div className="space-y-4">
+                            <Label>URL de Postback (Servicio externo)</Label>
+                            <div className="space-y-2 border rounded-xl p-4 bg-gray-50/50 dark:bg-black/20">
+                                <label className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                    <input 
+                                        type="radio" 
+                                        name="postback_url_id" 
+                                        value=""
+                                        checked={data.postback_url_id === ''}
+                                        onChange={() => setData('postback_url_id', '')}
+                                        className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                                    />
+                                    <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                        Ninguno (Deshabilitado)
+                                    </span>
+                                </label>
+                                {postbackUrls.map(pb => (
+                                    <label key={pb.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
+                                        <input 
+                                            type="radio" 
+                                            name="postback_url_id" 
+                                            value={pb.id}
+                                            checked={String(data.postback_url_id) === String(pb.id)}
+                                            onChange={() => setData('postback_url_id', String(pb.id))}
+                                            className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                                        />
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-200">
+                                            {pb.name}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-gray-500 italic">Selecciona el servicio al cual se notificarán los escaneos.</p>
+                            {errors.postback_url_id && <p className="text-red-500 text-sm">{errors.postback_url_id}</p>}
                         </div>
                     </div>
 

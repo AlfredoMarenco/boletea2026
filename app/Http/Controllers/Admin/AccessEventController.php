@@ -36,9 +36,11 @@ class AccessEventController extends Controller
     public function create()
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
+        $postback_urls = \App\Models\PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Admin/Access/Events/Create', [
             'externalEvents' => $externalEvents,
+            'postbackUrls' => $postback_urls,
         ]);
     }
 
@@ -49,7 +51,7 @@ class AccessEventController extends Controller
             'external_event_id' => 'nullable|exists:external_events,id',
             'date' => 'nullable|date',
             'description' => 'nullable|string',
-            'postback_url' => 'nullable|url',
+            'postback_url_id' => 'nullable|exists:postback_urls,id',
             'status' => 'required|in:active,inactive',
         ]);
 
@@ -61,10 +63,12 @@ class AccessEventController extends Controller
     public function edit(AccessEvent $event)
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
+        $postback_urls = \App\Models\PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Admin/Access/Events/Edit', [
             'event' => $event,
             'externalEvents' => $externalEvents,
+            'postbackUrls' => $postback_urls,
         ]);
     }
 
@@ -75,7 +79,7 @@ class AccessEventController extends Controller
             'external_event_id' => 'nullable|exists:external_events,id',
             'date' => 'nullable|date',
             'description' => 'nullable|string',
-            'postback_url' => 'nullable|url',
+            'postback_url_id' => 'nullable|exists:postback_urls,id',
             'status' => 'required|in:active,inactive',
         ]);
 

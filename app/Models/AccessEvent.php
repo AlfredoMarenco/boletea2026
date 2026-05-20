@@ -11,7 +11,7 @@ class AccessEvent extends Model
         'name',
         'date',
         'description',
-        'postback_url',
+        'postback_url_id',
         'status',
     ];
 
@@ -40,5 +40,10 @@ class AccessEvent extends Model
             ->withPivot('allowed_sections')
             ->withTimestamps()
             ->as('configuration');
+    }
+
+    public function postback()
+    {
+        return $this->belongsTo(PostbackUrl::class, 'postback_url_id');
     }
 }
