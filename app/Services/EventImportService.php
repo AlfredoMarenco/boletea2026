@@ -93,19 +93,11 @@ class EventImportService
                             $seatCategoryName = $categoryData['SeatCategoryName'] ?? 'General';
                             if (isset($categoryData['Prices']) && is_array($categoryData['Prices'])) {
                                 foreach ($categoryData['Prices'] as $priceData) {
-<<<<<<< HEAD
-                                    if (isset($priceData['Price'])) {
-                                        $priceAmt = $priceData['Price'];
-                                        $priceId = md5($seatCategoryName . '_' . $priceAmt);
-                                        
-                                        if (!isset($cdvPrices[$priceId])) {
-=======
                                     if (isset($priceData['PricingCode']) && $priceData['PricingCode'] === 'CDV') {
                                         $priceAmt = $priceData['Price'] ?? 0;
                                         $priceId = md5($seatCategoryName.'_'.$priceAmt);
 
                                         if (! isset($cdvPrices[$priceId])) {
->>>>>>> controllaccess
                                             $cdvPrices[$priceId] = [
                                                 'id' => $priceId,
                                                 'name' => $seatCategoryName,
