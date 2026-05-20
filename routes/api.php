@@ -10,6 +10,15 @@ Route::get('/user', function (Request $request) {
 
 // ─── Access Control API ───────────────────────────────────────────────────────
 Route::prefix('v1/access')->group(function () {
+    // Debug route to check headers
+    Route::get('/debug-headers', function (Illuminate\Http\Request $request) {
+        return response()->json([
+            'headers' => $request->headers->all(),
+            'has_auth' => $request->hasHeader('Authorization'),
+            'auth_header' => $request->header('Authorization'),
+        ]);
+    });
+
     // Endpoints públicos o con autenticación básica de dispositivo
     Route::post('/login-device', [AccessControlController::class, 'loginDevice']);
     Route::get('/check-apk', [\App\Http\Controllers\Api\ApkUpdateController::class, 'check']);
