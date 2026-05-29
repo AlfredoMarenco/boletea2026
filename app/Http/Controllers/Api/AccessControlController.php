@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendAccessPostback;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
 use App\Models\AccessEvent;
 use App\Models\AccessLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AccessControlController extends Controller
 {
@@ -53,7 +55,7 @@ class AccessControlController extends Controller
 
         if ($since) {
             // Only download codes updated after the last sync
-            $query->where('updated_at', '>', \Carbon\Carbon::parse($since));
+            $query->where('updated_at', '>', Carbon::parse($since));
         } else {
             // Initial sync: don't download cancelled ones to save space
             $query->where('status', '!=', 'cancelled');
@@ -62,7 +64,7 @@ class AccessControlController extends Controller
         $codes = $query->get(['code', 'type', 'status', 'metadata', 'updated_at']);
 
         // Update last sync for the device in the pivot table
-        \Illuminate\Support\Facades\DB::table('access_device_event')
+        DB::table('access_device_event')
             ->where('access_device_id', $device->id)
             ->where('access_event_id', $event->id)
             ->update(['updated_at' => now()]);
@@ -83,7 +85,7 @@ class AccessControlController extends Controller
             ->whereIn('status', ['used', 'cancelled']);
 
         if ($since) {
-            $query->where('updated_at', '>', \Carbon\Carbon::parse($since));
+            $query->where('updated_at', '>', Carbon::parse($since));
         }
 
         $deltas = $query->get(['code', 'status', 'updated_at']);
@@ -104,7 +106,7 @@ class AccessControlController extends Controller
 
         $device = $request->user();
         $event = AccessEvent::findOrFail($request->event_id);
-        $scannedAt = $request->scanned_at ? Carbon::parse($request->scanned_at) : now();
+        $scannedAt = $request->scanned_at ? Carbon::parse($request->scanned_at)->setTimezone(config('app.timezone')) : now();
 
         $accessCode = AccessCode::where('access_event_id', $event->id)
             ->where('code', $request->code)
@@ -119,7 +121,7 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            \App\Jobs\SendAccessPostback::dispatch(
+            SendAccessPostback::dispatch(
                 $event->id,
                 $request->code,
                 'invalid',
@@ -132,7 +134,7 @@ class AccessControlController extends Controller
         }
 
         if ($accessCode->status === 'used') {
-            $lastLog = \App\Models\AccessLog::where('access_code_id', $accessCode->id)
+            $lastLog = AccessLog::where('access_code_id', $accessCode->id)
                 ->where('result', 'success')
                 ->with('device')
                 ->latest('scanned_at')
@@ -149,7 +151,7 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            \App\Jobs\SendAccessPostback::dispatch(
+            SendAccessPostback::dispatch(
                 $event->id,
                 $request->code,
                 'duplicate',
@@ -186,7 +188,7 @@ class AccessControlController extends Controller
                     'scanned_at' => $scannedAt,
                 ]);
 
-                \App\Jobs\SendAccessPostback::dispatch(
+                SendAccessPostback::dispatch(
                     $event->id,
                     $request->code,
                     'invalid_zone',
@@ -218,7 +220,7 @@ class AccessControlController extends Controller
             'scanned_at' => $scannedAt,
         ]);
 
-        \App\Jobs\SendAccessPostback::dispatch(
+        SendAccessPostback::dispatch(
             $event->id,
             $request->code,
             'success',
@@ -250,7 +252,7 @@ class AccessControlController extends Controller
 
         foreach ($request->logs as $logData) {
             $codeStr = $logData['code'];
-            $scannedAt = Carbon::parse($logData['scanned_at']);
+            $scannedAt = Carbon::parse($logData['scanned_at'])->setTimezone(config('app.timezone'));
 
             $accessCode = AccessCode::where('access_event_id', $event->id)
                 ->where('code', $codeStr)
@@ -296,7 +298,7 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            \App\Jobs\SendAccessPostback::dispatch(
+            SendAccessPostback::dispatch(
                 $event->id,
                 $codeStr,
                 $result,
@@ -318,7 +320,7 @@ class AccessControlController extends Controller
      */
     private function getAllowedSections(int $deviceId, int $eventId): ?array
     {
-        $row = \Illuminate\Support\Facades\DB::table('access_device_event')
+        $row = DB::table('access_device_event')
             ->where('access_device_id', $deviceId)
             ->where('access_event_id', $eventId)
             ->first();

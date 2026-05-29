@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
 use App\Models\AccessEvent;
+use App\Models\AccessPostbackLog;
 use App\Models\ExternalEvent;
+use App\Models\PostbackUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -36,7 +38,7 @@ class AccessEventController extends Controller
     public function create()
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
-        $postback_urls = \App\Models\PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $postback_urls = PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Admin/Access/Events/Create', [
             'externalEvents' => $externalEvents,
@@ -63,7 +65,7 @@ class AccessEventController extends Controller
     public function edit(AccessEvent $event)
     {
         $externalEvents = ExternalEvent::orderBy('title')->get(['id', 'title']);
-        $postback_urls = \App\Models\PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $postback_urls = PostbackUrl::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Admin/Access/Events/Edit', [
             'event' => $event,
@@ -253,7 +255,7 @@ class AccessEventController extends Controller
 
     public function postbackLogs(AccessEvent $event)
     {
-        $logs = \App\Models\AccessPostbackLog::where('access_event_id', $event->id)
+        $logs = AccessPostbackLog::where('access_event_id', $event->id)
             ->orderBy('scanned_at', 'desc')
             ->paginate(100);
 
@@ -272,6 +274,7 @@ class AccessEventController extends Controller
             ->distinct()
             ->pluck('section')
             ->filter(fn ($val) => ! is_null($val) && $val !== '' && $val !== 'null')
+            ->sort(SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
 
         $devices = AccessDevice::orderBy('name')->get();
