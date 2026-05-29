@@ -76,3 +76,23 @@ Route::prefix('mailing')->name('mailing.')->group(function () {
     Route::post('campaigns/{campaign}/send', [MailingController::class, 'campaignsSend'])->name('campaigns.send');
     Route::delete('campaigns/{campaign}', [MailingController::class, 'campaignsDestroy'])->name('campaigns.destroy');
 });
+
+// ─── Access Control ───────────────────────────────────────────────────────────
+use App\Http\Controllers\Admin\AccessEventController;
+use App\Http\Controllers\Admin\AccessDeviceController;
+
+Route::prefix('access')->name('access.')->group(function () {
+    Route::resource('events', AccessEventController::class);
+    Route::post('events/{event}/import', [AccessEventController::class, 'import'])->name('events.import');
+    Route::get('events/{event}/codes', [AccessEventController::class, 'codes'])->name('events.codes');
+    Route::get('events/{event}/stats', [AccessEventController::class, 'stats'])->name('events.stats');
+    Route::get('events/{event}/logs', [AccessEventController::class, 'logs'])->name('events.logs');
+    Route::get('events/{event}/devices', [AccessEventController::class, 'devices'])->name('events.devices');
+    Route::post('events/{event}/devices', [AccessEventController::class, 'assignDevice'])->name('events.devices.assign');
+    Route::delete('events/{event}/clear', [AccessEventController::class, 'clearCodes'])->name('events.clear');
+    Route::patch('events/{event}/codes/{code}/status', [AccessEventController::class, 'updateCodeStatus'])->name('events.codes.status');
+    Route::delete('events/{event}/codes/{code}', [AccessEventController::class, 'deleteCode'])->name('events.codes.delete');
+
+    Route::resource('devices', AccessDeviceController::class);
+    Route::post('devices/{device}/toggle', [AccessDeviceController::class, 'toggle'])->name('devices.toggle');
+});

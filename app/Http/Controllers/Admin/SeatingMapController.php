@@ -12,7 +12,10 @@ class SeatingMapController extends Controller
 {
     public function index()
     {
-        $seatingMaps = SeatingMap::with('venue')->latest()->get();
+        $seatingMaps = SeatingMap::with('venue')
+            ->select('id', 'name', 'venue_id', 'is_active', 'created_at', 'updated_at')
+            ->latest()
+            ->get();
         return Inertia::render('Admin/SeatingMaps/Index', [
             'seatingMaps' => $seatingMaps
         ]);
