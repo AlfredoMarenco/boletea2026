@@ -12,6 +12,7 @@ use App\Models\State;
 use App\Models\Venue;
 use App\Services\EventImportService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ExternalEventController extends Controller
@@ -251,18 +252,6 @@ class ExternalEventController extends Controller
         return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
     }
 
-    public function destroy(ExternalEvent $event)
-    {
-        // Opt-in: you can choose to delete local images from storage here if you want:
-        // if ($event->image_path && \Storage::disk('public')->exists(str_replace('/storage/', '', $event->image_path))) {
-        //     \Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
-        // }
-
-        $event->delete();
-
-        return redirect()->route('admin.events.index')->with('success', 'Evento eliminado correctamente.');
-    }
-
     public function sync(EventImportService $service)
     {
         $result = $service->importEvents();
@@ -281,10 +270,10 @@ class ExternalEventController extends Controller
         $event->categories()->detach();
 
         if ($event->image_path) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
+            Storage::disk('public')->delete(str_replace('/storage/', '', $event->image_path));
         }
         if ($event->secondary_image_path) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete(str_replace('/storage/', '', $event->secondary_image_path));
+            Storage::disk('public')->delete(str_replace('/storage/', '', $event->secondary_image_path));
         }
 
         $event->delete();
