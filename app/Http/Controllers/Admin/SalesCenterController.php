@@ -3,27 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\SalesCenter;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\Storage;
 
 class SalesCenterController extends Controller
 {
     public function index()
     {
         $salesCenters = SalesCenter::latest()->get();
+
         return Inertia::render('Admin/SalesCenters/Index', [
-            'salesCenters' => $salesCenters
+            'salesCenters' => $salesCenters,
         ]);
     }
 
     public function create()
     {
         $states = \App\Models\State::orderBy('name')->get();
+
         return Inertia::render('Admin/SalesCenters/Create', [
-            'states' => $states
+            'states' => $states,
         ]);
     }
 
@@ -42,12 +42,12 @@ class SalesCenterController extends Controller
             'payment_methods_cash' => 'boolean',
             'payment_methods_card' => 'boolean',
             'states' => 'nullable|array',
-            'states.*' => 'exists:states,id'
+            'states.*' => 'exists:states,id',
         ]);
 
         if ($request->hasFile('logo_path')) {
             $path = $request->file('logo_path')->store('sales_centers', 'public');
-            $validated['logo_path'] = '/storage/' . $path;
+            $validated['logo_path'] = '/storage/'.$path;
         }
 
         if (isset($validated['opening_hours']) && is_string($validated['opening_hours'])) {
@@ -71,7 +71,7 @@ class SalesCenterController extends Controller
 
         return Inertia::render('Admin/SalesCenters/Edit', [
             'salesCenter' => $salesCenter,
-            'states' => $states
+            'states' => $states,
         ]);
     }
 
@@ -90,12 +90,12 @@ class SalesCenterController extends Controller
             'payment_methods_cash' => 'boolean',
             'payment_methods_card' => 'boolean',
             'states' => 'nullable|array',
-            'states.*' => 'exists:states,id'
+            'states.*' => 'exists:states,id',
         ]);
 
         if ($request->hasFile('logo_path')) {
             $path = $request->file('logo_path')->store('sales_centers', 'public');
-            $validated['logo_path'] = '/storage/' . $path;
+            $validated['logo_path'] = '/storage/'.$path;
         } else {
             // If no new file uploaded, do not overwrite existing path with null
             unset($validated['logo_path']);
@@ -118,6 +118,7 @@ class SalesCenterController extends Controller
     public function destroy(SalesCenter $salesCenter)
     {
         $salesCenter->delete();
+
         return redirect()->route('admin.sales-centers.index')->with('success', 'Punto de venta eliminado.');
     }
 }

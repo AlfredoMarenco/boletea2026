@@ -49,6 +49,7 @@ class WelcomeBanner extends Model
             if ($this->event->redirect_external && $this->event->performance_url) {
                 return $this->event->performance_url;
             }
+
             return route('event.show', $this->event->slug ?? $this->event->id);
         }
 
@@ -67,7 +68,7 @@ class WelcomeBanner extends Model
 
         return 'Recomendado';
     }
-    
+
     // Virtual attribute appends for frontend convenience
     protected $appends = ['resolved_image', 'resolved_link', 'resolved_title'];
 }

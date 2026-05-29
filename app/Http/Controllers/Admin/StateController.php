@@ -12,8 +12,9 @@ class StateController extends Controller
     public function index()
     {
         $states = State::orderBy('name')->get();
+
         return Inertia::render('Admin/States/Index', [
-            'states' => $states
+            'states' => $states,
         ]);
     }
 
@@ -38,14 +39,14 @@ class StateController extends Controller
     public function edit(State $state)
     {
         return Inertia::render('Admin/States/Edit', [
-            'state' => $state
+            'state' => $state,
         ]);
     }
 
     public function update(Request $request, State $state)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:states,name,' . $state->id,
+            'name' => 'required|string|max:255|unique:states,name,'.$state->id,
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
         ]);
@@ -70,6 +71,7 @@ class StateController extends Controller
         }
 
         $state->delete();
+
         return redirect()->route('admin.states.index')->with('success', 'Estado eliminado correctamente.');
     }
 }

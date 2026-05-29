@@ -3,20 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Inertia\Inertia;
-use App\Models\SiteSetting;
 use App\Models\ExternalEvent;
-use Illuminate\Support\Facades\Storage;
-
+use App\Models\SiteSetting;
 use App\Models\WelcomeBanner;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class SiteSettingController extends Controller
 {
     public function index()
     {
         $settings = SiteSetting::all()->pluck('value', 'key');
-        
+
         $events = ExternalEvent::where('status', 'published')
             ->whereDate('start_date', '>=', now()->toDateString())
             ->orderBy('start_date', 'asc')
@@ -26,11 +25,14 @@ class SiteSettingController extends Controller
         $banners = WelcomeBanner::with('event')->orderBy('created_at', 'desc')->get();
         // Option append resolved to the whole collection
         $banners->each->append(['resolved_image', 'resolved_link', 'resolved_title']);
-        
+
+        $postback_urls = \App\Models\PostbackUrl::orderBy('name')->get();
+
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
             'events' => $events,
             'banners' => $banners,
+            'postback_urls' => $postback_urls,
         ]);
     }
 
@@ -87,12 +89,12 @@ class SiteSettingController extends Controller
             if ($oldImage && $oldImage->value && strpos($oldImage->value, '/storage/') === 0) {
                 Storage::disk('public')->delete(str_replace('/storage/', '', $oldImage->value));
             }
-            
+
             $path = $request->file('floating_banner_image')->store('banners', 'public');
-            
+
             SiteSetting::updateOrCreate(
                 ['key' => 'floating_banner_image'],
-                ['value' => '/storage/' . $path]
+                ['value' => '/storage/'.$path]
             );
         }
 

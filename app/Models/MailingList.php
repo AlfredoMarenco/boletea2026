@@ -17,11 +17,17 @@ class MailingList extends Model
         'active' => 'boolean',
     ];
 
-    /**
-     * Scope: solo destinatarios activos.
-     */
     public function scopeActive($query)
     {
         return $query->where('active', true);
+    }
+
+    /**
+     * Audiencias a las que pertenece este contacto.
+     */
+    public function audiences(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(MailingAudience::class, 'mailing_audience_contact', 'mailing_list_id', 'mailing_audience_id')
+            ->withTimestamps();
     }
 }

@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\State;
 use App\Models\City;
+use App\Models\State;
+use Illuminate\Database\Seeder;
 
 class StatesAndCitiesSeeder extends Seeder
 {
@@ -54,7 +54,7 @@ class StatesAndCitiesSeeder extends Seeder
             foreach ($stateData['cities'] as $cityName) {
                 City::firstOrCreate([
                     'name' => $cityName,
-                    'state_id' => $state->id
+                    'state_id' => $state->id,
                 ]);
             }
         }

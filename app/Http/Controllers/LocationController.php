@@ -23,7 +23,7 @@ class LocationController extends Controller
                 'city' => $request->city,
                 'state' => $request->state,
                 'country' => $request->country,
-            ]
+            ],
         ]);
 
         return response()->json(['status' => 'success']);

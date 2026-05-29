@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Helpers\DistanceCalculator;
 use App\Models\Category;
 use App\Models\ExternalEvent;
-use App\Models\WelcomeBanner;
-use App\Models\Venue;
 use App\Models\SiteSetting;
+use App\Models\Venue;
+use App\Models\WelcomeBanner;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -22,7 +22,7 @@ class HomeController extends Controller
             ->where(function ($q) {
                 $q->where(function ($sq) {
                     $sq->whereNull('end_date')
-                       ->where('start_date', '>=', now()->startOfDay());
+                        ->where('start_date', '>=', now()->startOfDay());
                 })->orWhere('end_date', '>=', now()->startOfDay());
             });
 
@@ -50,7 +50,7 @@ class HomeController extends Controller
 
         // Apply Filters
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+            $query->where('title', 'like', '%'.$request->search.'%');
         }
         if ($request->filled('city')) {
             $query->where('city', $request->city);
@@ -90,7 +90,7 @@ class HomeController extends Controller
             ($request->filled('category') && $request->category !== 'all') ||
             ($request->filled('date_start') && $request->filled('date_end'));
 
-        if ($showNearby && !$hasFilters && $userLocation) {
+        if ($showNearby && ! $hasFilters && $userLocation) {
             $userLat = $userLocation['lat'] ?? null;
             $userLng = $userLocation['lng'] ?? null;
 
@@ -105,8 +105,10 @@ class HomeController extends Controller
                     if ($lat && $lng) {
                         $distance = DistanceCalculator::haversine($userLat, $userLng, $lat, $lng);
                         $event->distance_km = round($distance, 1);
+
                         return $event;
                     }
+
                     return null;
                 })->filter()->sortBy('distance_km')->values();
 
@@ -118,12 +120,12 @@ class HomeController extends Controller
                 // If we don't have 4 events, dynamically expand to take the closest 4 overall
                 // (or fewer if there are less than 4 upcoming events total)
                 if ($strictNearby->count() < 4) {
-                     $nearbyEvents = $eventsWithDistance->take(4);
+                    $nearbyEvents = $eventsWithDistance->take(4);
                 } else {
-                     // We have 4 or more within 40km, so limit to 4 to match UI constraint
-                     // If you want to show MORE than 4 when they are within 40km, remove the take(4) here.
-                     // But the requirement says "always show 4", so let's guarantee exactly 4 if possible.
-                     $nearbyEvents = $strictNearby->take(4);
+                    // We have 4 or more within 40km, so limit to 4 to match UI constraint
+                    // If you want to show MORE than 4 when they are within 40km, remove the take(4) here.
+                    // But the requirement says "always show 4", so let's guarantee exactly 4 if possible.
+                    $nearbyEvents = $strictNearby->take(4);
                 }
             }
         }
@@ -132,7 +134,7 @@ class HomeController extends Controller
         $cities = ExternalEvent::where('status', 'published')->distinct()->pluck('city')->filter()->values();
         $venues = Venue::whereNotNull('latitude')->whereNotNull('longitude')->select('id', 'name')->get();
         $categories = Category::has('externalEvents')->pluck('name');
-        
+
         $showFloatingBanner = ($settings['show_floating_banner'] ?? '1') === '1';
 
         // 4. Random Banner (From WelcomeBanner model)
@@ -163,14 +165,14 @@ class HomeController extends Controller
                 'cities' => $cities,
                 'venues' => $venues,
                 'categories' => $categories,
-            ]
+            ],
         ])->withViewData([
             'meta' => [
                 'title' => 'Inicio - Boletea',
                 'description' => 'Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia.',
                 'image' => asset('logo.ico'), // Default logo image
-                'url' => route('home')
-            ]
+                'url' => route('home'),
+            ],
         ]);
     }
 }

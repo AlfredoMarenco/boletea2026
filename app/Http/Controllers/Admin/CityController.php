@@ -13,16 +13,18 @@ class CityController extends Controller
     public function index()
     {
         $cities = City::with('state')->orderBy('name')->get();
+
         return Inertia::render('Admin/Cities/Index', [
-            'cities' => $cities
+            'cities' => $cities,
         ]);
     }
 
     public function create()
     {
         $states = State::orderBy('name')->get();
+
         return Inertia::render('Admin/Cities/Create', [
-            'states' => $states
+            'states' => $states,
         ]);
     }
 
@@ -43,9 +45,10 @@ class CityController extends Controller
     public function edit(City $city)
     {
         $states = State::orderBy('name')->get();
+
         return Inertia::render('Admin/Cities/Edit', [
             'city' => $city,
-            'states' => $states
+            'states' => $states,
         ]);
     }
 
@@ -70,6 +73,7 @@ class CityController extends Controller
         }
 
         $city->delete();
+
         return redirect()->route('admin.cities.index')->with('success', 'Ciudad eliminada correctamente.');
     }
 }

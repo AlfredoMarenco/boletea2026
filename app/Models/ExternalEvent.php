@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
 
 class ExternalEvent extends Model
 {
@@ -63,12 +63,12 @@ class ExternalEvent extends Model
 
     public function salesCenters()
     {
-        return $this->belongsToMany(SalesCenter::class , 'external_event_sales_center');
+        return $this->belongsToMany(SalesCenter::class, 'external_event_sales_center');
     }
 
     public function salesCenterGroups()
     {
-        return $this->belongsToMany(SalesCenterGroup::class , 'external_event_sales_center_group');
+        return $this->belongsToMany(SalesCenterGroup::class, 'external_event_sales_center_group');
     }
 
     public function state()
@@ -78,7 +78,7 @@ class ExternalEvent extends Model
 
     public function cityLocation()
     {
-        return $this->belongsTo(City::class , 'city_id');
+        return $this->belongsTo(City::class, 'city_id');
     }
 
     public function categories()

@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ExternalEvent;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class EventController extends Controller
 {
     public function show($slug)
     {
-        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories', 'linkedEvents' => function($q) {
+        $event = ExternalEvent::with(['venue', 'salesCenters', 'salesCenterGroups.salesCenters', 'state', 'cityLocation', 'categories', 'linkedEvents' => function ($q) {
             $q->with(['venue', 'state', 'cityLocation', 'categories'])->orderBy('start_date', 'asc');
         }])
             ->where('slug', $slug)
@@ -62,20 +61,20 @@ class EventController extends Controller
         }
 
         $title = trim(preg_replace('/^[A-Z0-9]+\s+/', '', $event->title));
-        $description = $event->description ? substr(strip_tags($event->description), 0, 160) . '...' : "Boletos para {$title} en Boletea.";
+        $description = $event->description ? substr(strip_tags($event->description), 0, 160).'...' : "Boletos para {$title} en Boletea.";
         $image = $event->image_path ? asset($event->image_path) : null;
 
         return Inertia::render('Event/Show', [
             'event' => $event,
             'salesCentersDetails' => $salesCentersDetails,
-            'relatedEvents' => $relatedEvents
+            'relatedEvents' => $relatedEvents,
         ])->withViewData([
             'meta' => [
-                'title' => $title . ' - Boletea',
+                'title' => $title.' - Boletea',
                 'description' => $description,
                 'image' => $image,
-                'url' => route('event.show', $slug)
-            ]
+                'url' => route('event.show', $slug),
+            ],
         ]);
     }
 }

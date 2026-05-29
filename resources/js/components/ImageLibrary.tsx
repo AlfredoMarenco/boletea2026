@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Loader2, Upload, Trash, Image as ImageIcon } from 'lucide-react';
 import { route } from 'ziggy-js';
+import TicketProgressBar from '@/components/TicketProgressBar';
 
 interface Image {
     id: number;
@@ -21,6 +22,8 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [open, setOpen] = useState(false);
+
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     const loadImages = async () => {
         setLoading(true);
@@ -50,9 +53,14 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
         formData.append('image', file);
 
         setUploading(true);
+        setUploadProgress(0);
         try {
             await axios.post(route('admin.images.store'), formData, {
-                headers: { 'Accept': 'application/json' }
+                headers: { 'Accept': 'application/json' },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+                    setUploadProgress(percentCompleted);
+                }
             });
             loadImages();
         } catch (error: any) {
@@ -64,6 +72,7 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
             alert('Error al subir: ' + msg);
         } finally {
             setUploading(false);
+            setUploadProgress(0);
             if (event.target) {
                 event.target.value = ''; // reset file input
             }
@@ -98,25 +107,28 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
                     <DialogTitle>Biblioteca de Imágenes</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex justify-between items-center py-4 border-b">
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleUpload}
-                            className="hidden"
-                            id="library-upload"
-                            disabled={uploading}
-                        />
-                        <label htmlFor="library-upload">
-                            <Button variant="default" asChild disabled={uploading}>
-                                <span>
-                                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                                    Subir Nueva Imagen
-                                </span>
-                            </Button>
-                        </label>
+                <div className="flex flex-col gap-4 py-4 border-b">
+                    <div className="flex justify-between items-center">
+                        <div className="relative">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleUpload}
+                                className="hidden"
+                                id="library-upload"
+                                disabled={uploading}
+                            />
+                            <label htmlFor="library-upload">
+                                <Button variant="default" asChild disabled={uploading}>
+                                    <span>
+                                        {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                                        {uploading ? `Subiendo... ${uploadProgress}%` : 'Subir Nueva Imagen'}
+                                    </span>
+                                </Button>
+                            </label>
+                        </div>
                     </div>
+                    <TicketProgressBar show={uploading && uploadProgress > 0} progress={uploadProgress} text="Subiendo imagen..." />
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-4">
