@@ -37,9 +37,14 @@ class AccessEvent extends Model
     public function devices()
     {
         return $this->belongsToMany(AccessDevice::class, 'access_device_event')
-            ->withPivot('allowed_sections')
+            ->withPivot('allowed_sections', 'access_device_group_id')
             ->withTimestamps()
             ->as('configuration');
+    }
+
+    public function groups()
+    {
+        return $this->hasMany(AccessDeviceGroup::class, 'access_event_id');
     }
 
     public function postback()

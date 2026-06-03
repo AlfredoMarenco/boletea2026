@@ -31,7 +31,7 @@ class AccessDevice extends Model implements AuthenticatableContract
     public function events()
     {
         return $this->belongsToMany(AccessEvent::class, 'access_device_event')
-            ->withPivot('allowed_sections')
+            ->withPivot('allowed_sections', 'access_device_group_id')
             ->withTimestamps()
             ->as('configuration');
     }

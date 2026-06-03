@@ -98,6 +98,11 @@ Route::prefix('access')->name('access.')->group(function () {
     Route::post('events/{event}/codes', [AccessEventController::class, 'storeCode'])->name('events.codes.store');
     Route::get('events/{event}/devices', [AccessEventController::class, 'devices'])->name('events.devices');
     Route::post('events/{event}/devices', [AccessEventController::class, 'assignDevice'])->name('events.devices.assign');
+    Route::post('events/{event}/devices/group', [AccessEventController::class, 'assignGroup'])->name('events.devices.assign_group');
+    Route::post('events/{event}/groups', [AccessEventController::class, 'storeGroup'])->name('events.groups.store');
+    Route::put('events/{event}/groups/{group}', [AccessEventController::class, 'updateGroupSections'])->name('events.groups.update');
+    Route::delete('events/{event}/groups/{group}', [AccessEventController::class, 'destroyGroup'])->name('events.groups.destroy');
+    Route::post('events/{event}/devices/move', [AccessEventController::class, 'moveDeviceToGroup'])->name('events.devices.move');
     Route::delete('events/{event}/clear', [AccessEventController::class, 'clearCodes'])->name('events.clear');
     Route::patch('events/{event}/codes/{code}/status', [AccessEventController::class, 'updateCodeStatus'])->name('events.codes.status');
     Route::delete('events/{event}/codes/{code}', [AccessEventController::class, 'deleteCode'])->name('events.codes.delete');

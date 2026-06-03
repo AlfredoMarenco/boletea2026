@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
+use App\Models\AccessDeviceGroup;
 use App\Models\AccessEvent;
 use App\Models\AccessPostbackLog;
 use App\Models\ExternalEvent;
@@ -100,18 +101,56 @@ class AccessEventController extends Controller
     public function codes(AccessEvent $event, Request $request)
     {
         $search = $request->input('search');
+        $status = $request->input('status');
+        $type = $request->input('type');
+        $sortBy = $request->input('sort_by', 'id');
+        $sortOrder = $request->input('sort_order', 'desc');
+
+        // Prevent SQL injection by validating sort field
+        $allowedSorts = ['id', 'code', 'type', 'status', 'scanned_at'];
+        if (! in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'id';
+        }
+
+        $sortOrder = strtolower($sortOrder) === 'asc' ? 'asc' : 'desc';
+
         $query = $event->codes();
 
         if ($search) {
             $query->where('code', 'like', "%{$search}%");
         }
 
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($type) {
+            $query->where('type', $type);
+        }
+
+        $query->orderBy($sortBy, $sortOrder);
+
         $codes = $query->paginate(50)->withQueryString();
+
+        // Retrieve distinct code types for filtering in frontend
+        $types = $event->codes()
+            ->distinct()
+            ->whereNotNull('type')
+            ->where('type', '!=', '')
+            ->pluck('type')
+            ->values();
 
         return Inertia::render('Admin/Access/Events/Codes', [
             'event' => $event,
             'codes' => $codes,
-            'filters' => ['search' => $search],
+            'types' => $types,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'type' => $type,
+                'sort_by' => $sortBy,
+                'sort_order' => $sortOrder,
+            ],
         ]);
     }
 
@@ -277,19 +316,38 @@ class AccessEventController extends Controller
             ->sort(SORT_NATURAL | SORT_FLAG_CASE)
             ->values();
 
-        $devices = AccessDevice::orderBy('name')->get();
+        $allDevices = AccessDevice::orderBy('name')->get();
+        $groups = $event->groups()->orderBy('name')->get()->map(function ($group) {
+            return [
+                'id' => $group->id,
+                'name' => $group->name,
+                'description' => $group->description,
+                'allowed_sections' => $group->allowed_sections ?? [],
+            ];
+        });
 
-        $assignments = $event->devices()->get()->mapWithKeys(function ($device) {
-            $allowed = $device->configuration->allowed_sections;
+        $assignedDevices = DB::table('access_device_event')
+            ->where('access_event_id', $event->id)
+            ->get()
+            ->keyBy('access_device_id');
 
-            return [$device->id => $allowed ? json_decode($allowed, true) : []];
+        $devices = $allDevices->map(function ($device) use ($assignedDevices) {
+            $pivot = $assignedDevices->get($device->id);
+
+            return [
+                'id' => $device->id,
+                'name' => $device->name,
+                'device_identifier' => $device->device_identifier,
+                'access_device_group_id' => $pivot ? $pivot->access_device_group_id : null,
+                'allowed_sections' => $pivot && $pivot->allowed_sections ? json_decode($pivot->allowed_sections, true) : [],
+            ];
         });
 
         return Inertia::render('Admin/Access/Events/Devices', [
             'event' => $event,
             'sections' => $sections,
             'devices' => $devices,
-            'assignments' => $assignments,
+            'groups' => $groups,
         ]);
     }
 
@@ -302,17 +360,112 @@ class AccessEventController extends Controller
 
         $sections = $request->sections;
 
-        if (empty($sections)) {
-            $event->devices()->syncWithoutDetaching([
-                $request->device_id => ['allowed_sections' => null],
-            ]);
-        } else {
-            $event->devices()->syncWithoutDetaching([
-                $request->device_id => ['allowed_sections' => json_encode($sections)],
-            ]);
-        }
+        DB::table('access_device_event')->updateOrInsert(
+            ['access_event_id' => $event->id, 'access_device_id' => $request->device_id],
+            [
+                'allowed_sections' => empty($sections) ? null : json_encode($sections),
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
         return redirect()->back()->with('success', 'Configuración de puertas actualizada.');
+    }
+
+    public function storeGroup(Request $request, AccessEvent $event)
+    {
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('access_device_groups')->where('access_event_id', $event->id),
+            ],
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $event->groups()->create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'allowed_sections' => [],
+        ]);
+
+        return redirect()->back()->with('success', 'Grupo creado correctamente.');
+    }
+
+    public function updateGroupSections(Request $request, AccessEvent $event, AccessDeviceGroup $group)
+    {
+        abort_if($group->access_event_id !== $event->id, 403);
+
+        $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('access_device_groups')->where('access_event_id', $event->id)->ignore($group->id),
+            ],
+            'description' => 'nullable|string|max:255',
+            'allowed_sections' => 'nullable|array',
+        ]);
+
+        $group->update([
+            'name' => $request->name,
+            'description' => $request->description,
+            'allowed_sections' => $request->allowed_sections ?? [],
+        ]);
+
+        // Propagate to all devices in the group
+        DB::table('access_device_event')
+            ->where('access_event_id', $event->id)
+            ->where('access_device_group_id', $group->id)
+            ->update([
+                'allowed_sections' => empty($request->allowed_sections) ? null : json_encode($request->allowed_sections),
+                'updated_at' => now(),
+            ]);
+
+        return redirect()->back()->with('success', 'Grupo y dispositivos actualizados correctamente.');
+    }
+
+    public function destroyGroup(AccessEvent $event, AccessDeviceGroup $group)
+    {
+        abort_if($group->access_event_id !== $event->id, 403);
+
+        $group->delete();
+
+        return redirect()->back()->with('success', 'Grupo eliminado correctamente.');
+    }
+
+    public function moveDeviceToGroup(Request $request, AccessEvent $event)
+    {
+        $request->validate([
+            'device_id' => 'required|exists:access_devices,id',
+            'group_id' => 'nullable|exists:access_device_groups,id',
+        ]);
+
+        if ($request->group_id) {
+            $group = AccessDeviceGroup::findOrFail($request->group_id);
+            abort_if($group->access_event_id !== $event->id, 403);
+
+            DB::table('access_device_event')->updateOrInsert(
+                ['access_event_id' => $event->id, 'access_device_id' => $request->device_id],
+                [
+                    'access_device_group_id' => $group->id,
+                    'allowed_sections' => empty($group->allowed_sections) ? null : json_encode($group->allowed_sections),
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        } else {
+            DB::table('access_device_event')
+                ->where('access_event_id', $event->id)
+                ->where('access_device_id', $request->device_id)
+                ->update([
+                    'access_device_group_id' => null,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return redirect()->back()->with('success', 'Dispositivo movido correctamente.');
     }
 
     public function clearCodes(AccessEvent $event)
