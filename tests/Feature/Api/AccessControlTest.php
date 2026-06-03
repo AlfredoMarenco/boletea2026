@@ -1,9 +1,11 @@
 <?php
 
+use App\Jobs\SendAccessPostback;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
 use App\Models\AccessEvent;
 use App\Models\AccessLog;
+use App\Models\PostbackUrl;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -87,4 +89,35 @@ test('offline logs sync converts UTC scanned_at timestamps to America/Mexico_Cit
     $log = AccessLog::where('access_code_id', $this->code->id)->first();
     expect($log)->not->toBeNull();
     expect(Carbon::parse($log->scanned_at)->format('Y-m-d H:i:s'))->toBe('2026-05-29 18:16:19');
+});
+
+test('postback job is dispatched when event has a postback URL', function () {
+    Sanctum::actingAs($this->device);
+
+    $postback = PostbackUrl::create([
+        'name' => 'Active Postback Server',
+        'url' => 'https://test-server.com/postback',
+        'is_active' => true,
+    ]);
+    $this->event->update(['postback_url_id' => $postback->id]);
+
+    $response = $this->postJson('/api/v1/access/validate', [
+        'event_id' => $this->event->id,
+        'code' => 'TESTCODE123',
+    ]);
+
+    $response->assertOk();
+    Queue::assertPushed(SendAccessPostback::class);
+});
+
+test('postback job is not dispatched when event has no postback URL', function () {
+    Sanctum::actingAs($this->device);
+
+    $response = $this->postJson('/api/v1/access/validate', [
+        'event_id' => $this->event->id,
+        'code' => 'TESTCODE123',
+    ]);
+
+    $response->assertOk();
+    Queue::assertNotPushed(SendAccessPostback::class);
 });

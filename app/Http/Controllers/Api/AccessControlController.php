@@ -121,14 +121,16 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            SendAccessPostback::dispatch(
-                $event->id,
-                $request->code,
-                'invalid',
-                'Desconocido',
-                $device->id,
-                $scannedAt->toDateTimeString()
-            );
+            if ($event->postback_url_id) {
+                SendAccessPostback::dispatch(
+                    $event->id,
+                    $request->code,
+                    'invalid',
+                    'Desconocido',
+                    $device->id,
+                    $scannedAt->toDateTimeString()
+                );
+            }
 
             return response()->json(['status' => 'invalid', 'message' => 'Código no encontrado.'], 422);
         }
@@ -151,14 +153,16 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            SendAccessPostback::dispatch(
-                $event->id,
-                $request->code,
-                'duplicate',
-                $accessCode->type ?? 'Desconocido',
-                $device->id,
-                $scannedAt->toDateTimeString()
-            );
+            if ($event->postback_url_id) {
+                SendAccessPostback::dispatch(
+                    $event->id,
+                    $request->code,
+                    'duplicate',
+                    $accessCode->type ?? 'Desconocido',
+                    $device->id,
+                    $scannedAt->toDateTimeString()
+                );
+            }
 
             return response()->json([
                 'status' => 'duplicate',
@@ -188,14 +192,16 @@ class AccessControlController extends Controller
                     'scanned_at' => $scannedAt,
                 ]);
 
-                SendAccessPostback::dispatch(
-                    $event->id,
-                    $request->code,
-                    'invalid_zone',
-                    $accessCode->type ?? 'Desconocido',
-                    $device->id,
-                    $scannedAt->toDateTimeString()
-                );
+                if ($event->postback_url_id) {
+                    SendAccessPostback::dispatch(
+                        $event->id,
+                        $request->code,
+                        'invalid_zone',
+                        $accessCode->type ?? 'Desconocido',
+                        $device->id,
+                        $scannedAt->toDateTimeString()
+                    );
+                }
 
                 return response()->json([
                     'status' => 'invalid_zone',
@@ -220,14 +226,16 @@ class AccessControlController extends Controller
             'scanned_at' => $scannedAt,
         ]);
 
-        SendAccessPostback::dispatch(
-            $event->id,
-            $request->code,
-            'success',
-            $accessCode->type ?? 'Desconocido',
-            $device->id,
-            $scannedAt->toDateTimeString()
-        );
+        if ($event->postback_url_id) {
+            SendAccessPostback::dispatch(
+                $event->id,
+                $request->code,
+                'success',
+                $accessCode->type ?? 'Desconocido',
+                $device->id,
+                $scannedAt->toDateTimeString()
+            );
+        }
 
         return response()->json([
             'status' => 'success',
@@ -298,14 +306,16 @@ class AccessControlController extends Controller
                 'scanned_at' => $scannedAt,
             ]);
 
-            SendAccessPostback::dispatch(
-                $event->id,
-                $codeStr,
-                $result,
-                $accessCode ? ($accessCode->type ?? 'Desconocido') : 'Desconocido',
-                $device->id,
-                $scannedAt->toDateTimeString()
-            );
+            if ($event->postback_url_id) {
+                SendAccessPostback::dispatch(
+                    $event->id,
+                    $codeStr,
+                    $result,
+                    $accessCode ? ($accessCode->type ?? 'Desconocido') : 'Desconocido',
+                    $device->id,
+                    $scannedAt->toDateTimeString()
+                );
+            }
         }
 
         return response()->json([
