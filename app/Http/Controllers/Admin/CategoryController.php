@@ -16,6 +16,7 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::withCount('externalEvents')->get();
+
         return Inertia::render('Admin/Category/Index', [
             'categories' => $categories,
         ]);
@@ -38,6 +39,7 @@ class CategoryController extends Controller
             'name' => $request->name,
             'slug' => Str::slug($request->name),
         ]);
+
         return redirect()->route('admin.categories.index')->with('success', 'Categoria creada exitosamente');
     }
 
@@ -68,6 +70,7 @@ class CategoryController extends Controller
             'name' => $request->name,
             'slug' => Str::slug($request->name),
         ]);
+
         return redirect()->route('admin.categories.index')->with('success', 'Categoria actualizada exitosamente');
     }
 
@@ -77,6 +80,7 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $category->delete();
+
         return redirect()->route('admin.categories.index')->with('success', 'Categoria eliminada exitosamente');
     }
 }

@@ -2,8 +2,6 @@
     "agents": [
         "gemini"
     ],
-    "guidelines": true,
-    "packages": [
-        "laravel/fortify"
-    ]
+    "cloud": false,
+    "guidelines": true
 }

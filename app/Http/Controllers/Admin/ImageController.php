@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Image;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class ImageController extends Controller
@@ -13,13 +13,13 @@ class ImageController extends Controller
     {
         // Return all images available to pick from the library
         $images = Image::latest()->get();
-        
+
         if ($request->wantsJson()) {
             return response()->json($images);
         }
 
         return Inertia::render('Admin/Images/Index', [
-            'images' => $images
+            'images' => $images,
         ]);
     }
 
@@ -30,7 +30,7 @@ class ImageController extends Controller
         ]);
 
         $path = $request->file('image')->store('library', 'public');
-        $url = '/storage/' . $path;
+        $url = '/storage/'.$path;
 
         // Create a standalone image for the library if it is not immediately attached
         // or attach it to something using polymorphic relation
@@ -50,6 +50,7 @@ class ImageController extends Controller
             \Storage::disk('public')->delete(str_replace('/storage/', '', $image->url));
         }
         $image->delete();
+
         return response()->json(['message' => 'Eliminado']);
     }
 }

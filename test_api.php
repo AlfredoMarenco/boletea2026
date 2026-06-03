@@ -1,11 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__.'/vendor/autoload.php';
 
-$app = require_once __DIR__ . '/bootstrap/app.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
@@ -14,28 +13,28 @@ echo "Fetching from $url...\n";
 
 try {
     $response = Http::withoutVerifying()->get($url);
-    echo "Status: " . $response->status() . "\n";
+    echo 'Status: '.$response->status()."\n";
     $body = $response->body();
-    echo "Body length: " . strlen($body) . "\n";
-    echo "Start: " . substr($body, 0, 50) . "\n";
-    echo "End: " . substr($body, -50) . "\n";
+    echo 'Body length: '.strlen($body)."\n";
+    echo 'Start: '.substr($body, 0, 50)."\n";
+    echo 'End: '.substr($body, -50)."\n";
 
     // encoding check
     $enc = mb_detect_encoding($body, ['UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII'], true);
-    echo "Detected Encoding: " . ($enc ?: 'False') . "\n";
+    echo 'Detected Encoding: '.($enc ?: 'False')."\n";
 
     // Attempt 1: Direct decode
     $json = json_decode($body, true);
     if ($json !== null) {
         echo "Success: Direct decode.\n";
         if (isset($json[0]['Event'][0]['EventImage'])) {
-            echo "Image URL: " . $json[0]['Event'][0]['EventImage'] . "\n";
+            echo 'Image URL: '.$json[0]['Event'][0]['EventImage']."\n";
         } else {
             echo "No image found in first item.\n";
         }
         exit;
     }
-    echo "Direct decode failed: " . json_last_error_msg() . "\n";
+    echo 'Direct decode failed: '.json_last_error_msg()."\n";
 
     // Attempt 2: Strip BOM
     $bodyNoBom = preg_replace('/^\xEF\xBB\xBF/', '', $body);
@@ -80,7 +79,7 @@ try {
     // Attempt 7: Remove trailing comma
     $body = trim($body);
     if (str_ends_with($body, ',]')) {
-        $bodyComma = substr($body, 0, -2) . ']';
+        $bodyComma = substr($body, 0, -2).']';
         $json = json_decode($bodyComma, true);
         if ($json !== null) {
             echo "Success: Trailing comma removed.\n";
@@ -93,12 +92,12 @@ try {
     if ($json !== null) {
         echo "Success: Trailing comma regex.\n";
         if (isset($json[0]['Event'][0]['EventImage'])) {
-            echo "Image URL: " . $json[0]['Event'][0]['EventImage'] . "\n";
+            echo 'Image URL: '.$json[0]['Event'][0]['EventImage']."\n";
         }
         exit;
     }
 
     echo "All attempts failed.\n";
 } catch (\Exception $e) {
-    echo "Exception: " . $e->getMessage() . "\n";
+    echo 'Exception: '.$e->getMessage()."\n";
 }

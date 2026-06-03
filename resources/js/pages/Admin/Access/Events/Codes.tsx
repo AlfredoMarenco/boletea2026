@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import React, { useState, useEffect } from 'react';
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Trash2, MoreHorizontal, Check, X, Clock } from 'lucide-react';
+import { Trash2, MoreHorizontal, Check, X, Clock, Plus } from 'lucide-react';
 
 interface PaginationLink {
     url: string | null;
@@ -84,6 +84,16 @@ interface Props {
 
 export default function Codes({ event, codes, filters }: Props) {
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    const { data, setData, post, processing, reset, errors } = useForm({
+        code: '',
+        type: 'General',
+        owner: '',
+        details: '',
+        row: '',
+        seat: '',
+    });
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -123,6 +133,17 @@ export default function Codes({ event, codes, filters }: Props) {
 
     const clearAll = () => {
         router.delete(route('admin.access.events.clear', event.id), {
+            preserveScroll: true
+        });
+    };
+
+    const submitAddCode = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('admin.access.events.codes.store', event.id), {
+            onSuccess: () => {
+                setIsAddModalOpen(false);
+                reset();
+            },
             preserveScroll: true
         });
     };
@@ -167,6 +188,87 @@ export default function Codes({ event, codes, filters }: Props) {
                                 Volver a Estadísticas
                             </Link>
                         </Button>
+
+                        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="gap-2 bg-primary">
+                                    <Plus className="size-4" />
+                                    Añadir Código
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                    <DialogTitle>Añadir Código Individual</DialogTitle>
+                                </DialogHeader>
+                                <form onSubmit={submitAddCode} className="space-y-4 py-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Código / Barcode</label>
+                                            <Input 
+                                                value={data.code} 
+                                                onChange={e => setData('code', e.target.value)}
+                                                placeholder="Ej. 05555519166..."
+                                                required
+                                            />
+                                            {errors.code && <p className="text-xs text-red-500">{errors.code}</p>}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Categoría (Resultado)</label>
+                                            <Input 
+                                                value={data.type} 
+                                                onChange={e => setData('type', e.target.value)}
+                                                placeholder="Ej. General, VIP..."
+                                                required
+                                            />
+                                            {errors.type && <p className="text-xs text-red-500">{errors.type}</p>}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Propietario / Nombre</label>
+                                        <Input 
+                                            value={data.owner} 
+                                            onChange={e => setData('owner', e.target.value)}
+                                            placeholder="Nombre del cliente"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Detalles (Sección/Puerta)</label>
+                                        <Input 
+                                            value={data.details} 
+                                            onChange={e => setData('details', e.target.value)}
+                                            placeholder="Ej. Sección A, Puerta 5"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Fila</label>
+                                            <Input 
+                                                value={data.row} 
+                                                onChange={e => setData('row', e.target.value)}
+                                                placeholder="Fila"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Asiento</label>
+                                            <Input 
+                                                value={data.seat} 
+                                                onChange={e => setData('seat', e.target.value)}
+                                                placeholder="Asiento"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end pt-4">
+                                        <Button type="submit" disabled={processing}>
+                                            {processing ? 'Guardando...' : 'Guardar Código'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
 
                         <AlertDialog>
                             <AlertDialogTrigger asChild>

@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import AppLayout from '@/layouts/app-layout';
-import SeatingCanvas from '@/Components/SeatingBuilder/SeatingCanvas';
-import Inspector from '@/Components/SeatingBuilder/Inspector';
-import CalibrationWizard from '@/Components/SeatingBuilder/CalibrationWizard';
+import SeatingCanvas from '@/components/SeatingBuilder/SeatingCanvas';
+import Inspector from '@/components/SeatingBuilder/Inspector';
+import CalibrationWizard from '@/components/SeatingBuilder/CalibrationWizard';
 import { Button } from '@/components/ui/button';
 import { 
     Save, Eye, Edit3, Settings, MousePointer2, Grid, Square, LayoutList,
@@ -55,6 +55,12 @@ const isPointInPolygon = (px: number, py: number, points: number[], offsetX = 0,
     return inside;
 };
 
+const isPointInCircle = (px: number, py: number, cx: number, cy: number, radius: number) => {
+    const dx = px - cx;
+    const dy = py - cy;
+    return Math.sqrt(dx * dx + dy * dy) <= radius;
+};
+
 export default function Builder({ seatingMap }: Props) {
     const canvasRef = useRef<any>();
     const [layout, setLayout] = useState(seatingMap.layout_json || { nodes: [], config: {} });
@@ -82,13 +88,13 @@ export default function Builder({ seatingMap }: Props) {
         });
     };
 
-    const handleUpdateNodes = useCallback((properties: any) => {
-        // Detect if these are structural changes that require re-generation
+    const handleUpdateProperties = useCallback((properties: any) => {
         const structuralFields = [
             'numSeats', 'curve', 'seatSpacing', 'rowSpacing', 
             'row', 'rowLabelStart', 'rowLabelType', 'rowLabelSkip',
+            'rowLabelEnabled', 'rowLabelPosition', 'rowLabelOverride', 'rowLabelDisplayType',
             'seatLabelType', 'seatLabelStart', 'seatLabelDirection',
-            'shape' // For tables
+            'shape' 
         ];
         const isStructural = Object.keys(properties).some(key => structuralFields.includes(key));
 
@@ -102,12 +108,6 @@ export default function Builder({ seatingMap }: Props) {
             }
 
             if (isStructural) {
-                const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
-                if (blockUuid) {
-                    canvasRef.current.updateBlockStructure(blockUuid, properties);
-                    return;
-                }
-
                 const uniqueRowUuids = Array.from(new Set(
                     selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
                 ));
@@ -116,72 +116,82 @@ export default function Builder({ seatingMap }: Props) {
                     canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
                     return;
                 }
+
+                const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
+                if (blockUuid) {
+                    canvasRef.current.updateBlockStructure(blockUuid, properties);
+                    return;
+                }
             }
         }
 
-        let updatedNodes = layout.nodes.map((node: any) => 
-            selectedIds.includes(node.id) ? { ...node, ...properties } : node
-        );
+        setLayout((prev: any) => {
+            let updatedNodes = prev.nodes.map((node: any) => 
+                selectedIds.includes(node.id) ? { ...node, ...properties } : node
+            );
 
-        // Cascading updates for section containers
-        const sectionUpdates = selectedIds.filter(id => {
-            const node = layout.nodes.find((n: any) => n.id === id);
-            return node?.type === 'section_container';
-        });
+            // Cascading updates for section containers
+            const sectionUpdates = selectedIds.filter(id => {
+                const node = prev.nodes.find((n: any) => n.id === id);
+                return ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(node?.type);
+            });
 
-        if (sectionUpdates.length > 0 && (properties.name || properties.fill || properties.category_id)) {
-            sectionUpdates.forEach(sectionId => {
-                const sectionNode = updatedNodes.find((n: any) => n.id === sectionId);
-                if (!sectionNode) return;
+            if (sectionUpdates.length > 0 && (properties.name || properties.fill || properties.category_id)) {
+                sectionUpdates.forEach(sectionId => {
+                    const sectionNode = updatedNodes.find((n: any) => n.id === sectionId);
+                    if (!sectionNode) return;
 
-                updatedNodes = updatedNodes.map((node: any) => {
-                    let isInside = false;
-                    if (node.type === 'seat') {
-                        if (sectionNode.points) {
-                            isInside = isPointInPolygon(node.x, node.y, sectionNode.points, sectionNode.x, sectionNode.y);
-                        } else {
-                            isInside = isPointInRect(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.width || 400) * (sectionNode.scaleX || 1), (sectionNode.height || 300) * (sectionNode.scaleY || 1));
+                    updatedNodes = updatedNodes.map((node: any) => {
+                        let isInside = false;
+                        if (node.type === 'seat') {
+                            if (sectionNode.points) {
+                                isInside = isPointInPolygon(node.x, node.y, sectionNode.points, sectionNode.x, sectionNode.y);
+                            } else if (sectionNode.type === 'circle_zone') {
+                                isInside = isPointInCircle(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.radius || 80) * (sectionNode.scaleX || 1));
+                            } else {
+                                isInside = isPointInRect(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.width || 400) * (sectionNode.scaleX || 1), (sectionNode.height || 300) * (sectionNode.scaleY || 1));
+                            }
                         }
-                    }
-                    if (isInside) {
-                        return { 
-                            ...node, 
-                            section: properties.name || node.section,
-                            fill: properties.fill || node.fill,
-                            category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
-                        };
-                    }
-                    return node;
+                        if (isInside) {
+                            return { 
+                                ...node, 
+                                section: properties.name || node.section,
+                                fill: properties.fill || node.fill,
+                                category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
+                            };
+                        }
+                        return node;
+                    });
                 });
-            });
-        }
+            }
 
-        // Cascading updates for tables
-        const tableUpdates = selectedIds.filter(id => {
-            const node = layout.nodes.find((n: any) => n.id === id);
-            return node?.type === 'table_shape';
+            // Cascading updates for tables
+            const tableUpdates = selectedIds.filter(id => {
+                const node = prev.nodes.find((n: any) => n.id === id);
+                return node?.type === 'table_shape';
+            });
+
+            if (tableUpdates.length > 0 && (properties.fill || properties.category_id)) {
+                tableUpdates.forEach(tableId => {
+                    const tableNode = updatedNodes.find((n: any) => n.id === tableId);
+                    if (!tableNode) return;
+                    const tableUuid = tableNode.table_uuid;
+                    updatedNodes = updatedNodes.map((node: any) => {
+                        if (node.table_uuid === tableUuid && node.type === 'seat') {
+                            return {
+                                ...node,
+                                fill: properties.fill || node.fill,
+                                category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
+                            };
+                        }
+                        return node;
+                    });
+                });
+            }
+
+            return { ...prev, nodes: updatedNodes };
         });
-
-        if (tableUpdates.length > 0 && (properties.fill || properties.category_id)) {
-            tableUpdates.forEach(tableId => {
-                const tableNode = updatedNodes.find((n: any) => n.id === tableId);
-                if (!tableNode) return;
-                const tableUuid = tableNode.table_uuid;
-                updatedNodes = updatedNodes.map((node: any) => {
-                    if (node.table_uuid === tableUuid && node.type === 'seat') {
-                        return {
-                            ...node,
-                            fill: properties.fill || node.fill,
-                            category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
-                        };
-                    }
-                    return node;
-                });
-            });
-        }
-
-        setLayout({ ...layout, nodes: updatedNodes });
-    }, [layout, selectedIds]);
+    }, [selectedIds]);
 
     const handleUpdateConfig = useCallback((newConfig: any) => {
         setLayout({
@@ -206,6 +216,34 @@ export default function Builder({ seatingMap }: Props) {
         });
         toast.success('Calibración aplicada correctamente');
     };
+
+    const handleCaptureSeats = useCallback((sectionNodeId: string) => {
+        setLayout((prev: any) => {
+            const sectionNode = prev.nodes.find((n: any) => n.id === sectionNodeId);
+            if (!sectionNode) return prev;
+
+            const updatedNodes = prev.nodes.map((node: any) => {
+                if (node.type !== 'seat') return node;
+
+                let isInside = false;
+                if (sectionNode.points) {
+                    isInside = isPointInPolygon(node.x, node.y, sectionNode.points, sectionNode.x, sectionNode.y);
+                } else if (sectionNode.type === 'circle_zone') {
+                    isInside = isPointInCircle(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.radius || 80) * (sectionNode.scaleX || 1));
+                } else {
+                    isInside = isPointInRect(node.x, node.y, sectionNode.x, sectionNode.y, (sectionNode.width || 400) * (sectionNode.scaleX || 1), (sectionNode.height || 300) * (sectionNode.scaleY || 1));
+                }
+
+                if (isInside) {
+                    return { ...node, section: sectionNode.name, category_id: sectionNode.category_id || node.category_id };
+                }
+                return node;
+            });
+
+            return { ...prev, nodes: updatedNodes };
+        });
+        toast.success('Asientos vinculados a la zona');
+    }, []);
 
     const handleDeleteSelected = useCallback(() => {
         if (canvasRef.current) {
@@ -349,10 +387,67 @@ export default function Builder({ seatingMap }: Props) {
                             <Maximize2 className="h-3.5 w-3.5 mr-2" />
                             Calibrar Plano
                         </Button>
-                        <Button variant="outline" size="sm" className="h-8 text-xs">
-                            <Settings className="h-3.5 w-3.5 mr-2" />
-                            Ajustes
-                        </Button>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 text-xs">
+                                    <Settings className="h-3.5 w-3.5 mr-2" />
+                                    Ajustes
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-4 shadow-2xl border-border bg-popover z-[100]">
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Configuración del Mapa</h4>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Opacidad Fondo</label>
+                                                <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{Math.round((layout.config?.bgOpacity ?? 0.8) * 100)}%</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="0" max="1" step="0.05" 
+                                                value={layout.config?.bgOpacity ?? 0.8}
+                                                onChange={(e) => handleUpdateConfig({ bgOpacity: parseFloat(e.target.value) })}
+                                                className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Radio Asiento Base</label>
+                                                <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{layout.config?.defaultRadius ?? 10}px</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="5" max="30" step="1" 
+                                                value={layout.config?.defaultRadius ?? 10}
+                                                onChange={(e) => handleUpdateConfig({ defaultRadius: parseInt(e.target.value) })}
+                                                className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] font-bold uppercase text-muted-foreground">Espaciado Base</label>
+                                                <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{layout.config?.defaultSpacing ?? 35}px</span>
+                                            </div>
+                                            <input 
+                                                type="range" min="20" max="100" step="1" 
+                                                value={layout.config?.defaultSpacing ?? 35}
+                                                onChange={(e) => handleUpdateConfig({ defaultSpacing: parseInt(e.target.value) })}
+                                                className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t">
+                                        <Button variant="outline" size="sm" className="w-full h-8 text-[10px] font-bold uppercase tracking-widest gap-2" onClick={() => setIsCalibrationOpen(true)}>
+                                            <Maximize2 className="h-3.5 w-3.5" />
+                                            Abrir Asistente de Escala
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                         <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-xs shadow-md shadow-blue-500/20">
                             <Save className="h-3.5 w-3.5 mr-2" />
                             {isSaving ? 'Guardando...' : 'Guardar Cambios'}
@@ -540,10 +635,11 @@ export default function Builder({ seatingMap }: Props) {
                             layout={layout}
                             onUpdateConfig={handleUpdateConfig}
                             selectedNodes={selectedNodes}
-                            onUpdate={handleUpdateNodes}
+                            onUpdate={handleUpdateProperties}
                             onDelete={handleDeleteSelected}
-                            onAlign={(dir) => canvasRef.current?.align(dir)}
-                            onRedistribute={(params) => canvasRef.current?.redistributeSelected(params)}
+                            onCaptureSeats={handleCaptureSeats}
+                            onAlign={(dir: string) => canvasRef.current?.alignNodes(dir)}
+                            onRedistribute={(axis: 'x' | 'y') => canvasRef.current?.redistributeNodes(axis)}
                         />
                     </div>
                 </div>

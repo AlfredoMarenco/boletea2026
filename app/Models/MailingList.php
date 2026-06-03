@@ -28,6 +28,6 @@ class MailingList extends Model
     public function audiences(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(MailingAudience::class, 'mailing_audience_contact', 'mailing_list_id', 'mailing_audience_id')
-                    ->withTimestamps();
+            ->withTimestamps();
     }
 }

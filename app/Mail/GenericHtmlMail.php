@@ -58,7 +58,7 @@ class GenericHtmlMail extends Mailable
     {
         $attachments = [];
 
-        if ($this->campaign->image_path && file_exists(storage_path('app/public/' . $this->campaign->image_path))) {
+        if ($this->campaign->image_path && file_exists(storage_path('app/public/'.$this->campaign->image_path))) {
             $attachments[] = Attachment::fromStorageDisk('public', $this->campaign->image_path)
                 ->as('adjunto-campana.jpg');
         }

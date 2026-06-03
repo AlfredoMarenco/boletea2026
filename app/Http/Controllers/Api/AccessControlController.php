@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AccessEvent;
+use App\Jobs\SendAccessPostback;
 use App\Models\AccessCode;
 use App\Models\AccessDevice;
+use App\Models\AccessEvent;
 use App\Models\AccessLog;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AccessControlController extends Controller
 {
@@ -25,7 +26,7 @@ class AccessControlController extends Controller
             ->where('status', 'active')
             ->first();
 
-        if (!$device) {
+        if (! $device) {
             return response()->json(['message' => 'Dispositivo no autorizado o inválido.'], 403);
         }
 
@@ -33,13 +34,14 @@ class AccessControlController extends Controller
 
         return response()->json([
             'token' => $token,
-            'device' => $device
+            'device' => $device,
         ]);
     }
 
     public function getEvents(Request $request)
     {
         $events = AccessEvent::where('status', 'active')->get(['id', 'name', 'date']);
+
         return response()->json($events);
     }
 
@@ -53,7 +55,7 @@ class AccessControlController extends Controller
 
         if ($since) {
             // Only download codes updated after the last sync
-            $query->where('updated_at', '>', \Carbon\Carbon::parse($since));
+            $query->where('updated_at', '>', Carbon::parse($since));
         } else {
             // Initial sync: don't download cancelled ones to save space
             $query->where('status', '!=', 'cancelled');
@@ -62,7 +64,7 @@ class AccessControlController extends Controller
         $codes = $query->get(['code', 'type', 'status', 'metadata', 'updated_at']);
 
         // Update last sync for the device in the pivot table
-        \Illuminate\Support\Facades\DB::table('access_device_event')
+        DB::table('access_device_event')
             ->where('access_device_id', $device->id)
             ->where('access_event_id', $event->id)
             ->update(['updated_at' => now()]);
@@ -78,19 +80,19 @@ class AccessControlController extends Controller
     public function getDeltas(AccessEvent $event, Request $request)
     {
         $since = $request->query('since');
-        
+
         $query = $event->codes()
             ->whereIn('status', ['used', 'cancelled']);
-            
+
         if ($since) {
-            $query->where('updated_at', '>', \Carbon\Carbon::parse($since));
+            $query->where('updated_at', '>', Carbon::parse($since));
         }
-        
+
         $deltas = $query->get(['code', 'status', 'updated_at']);
-        
+
         return response()->json([
             'deltas' => $deltas,
-            'server_time' => now()->toIso8601String()
+            'server_time' => now()->toIso8601String(),
         ]);
     }
 
@@ -104,13 +106,13 @@ class AccessControlController extends Controller
 
         $device = $request->user();
         $event = AccessEvent::findOrFail($request->event_id);
-        $scannedAt = $request->scanned_at ? Carbon::parse($request->scanned_at) : now();
+        $scannedAt = $request->scanned_at ? Carbon::parse($request->scanned_at)->setTimezone(config('app.timezone')) : now();
 
         $accessCode = AccessCode::where('access_event_id', $event->id)
             ->where('code', $request->code)
             ->first();
 
-        if (!$accessCode) {
+        if (! $accessCode) {
             AccessLog::create([
                 'access_event_id' => $event->id,
                 'access_device_id' => $device->id,
@@ -118,11 +120,21 @@ class AccessControlController extends Controller
                 'result' => 'invalid',
                 'scanned_at' => $scannedAt,
             ]);
+
+            SendAccessPostback::dispatch(
+                $event->id,
+                $request->code,
+                'invalid',
+                'Desconocido',
+                $device->id,
+                $scannedAt->toDateTimeString()
+            );
+
             return response()->json(['status' => 'invalid', 'message' => 'Código no encontrado.'], 422);
         }
 
         if ($accessCode->status === 'used') {
-            $lastLog = \App\Models\AccessLog::where('access_code_id', $accessCode->id)
+            $lastLog = AccessLog::where('access_code_id', $accessCode->id)
                 ->where('result', 'success')
                 ->with('device')
                 ->latest('scanned_at')
@@ -138,14 +150,23 @@ class AccessControlController extends Controller
                 'result' => 'duplicate',
                 'scanned_at' => $scannedAt,
             ]);
-            
+
+            SendAccessPostback::dispatch(
+                $event->id,
+                $request->code,
+                'duplicate',
+                $accessCode->type ?? 'Desconocido',
+                $device->id,
+                $scannedAt->toDateTimeString()
+            );
+
             return response()->json([
-                'status' => 'duplicate', 
+                'status' => 'duplicate',
                 'message' => 'Código ya utilizado.',
                 'duplicate_info' => [
                     'scanned_at' => $accessCode->scanned_at,
-                    'device_name' => $deviceName
-                ]
+                    'device_name' => $deviceName,
+                ],
             ], 422);
         }
 
@@ -156,9 +177,9 @@ class AccessControlController extends Controller
         $config = $this->getAllowedSections($device->id, $event->id);
         $allowedSections = $config;
 
-        if (!empty($allowedSections)) {
+        if (! empty($allowedSections)) {
             $codeSection = $accessCode->metadata['details'] ?? 'Desconocida';
-            if (!in_array($codeSection, $allowedSections)) {
+            if (! in_array($codeSection, $allowedSections)) {
                 AccessLog::create([
                     'access_event_id' => $event->id,
                     'access_device_id' => $device->id,
@@ -166,9 +187,19 @@ class AccessControlController extends Controller
                     'result' => 'invalid_zone',
                     'scanned_at' => $scannedAt,
                 ]);
+
+                SendAccessPostback::dispatch(
+                    $event->id,
+                    $request->code,
+                    'invalid_zone',
+                    $accessCode->type ?? 'Desconocido',
+                    $device->id,
+                    $scannedAt->toDateTimeString()
+                );
+
                 return response()->json([
-                    'status' => 'invalid_zone', 
-                    'message' => "Acceso denegado. Este código pertenece a la zona '{$codeSection}', la cual no está habilitada para esta puerta."
+                    'status' => 'invalid_zone',
+                    'message' => "Acceso denegado. Este código pertenece a la zona '{$codeSection}', la cual no está habilitada para esta puerta.",
                 ], 403);
             }
         }
@@ -176,7 +207,7 @@ class AccessControlController extends Controller
         // Success
         $accessCode->update([
             'status' => 'used',
-            'scanned_at' => $scannedAt
+            'scanned_at' => $scannedAt,
         ]);
 
         AccessLog::create([
@@ -189,11 +220,20 @@ class AccessControlController extends Controller
             'scanned_at' => $scannedAt,
         ]);
 
+        SendAccessPostback::dispatch(
+            $event->id,
+            $request->code,
+            'success',
+            $accessCode->type ?? 'Desconocido',
+            $device->id,
+            $scannedAt->toDateTimeString()
+        );
+
         return response()->json([
             'status' => 'success',
             'message' => 'Acceso concedido.',
             'type' => $accessCode->type,
-            'metadata' => $accessCode->metadata
+            'metadata' => $accessCode->metadata,
         ]);
     }
 
@@ -212,7 +252,7 @@ class AccessControlController extends Controller
 
         foreach ($request->logs as $logData) {
             $codeStr = $logData['code'];
-            $scannedAt = Carbon::parse($logData['scanned_at']);
+            $scannedAt = Carbon::parse($logData['scanned_at'])->setTimezone(config('app.timezone'));
 
             $accessCode = AccessCode::where('access_event_id', $event->id)
                 ->where('code', $codeStr)
@@ -221,7 +261,7 @@ class AccessControlController extends Controller
             $result = 'success';
             $codeId = null;
 
-            if (!$accessCode) {
+            if (! $accessCode) {
                 $result = 'invalid';
             } elseif ($accessCode->status === 'used') {
                 $result = 'duplicate';
@@ -230,9 +270,9 @@ class AccessControlController extends Controller
                 $result = 'cancelled';
                 $codeId = $accessCode->id;
             } else {
-                if (!empty($allowedSections)) {
+                if (! empty($allowedSections)) {
                     $codeSection = $accessCode->metadata['details'] ?? '';
-                    if (!in_array($codeSection, $allowedSections)) {
+                    if (! in_array($codeSection, $allowedSections)) {
                         $result = 'invalid_zone';
                         $codeId = $accessCode->id;
                     }
@@ -241,7 +281,7 @@ class AccessControlController extends Controller
                 if ($result === 'success') {
                     $accessCode->update([
                         'status' => 'used',
-                        'scanned_at' => $scannedAt
+                        'scanned_at' => $scannedAt,
                     ]);
                     $codeId = $accessCode->id;
                     $syncedCount++;
@@ -257,11 +297,20 @@ class AccessControlController extends Controller
                 'metadata' => $accessCode ? $accessCode->metadata : null,
                 'scanned_at' => $scannedAt,
             ]);
+
+            SendAccessPostback::dispatch(
+                $event->id,
+                $codeStr,
+                $result,
+                $accessCode ? ($accessCode->type ?? 'Desconocido') : 'Desconocido',
+                $device->id,
+                $scannedAt->toDateTimeString()
+            );
         }
 
         return response()->json([
             'message' => 'Sincronización completada.',
-            'synced_count' => $syncedCount
+            'synced_count' => $syncedCount,
         ]);
     }
 
@@ -271,16 +320,17 @@ class AccessControlController extends Controller
      */
     private function getAllowedSections(int $deviceId, int $eventId): ?array
     {
-        $row = \Illuminate\Support\Facades\DB::table('access_device_event')
+        $row = DB::table('access_device_event')
             ->where('access_device_id', $deviceId)
             ->where('access_event_id', $eventId)
             ->first();
 
-        if (!$row || empty($row->allowed_sections)) {
+        if (! $row || empty($row->allowed_sections)) {
             return null;
         }
 
         $decoded = json_decode($row->allowed_sections, true);
+
         return (is_array($decoded) && count($decoded) > 0) ? $decoded : null;
     }
 }

@@ -47,7 +47,7 @@ class SendCampaignMailJob implements ShouldQueue
             $this->campaign->increment('failed_count');
             $this->checkCompletion();
 
-            Log::error("SendCampaignMailJob failed for recipient [{$this->recipient->email}]: " . $e->getMessage());
+            Log::error("SendCampaignMailJob failed for recipient [{$this->recipient->email}]: ".$e->getMessage());
 
             throw $e; // Dejar que la cola reintente
         }
@@ -60,7 +60,7 @@ class SendCampaignMailJob implements ShouldQueue
 
         if ($processed >= $this->campaign->total_recipients) {
             $this->campaign->update([
-                'status'  => $this->campaign->failed_count > 0 && $this->campaign->sent_count === 0
+                'status' => $this->campaign->failed_count > 0 && $this->campaign->sent_count === 0
                     ? 'failed'
                     : 'sent',
                 'sent_at' => now(),
@@ -76,6 +76,6 @@ class SendCampaignMailJob implements ShouldQueue
         $this->campaign->increment('failed_count');
         $this->checkCompletion();
 
-        Log::error("SendCampaignMailJob permanently failed for [{$this->recipient->email}]: " . $exception->getMessage());
+        Log::error("SendCampaignMailJob permanently failed for [{$this->recipient->email}]: ".$exception->getMessage());
     }
 }

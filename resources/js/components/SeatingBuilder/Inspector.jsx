@@ -43,7 +43,7 @@ const PropertyRow = ({ label, children, info }) => (
     </div>
 );
 
-const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, onAlign, onRedistribute }) => {
+const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, onAlign, onRedistribute, onCaptureSeats }) => {
     const categories = layout?.config?.categories || [];
 
     const handleAddCategory = () => {
@@ -132,7 +132,10 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                 const counts = tableUuids.map(uuid => layout.nodes.filter(n => n.table_uuid === uuid && n.type === 'seat').length);
                 if (counts.length > 0 && counts.every(v => v === counts[0])) commonNumSeats = counts[0];
             }
-
+            
+            const totalSelectedSeats = selectedNodes.filter(n => n.type === 'seat').length;
+            const totalRowSeats = rowUuids.reduce((sum, uuid) => sum + (layout?.nodes?.filter(n => n.row_uuid === uuid).length || 0), 0);
+            const totalTableSeats = tableUuids.reduce((sum, uuid) => sum + (layout?.nodes?.filter(n => n.table_uuid === uuid && n.type === 'seat').length || 0), 0);
 
             const data = {
                 section: getCommon('section'),
@@ -142,7 +145,8 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                 fill: getCommon('fill', '#94a3b8'),
                 radius: getCommon('radius', 10),
                 shape: getCommon('shape', 'circle'),
-                numSeats: commonNumSeats || (rowUuids.length === 0 && tableUuids.length === 0 ? selectedNodes.length : 0),
+                numSeats: commonNumSeats || 0,
+                totalSeats: totalRowSeats || totalTableSeats || totalSelectedSeats || 0,
                 curve: getCommon('curvature', 0),
                 seatSpacing: getCommon('spacing', 35),
                 seatLabelDirection: getCommon('seat_label_direction', 'LR'),
@@ -158,23 +162,10 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                 titlePosition: getCommon('titlePosition', 'top'),
             };
             
-            // If it's a block, we might want to prioritize specific block row start
-            if (rowUuids.length > 1) {
-                // Future: add block-level property detection
-            }
-
             setFormData(prev => ({ ...prev, ...data }));
             setPendingStructural({}); 
         }
-    }, [selectedIdsStr]);
-
-    // Helper to count seats in row
-    function nodesInRow(uuid) {
-        if (!uuid) return selectedNodes.length;
-        // This is a bit hacky as we don't have the full nodes array here, 
-        // but we can assume selectedNodes might represent it if selecting a row.
-        return selectedNodes.filter(n => n.row_uuid === uuid).length;
-    }
+    }, [selectedIdsStr, layout?.nodes]);
 
     const toggleSection = (section) => {
         setSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -195,10 +186,6 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
             onUpdate(pendingStructural);
             setPendingStructural({});
         }
-    };
-
-    const applyStructuralChanges = () => {
-        // Obsolete
     };
 
     if (selectedNodes.length === 0) {
@@ -255,13 +242,13 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
         );
     }
 
-    const hasPending = Object.keys(pendingStructural).length > 0;
+    const showRowProps = selectedNodes.some(n => n.type === 'seat' || n.type === 'table_shape');
+    const showLabeling = selectedNodes.some(n => n.type === 'seat');
 
     return (
         <div className="flex-1 overflow-y-auto px-4 pb-12 space-y-1 animate-in fade-in slide-in-from-right-4 duration-300">
             
-            {/* 0. SECTION CONTAINER SPECIFIC */}
-            {selectedNodes.some(n => n.type === 'section_container') && (
+            {selectedNodes.some(n => ['section_container', 'zone', 'rect_zone', 'circle_zone'].includes(n.type)) && (
                 <>
                 <SectionHeader 
                     title="Configuración de Sección" 
@@ -273,26 +260,43 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     <PropertyRow label="Nombre">
                         <Input 
                             value={formData.name || ''} 
-                            onChange={(e) => handleImmediateChange('name', e.target.value)}
+                            onChange={(e) => handlePendingChange('name', e.target.value)}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20"
                         />
                     </PropertyRow>
-                    <PropertyRow label="Ancho">
-                        <Input 
-                            type="number"
-                            value={formData.width || 0} 
-                            onChange={(e) => handleImmediateChange('width', parseInt(e.target.value))}
-                            className="h-7 text-xs bg-muted/20 text-center"
-                        />
-                    </PropertyRow>
-                    <PropertyRow label="Alto">
-                        <Input 
-                            type="number"
-                            value={formData.height || 0} 
-                            onChange={(e) => handleImmediateChange('height', parseInt(e.target.value))}
-                            className="h-7 text-xs bg-muted/20 text-center"
-                        />
-                    </PropertyRow>
+                    {selectedNodes.some(n => n.type === 'circle_zone') ? (
+                        <PropertyRow label="Radio">
+                            <Input 
+                                type="number"
+                                value={formData.radius || 0} 
+                                onChange={(e) => handlePendingChange('radius', parseInt(e.target.value))}
+                                onBlur={handleStructuralBlur}
+                                className="h-7 text-xs bg-muted/20 text-center"
+                            />
+                        </PropertyRow>
+                    ) : (
+                        <>
+                            <PropertyRow label="Ancho">
+                                <Input 
+                                    type="number"
+                                    value={formData.width || 0} 
+                                    onChange={(e) => handlePendingChange('width', parseInt(e.target.value))}
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 text-xs bg-muted/20 text-center"
+                                />
+                            </PropertyRow>
+                            <PropertyRow label="Alto">
+                                <Input 
+                                    type="number"
+                                    value={formData.height || 0} 
+                                    onChange={(e) => handlePendingChange('height', parseInt(e.target.value))}
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 text-xs bg-muted/20 text-center"
+                                />
+                            </PropertyRow>
+                        </>
+                    )}
                     <PropertyRow label="Color">
                         <div className="flex gap-2">
                              <input 
@@ -323,12 +327,53 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                             <option value="bottom">Abajo</option>
                         </select>
                     </PropertyRow>
+
+                    {selectedNodes.length === 1 && (
+                        <div className="pt-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full h-8 text-[10px] gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+                                onClick={() => onCaptureSeats(selectedNodes[0].id)}
+                            >
+                                <Users className="h-3.5 w-3.5" />
+                                Vincular Asientos en Zona
+                            </Button>
+                        </div>
+                    )}
                 </div>
                 <Separator className="opacity-50" />
                 </>
             )}
 
-            {/* 1. CATEGORY */}
+            {selectedNodes.some(n => n.type === 'seat') && (
+                <>
+                <SectionHeader 
+                    title="Propiedades de Asiento" 
+                    icon={Settings} 
+                    isOpen={sections.category} 
+                    onToggle={() => toggleSection('category')} 
+                />
+                <div className="px-1 py-3 space-y-3 pb-4">
+                    {formData.totalSeats > 0 && (
+                        <div className="flex items-center justify-between py-2 px-3 bg-blue-600/5 rounded-lg border border-blue-600/10 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600/70">Asientos en Selección</span>
+                            <span className="text-sm font-black text-blue-700 font-mono">{formData.totalSeats}</span>
+                        </div>
+                    )}
+                    <PropertyRow label="Sección">
+                        <Input 
+                            value={formData.section || ''} 
+                            onChange={(e) => handlePendingChange('section', e.target.value)}
+                            onBlur={handleStructuralBlur}
+                            className="h-7 text-xs bg-muted/20"
+                        />
+                    </PropertyRow>
+                </div>
+                <Separator className="opacity-50" />
+                </>
+            )}
+
             <SectionHeader 
                 title="Categoría" 
                 icon={Palette} 
@@ -447,7 +492,6 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
 
             <Separator className="opacity-50" />
 
-            {/* STANDING ZONE PROPERTIES */}
             {selectedNodes.some(n => n.type === 'standing') && (
                 <>
                 <SectionHeader 
@@ -460,7 +504,8 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     <PropertyRow label="Nombre">
                         <Input 
                             value={formData.name || ''} 
-                            onChange={(e) => handleImmediateChange('name', e.target.value)}
+                            onChange={(e) => handlePendingChange('name', e.target.value)}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20"
                         />
                     </PropertyRow>
@@ -468,7 +513,8 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         <Input 
                             type="number"
                             value={formData.capacity || 0} 
-                            onChange={(e) => handleImmediateChange('capacity', parseInt(e.target.value))}
+                            onChange={(e) => handlePendingChange('capacity', parseInt(e.target.value))}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center font-mono text-emerald-600 font-bold"
                         />
                     </PropertyRow>
@@ -476,7 +522,8 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         <Input 
                             type="number"
                             value={formData.width || 0} 
-                            onChange={(e) => handleImmediateChange('width', parseInt(e.target.value))}
+                            onChange={(e) => handlePendingChange('width', parseInt(e.target.value))}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center"
                         />
                     </PropertyRow>
@@ -484,16 +531,82 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         <Input 
                             type="number"
                             value={formData.height || 0} 
-                            onChange={(e) => handleImmediateChange('height', parseInt(e.target.value))}
+                            onChange={(e) => handlePendingChange('height', parseInt(e.target.value))}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center"
                         />
                     </PropertyRow>
+                    <PropertyRow label="Color">
+                        <div className="flex gap-2">
+                             <input 
+                                type="color" 
+                                value={formData.fill?.startsWith('rgba') ? '#10b981' : (formData.fill || '#10b981')} 
+                                onChange={(e) => handleImmediateChange('fill', e.target.value)}
+                                className="w-8 h-8 rounded border-none"
+                            />
+                            <div className="flex-1 bg-muted/20 rounded px-2 py-1 text-[10px] items-center flex font-mono">
+                                {formData.fill}
+                            </div>
+                        </div>
+                    </PropertyRow>
+                    <PropertyRow label="Posición Título">
+                        <select 
+                            value={formData.titlePosition || 'top'}
+                            onChange={(e) => handleImmediateChange('titlePosition', e.target.value)}
+                            className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
+                        >
+                            <option value="top">Arriba</option>
+                            <option value="center">Centro</option>
+                            <option value="bottom">Abajo</option>
+                        </select>
+                    </PropertyRow>
+                    <div className="space-y-2 mt-4 pt-4 border-t border-muted/30">
+                        <SectionHeader 
+                            title="Categoría de Precio" 
+                            icon={LayoutList} 
+                            isOpen={sections.category} 
+                            onToggle={() => toggleSection('category')} 
+                            Action={() => (
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleAddCategory}>
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            )}
+                        />
+                        {sections.category && (
+                            <div className="grid grid-cols-1 gap-2 pt-2">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => {
+                                            handleImmediateChange('category_id', cat.id);
+                                            handleImmediateChange('fill', cat.color);
+                                        }}
+                                        className={cn(
+                                            "w-full flex items-center gap-3 p-2 rounded-lg border text-left transition-colors",
+                                            formData.category_id === cat.id ? "border-blue-500 bg-blue-500/10" : "border-transparent hover:bg-muted/50"
+                                        )}
+                                    >
+                                        <div 
+                                            className="h-6 w-6 rounded-md shadow-inner border border-white/20 shrink-0" 
+                                            style={{ backgroundColor: cat.color }}
+                                        />
+                                        <div className="flex-1 overflow-hidden">
+                                            <div className="text-xs font-bold truncate">{cat.name}</div>
+                                        </div>
+                                        {formData.category_id === cat.id && <Check className="h-4 w-4 text-blue-500 shrink-0" />}
+                                    </button>
+                                ))}
+                                {categories.length === 0 && (
+                                    <p className="text-[10px] text-muted-foreground text-center py-2 italic">Crea categorías para asignar precios</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <Separator className="opacity-50" />
                 </>
             )}
 
-            {/* 2. TABLE PROPERTIES */}
             {selectedNodes.some(n => n.type === 'table_shape') && (
                 <>
                 <SectionHeader 
@@ -506,7 +619,8 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     <PropertyRow label="Nombre">
                         <Input 
                             value={formData.name || ''} 
-                            onChange={(e) => handleImmediateChange('name', e.target.value)}
+                            onChange={(e) => handlePendingChange('name', e.target.value)}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20"
                         />
                     </PropertyRow>
@@ -520,15 +634,22 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                             <option value="rect">Cuadrada/Rectangular</option>
                         </select>
                     </PropertyRow>
-                    <PropertyRow label="Número de asientos">
+                    <PropertyRow label="Asientos/Fila" info="Número de asientos en cada fila seleccionada">
                         <Input 
                             type="number"
-                            value={formData.numSeats || ''} 
+                            value={formData.numSeats || 0} 
                             onChange={(e) => handlePendingChange('numSeats', parseInt(e.target.value))}
                             onBlur={handleStructuralBlur}
-                            className="h-7 text-xs bg-muted/20 text-center font-mono"
+                            className="h-7 text-xs bg-muted/20 text-center font-bold"
                         />
                     </PropertyRow>
+
+                    {formData.totalSeats > 0 && (
+                        <div className="flex items-center justify-between py-2 px-3 bg-blue-600/5 rounded-lg border border-blue-600/10 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600/70">Asientos Vinculados</span>
+                            <span className="text-sm font-black text-blue-700 font-mono">{formData.totalSeats}</span>
+                        </div>
+                    )}
                     {formData.shape === 'circle' ? (
                         <PropertyRow label="Radio">
                             <Input 
@@ -566,21 +687,40 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                 </>
             )}
 
-            {/* 3. ROW PROPERTIES */}
-            <SectionHeader 
-                title="Fila" 
-                icon={Hash} 
-                isOpen={sections.row} 
-                onToggle={() => toggleSection('row')} 
-            />
-            {sections.row && (
+            {/* 3. ROW PROPERTIES - Only show if seats or tables selected */}
+            {selectedNodes.some(n => n.type === 'seat' || n.type === 'table_shape') && (
+                <>
+                <SectionHeader 
+                    title="Fila" 
+                    icon={Hash} 
+                    isOpen={sections.row} 
+                    onToggle={() => toggleSection('row')} 
+                />
+                {sections.row && (
                 <div className="px-1 py-2 space-y-1 pb-6">
-                    <PropertyRow label="Número de asientos">
+                    <PropertyRow label="Asientos/Fila" info="Número de asientos en cada fila seleccionada">
                         <Input 
                             type="number" 
-                            value={formData.numSeats} 
+                            value={formData.numSeats || 0} 
                             onChange={(e) => handlePendingChange('numSeats', parseInt(e.target.value))}
-                            className="h-7 text-xs bg-muted/20 text-center font-mono"
+                            onBlur={handleStructuralBlur}
+                            className="h-7 text-xs bg-muted/20 text-center font-bold"
+                        />
+                    </PropertyRow>
+                    
+                    {formData.totalSeats > 0 && (
+                        <div className="flex items-center justify-between py-2 px-3 bg-blue-600/5 rounded-lg border border-blue-600/10 mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600/70">Asientos Vinculados</span>
+                            <span className="text-sm font-black text-blue-700 font-mono">{formData.totalSeats}</span>
+                        </div>
+                    )}
+                    
+                    <PropertyRow label="Fila">
+                        <Input 
+                            value={formData.row || ''} 
+                            onChange={(e) => handlePendingChange('row', e.target.value)}
+                            onBlur={handleStructuralBlur}
+                            className="h-7 text-xs bg-muted/20 text-center font-bold"
                         />
                     </PropertyRow>
                     <PropertyRow label="Curva">
@@ -588,15 +728,17 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                             type="number" 
                             value={formData.curve} 
                             onChange={(e) => handlePendingChange('curve', parseFloat(e.target.value))}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center font-mono"
                         />
                     </PropertyRow>
-                    <PropertyRow label="Espaciado asiento">
+                    <PropertyRow label="Espaciado">
                         <div className="flex items-center gap-1">
                             <Input 
                                 type="number" 
                                 value={formData.seatSpacing} 
                                 onChange={(e) => handlePendingChange('seatSpacing', parseInt(e.target.value))}
+                                onBlur={handleStructuralBlur}
                                 className="h-7 text-xs bg-muted/20 text-center font-mono"
                             />
                             <span className="text-[10px] text-muted-foreground">px</span>
@@ -605,40 +747,43 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     
 
                 </div>
+                )}
+                <Separator className="opacity-50" />
+                </>
             )}
 
-            <Separator className="opacity-50" />
-
-            {/* 4. ROW LABELING */}
-            <SectionHeader 
-                title="Etiquetado de Fila" 
-                icon={Languages} 
-                isOpen={sections.rowLabeling} 
-                onToggle={() => toggleSection('rowLabeling')} 
-                Action={() => (
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // Reset row labeling to defaults
-                            const defaults = {
-                                rowLabelEnabled: true,
-                                rowLabelPosition: 'both',
-                                rowLabelOverride: '',
-                                rowLabelDisplayType: 'Row'
-                            };
-                            handleUpdateNodes(defaults);
-                        }}
-                        className="text-[10px] flex items-center gap-1 text-muted-foreground hover:text-foreground font-medium"
-                    >
-                        <Trash2 className="h-3 w-3" /> Limpiar
-                    </button>
-                )}
-            />
-            {sections.rowLabeling && (
+            {/* 4. ROW LABELING - Only show if seats selected */}
+            {selectedNodes.some(n => n.type === 'seat') && (
+                <>
+                <SectionHeader 
+                    title="Etiquetado de Fila" 
+                    icon={Languages} 
+                    isOpen={sections.rowLabeling} 
+                    onToggle={() => toggleSection('rowLabeling')} 
+                    Action={() => (
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                // Reset row labeling to defaults
+                                const defaults = {
+                                    rowLabelEnabled: true,
+                                    rowLabelPosition: 'both',
+                                    rowLabelOverride: '',
+                                    rowLabelDisplayType: 'Row'
+                                };
+                                onUpdate(defaults);
+                            }}
+                            className="text-[10px] flex items-center gap-1 text-muted-foreground hover:text-foreground font-medium"
+                        >
+                            <Trash2 className="h-3 w-3" /> Limpiar
+                        </button>
+                    )}
+                />
+                {sections.rowLabeling && (
                 <div className="px-1 py-2 space-y-1 pb-6">
                     <PropertyRow label="Habilitado">
                         <Checkbox 
-                            checked={formData.rowLabelEnabled}
+                            checked={formData.rowLabelEnabled ?? false}
                             onCheckedChange={(val) => handlePendingChange('rowLabelEnabled', val)}
                         />
                     </PropertyRow>
@@ -649,9 +794,9 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                             onChange={(e) => {
                                 const type = e.target.value;
                                 const defaultStart = type === 'ABC' ? 'A' : '1';
-                                handlePendingChange('rowLabelType', type);
-                                handlePendingChange('row', defaultStart);
-                                handlePendingChange('rowLabelStart', defaultStart);
+                                handleImmediateChange('rowLabelType', type);
+                                handleImmediateChange('row', defaultStart);
+                                handleImmediateChange('rowLabelStart', defaultStart);
                             }}
                             className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
                         >
@@ -660,18 +805,19 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         </select>
                     </PropertyRow>
 
-                    <PropertyRow label="Etiqueta Visual" info="Sobreescribe la letra de la fila">
+                    <PropertyRow label="Sobreescribir Etiqueta" info="Nombre personalizado que oculta la letra de la fila (ej: 'VIP 1')">
                         <div className="flex gap-1">
                             <Input 
                                 value={formData.rowLabelOverride} 
                                 onChange={(e) => handlePendingChange('rowLabelOverride', e.target.value)}
+                                onBlur={handleStructuralBlur}
                                 className="h-7 text-xs bg-muted/20"
                                 placeholder="Automático"
                             />
                         </div>
                     </PropertyRow>
 
-                    <PropertyRow label="Empieza en">
+                    <PropertyRow label="Identificador Fila" info="La letra o número real de esta fila (A, B, 1, 2...)">
                         <div className="flex items-center gap-1">
                             <Button 
                                 variant="outline" 
@@ -689,6 +835,7 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                                     handlePendingChange('row', e.target.value);
                                     handlePendingChange('rowLabelStart', e.target.value);
                                 }}
+                                onBlur={handleStructuralBlur}
                                 className="h-7 text-xs bg-muted/20 text-center font-mono flex-1"
                             />
                              <Button 
@@ -701,10 +848,20 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         </div>
                     </PropertyRow>
 
+                    <PropertyRow label="Fila empieza">
+                        <Input 
+                            value={formData.rowLabelStart || ''} 
+                            onChange={(e) => handlePendingChange('rowLabelStart', e.target.value)}
+                            onBlur={handleStructuralBlur}
+                            className="h-7 text-xs bg-muted/20 text-center font-mono font-bold"
+                        />
+                    </PropertyRow>
+
                     <PropertyRow label="Saltar">
                          <Input 
                             value={formData.rowLabelSkip} 
                             onChange={(e) => handleImmediateChange('rowLabelSkip', e.target.value)}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center font-mono text-blue-500 font-bold"
                             placeholder="I,O,Q"
                         />
@@ -715,7 +872,7 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                             variant={formData.seatLabelDirection === 'RL' ? 'default' : 'outline'}
                             size="sm"
                             className="h-7 w-full text-[10px] gap-1"
-                            onClick={() => handlePendingChange('seatLabelDirection', formData.seatLabelDirection === 'LR' ? 'RL' : 'LR')}
+                            onClick={() => handleImmediateChange('seatLabelDirection', formData.seatLabelDirection === 'LR' ? 'RL' : 'LR')}
                         >
                             <ArrowLeftRight className="h-3.5 w-3.5" />
                             Invertir
@@ -725,21 +882,21 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     <PropertyRow label="Posición">
                         <div className="flex bg-muted/20 rounded p-0.5">
                             <button 
-                                onClick={() => handlePendingChange('rowLabelPosition', 'left')}
+                                onClick={() => handleImmediateChange('rowLabelPosition', 'left')}
                                 className={cn(
                                     "flex-1 h-7 text-[10px] rounded flex items-center justify-center font-bold",
                                     formData.rowLabelPosition === 'left' ? "bg-background shadow-sm text-blue-600" : "text-muted-foreground"
                                 )}
                             >A</button>
                             <button 
-                                onClick={() => handlePendingChange('rowLabelPosition', 'both')}
+                                onClick={() => handleImmediateChange('rowLabelPosition', 'both')}
                                 className={cn(
                                     "flex-1 h-7 text-[10px] rounded flex items-center justify-center font-bold border-l border-r border-muted",
                                     formData.rowLabelPosition === 'both' ? "bg-background shadow-sm text-blue-600" : "text-muted-foreground"
                                 )}
                             >A-A</button>
                             <button 
-                                onClick={() => handlePendingChange('rowLabelPosition', 'right')}
+                                onClick={() => handleImmediateChange('rowLabelPosition', 'right')}
                                 className={cn(
                                     "flex-1 h-7 text-[10px] rounded flex items-center justify-center font-bold",
                                     formData.rowLabelPosition === 'right' ? "bg-background shadow-sm text-blue-600" : "text-muted-foreground"
@@ -751,7 +908,7 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     <PropertyRow label="Mostrar tipo">
                         <select 
                             value={formData.rowLabelDisplayType}
-                            onChange={(e) => handlePendingChange('rowLabelDisplayType', e.target.value)}
+                            onChange={(e) => handleImmediateChange('rowLabelDisplayType', e.target.value)}
                             className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
                         >
                             <option value="Row">Fila</option>
@@ -760,23 +917,26 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         </select>
                     </PropertyRow>
                 </div>
+                )}
+                <Separator className="opacity-50" />
+                </>
             )}
 
-            <Separator className="opacity-50" />
-
-            {/* 5. SEAT LABELING */}
-            <SectionHeader 
-                title="Etiquetado de Asiento" 
-                icon={Navigation} 
-                isOpen={sections.seatLabeling} 
-                onToggle={() => toggleSection('seatLabeling')} 
-            />
-            {sections.seatLabeling && (
+            {/* 5. SEAT LABELING - Only show if seats selected */}
+            {selectedNodes.some(n => n.type === 'seat') && (
+                <>
+                <SectionHeader 
+                    title="Etiquetado de Asiento" 
+                    icon={Navigation} 
+                    isOpen={sections.seatLabeling} 
+                    onToggle={() => toggleSection('seatLabeling')} 
+                />
+                {sections.seatLabeling && (
                 <div className="px-1 py-2 space-y-1 pb-6">
                     <PropertyRow label="Tipo Numeración">
                         <select 
                             value={formData.seatLabelType}
-                            onChange={(e) => handlePendingChange('seatLabelType', e.target.value)}
+                            onChange={(e) => handleImmediateChange('seatLabelType', e.target.value)}
                             className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
                         >
                             <option value="123">Secuencial (1, 2, 3...)</option>
@@ -786,16 +946,16 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                     </PropertyRow>
                     <PropertyRow label="Empieza en">
                         <Input 
-                            type="number"
-                            value={formData.seatLabelStart} 
-                            onChange={(e) => handlePendingChange('seatLabelStart', parseInt(e.target.value))}
+                            value={formData.seatLabelStart || ''} 
+                            onChange={(e) => handlePendingChange('seatLabelStart', e.target.value)}
+                            onBlur={handleStructuralBlur}
                             className="h-7 text-xs bg-muted/20 text-center font-mono"
                         />
                     </PropertyRow>
                     <PropertyRow label="Dirección">
                         <select 
                             value={formData.seatLabelDirection}
-                            onChange={(e) => handlePendingChange('seatLabelDirection', e.target.value)}
+                            onChange={(e) => handleImmediateChange('seatLabelDirection', e.target.value)}
                             className="w-full h-7 text-[11px] rounded bg-muted/20 border-none outline-none px-2"
                         >
                             <option value="LR">Izq → Der</option>
@@ -803,9 +963,10 @@ const Inspector = ({ layout, onUpdateConfig, selectedNodes, onUpdate, onDelete, 
                         </select>
                     </PropertyRow>
                 </div>
+                )}
+                <Separator className="opacity-50" />
+                </>
             )}
-
-            <Separator className="opacity-50" />
 
             {/* ACTIONS */}
             <div className="pt-8 space-y-3">

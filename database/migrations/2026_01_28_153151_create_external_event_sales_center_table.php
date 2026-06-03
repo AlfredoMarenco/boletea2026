@@ -21,14 +21,14 @@ return new class extends Migration
         // Migrate Data
         $events = \App\Models\ExternalEvent::all();
         foreach ($events as $event) {
-            if (!empty($event->sales_centers)) {
+            if (! empty($event->sales_centers)) {
                 $idsToAttach = [];
                 foreach ($event->sales_centers as $item) {
                     if (is_numeric($item)) {
                         // It's an existing ID
                         $idsToAttach[] = $item;
                     } elseif (is_string($item)) {
-                        // It's a legacy string, create a Sales Center for it if it doesn't match a known name? 
+                        // It's a legacy string, create a Sales Center for it if it doesn't match a known name?
                         // Or just create it to be safe. We'll check if exists by name to avoid duplicates.
                         $center = \App\Models\SalesCenter::firstOrCreate(
                             ['name' => $item],
@@ -38,7 +38,7 @@ return new class extends Migration
                     }
                 }
 
-                if (!empty($idsToAttach)) {
+                if (! empty($idsToAttach)) {
                     // We need to use DB facade or a raw insert because the relationship doesn't exist yet on the model
                     // actually we can just insert into the pivot table directly
                     foreach (array_unique($idsToAttach) as $scId) {

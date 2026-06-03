@@ -9,7 +9,6 @@ use App\Models\MailingCampaign;
 use App\Models\MailingList;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,6 +22,7 @@ class MailingController extends Controller
     public function audiencesIndex(): Response
     {
         $audiences = MailingAudience::withCount('contacts')->orderBy('name')->get();
+
         return Inertia::render('Admin/Mailing/Audiences', [
             'audiences' => $audiences,
         ]);
@@ -31,7 +31,7 @@ class MailingController extends Controller
     public function audiencesStore(Request $request)
     {
         $request->validate([
-            'name'        => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:500',
         ]);
 
@@ -43,6 +43,7 @@ class MailingController extends Controller
     public function audiencesDestroy(MailingAudience $audience)
     {
         $audience->delete();
+
         return back()->with('success', 'Lista eliminada (los contactos permanecen).');
     }
 
@@ -53,11 +54,11 @@ class MailingController extends Controller
     public function contactsIndex(Request $request): Response
     {
         $audienceId = $request->input('audience_id');
-        
+
         $query = MailingList::with('audiences')->orderBy('name');
 
         if ($audienceId) {
-            $query->whereHas('audiences', function($q) use ($audienceId) {
+            $query->whereHas('audiences', function ($q) use ($audienceId) {
                 $q->where('mailing_audiences.id', $audienceId);
             });
         }
@@ -74,10 +75,10 @@ class MailingController extends Controller
     public function contactsStore(Request $request)
     {
         $request->validate([
-            'name'         => 'required|string|max:255',
-            'email'        => 'required|email|unique:mailing_lists,email',
-            'zone'         => 'nullable|string|max:100',
-            'audience_id'  => 'required|exists:mailing_audiences,id',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:mailing_lists,email',
+            'zone' => 'nullable|string|max:100',
+            'audience_id' => 'required|exists:mailing_audiences,id',
         ]);
 
         $contact = MailingList::create($request->only('name', 'email', 'zone'));
@@ -89,31 +90,33 @@ class MailingController extends Controller
     public function contactsImport(Request $request)
     {
         $request->validate([
-            'csv_file'    => 'required|file|mimes:csv,txt|max:5120',
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
             'audience_id' => 'required|exists:mailing_audiences,id',
         ]);
 
-        $file       = $request->file('csv_file');
+        $file = $request->file('csv_file');
         $audienceId = $request->audience_id;
-        $handle     = fopen($file->getRealPath(), 'r');
-        $header     = fgetcsv($handle); 
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = fgetcsv($handle);
 
         $imported = 0;
-        $skipped  = 0;
+        $skipped = 0;
 
         DB::transaction(function () use ($handle, $audienceId, &$imported, &$skipped) {
             while (($row = fgetcsv($handle)) !== false) {
                 if (count($row) < 1) {
                     $skipped++;
+
                     continue;
                 }
 
                 [$email, $name, $zone] = array_pad($row, 3, null);
                 $email = trim(strtolower($email ?? ''));
-                $name  = $name ? trim($name) : explode('@', $email)[0];
+                $name = $name ? trim($name) : explode('@', $email)[0];
 
                 if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $skipped++;
+
                     continue;
                 }
 
@@ -138,12 +141,14 @@ class MailingController extends Controller
     public function contactsDestroy(MailingList $contact)
     {
         $contact->delete();
+
         return back()->with('success', 'Contacto eliminado.');
     }
 
     public function contactsToggle(MailingList $contact)
     {
         $contact->update(['active' => ! $contact->active]);
+
         return back()->with('success', 'Estado actualizado.');
     }
 
@@ -151,18 +156,19 @@ class MailingController extends Controller
     {
         $request->validate(['ids' => 'required|array']);
         MailingList::whereIn('id', $request->ids)->delete();
+
         return back()->with('success', 'Contactos eliminados correctamente.');
     }
 
     public function contactsBulkAssign(Request $request)
     {
         $request->validate([
-            'ids'         => 'required|array',
-            'audience_id' => 'required|exists:mailing_audiences,id'
+            'ids' => 'required|array',
+            'audience_id' => 'required|exists:mailing_audiences,id',
         ]);
 
         $audience = MailingAudience::findOrFail($request->audience_id);
-        
+
         foreach ($request->ids as $id) {
             $contact = MailingList::findOrFail($id);
             if (! $contact->audiences()->where('mailing_audiences.id', $audience->id)->exists()) {
@@ -190,19 +196,19 @@ class MailingController extends Controller
     {
         return Inertia::render('Admin/Mailing/CampaignForm', [
             'audiences' => MailingAudience::withCount('contacts')->orderBy('name')->get(),
-            'defaultMessage' => "",
+            'defaultMessage' => '',
         ]);
     }
 
     public function campaignsStore(Request $request)
     {
         $request->validate([
-            'name'                => 'required|string|max:255',
-            'subject'             => 'required|string|max:255',
-            'message'             => 'required|string',
+            'name' => 'required|string|max:255',
+            'subject' => 'required|string|max:255',
+            'message' => 'required|string',
             'mailing_audience_id' => 'required|exists:mailing_audiences,id',
-            'event_name'          => 'nullable|string|max:255',
-            'image'               => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'event_name' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
         ]);
 
         $imagePath = null;
@@ -211,16 +217,16 @@ class MailingController extends Controller
         }
 
         $campaign = MailingCampaign::create([
-            'name'                => $request->name,
-            'subject'             => $request->subject,
-            'message'             => $request->message,
+            'name' => $request->name,
+            'subject' => $request->subject,
+            'message' => $request->message,
             'mailing_audience_id' => $request->mailing_audience_id,
-            'event_name'          => $request->event_name,
-            'image_path'          => $imagePath,
-            'status'              => 'draft',
-            'total_recipients'    => 0,
-            'sent_count'          => 0,
-            'failed_count'        => 0,
+            'event_name' => $request->event_name,
+            'image_path' => $imagePath,
+            'status' => 'draft',
+            'total_recipients' => 0,
+            'sent_count' => 0,
+            'failed_count' => 0,
         ]);
 
         return redirect()
@@ -234,7 +240,7 @@ class MailingController extends Controller
         $totalContacts = $campaign->audience ? $campaign->audience->contacts()->active()->count() : 0;
 
         return Inertia::render('Admin/Mailing/CampaignShow', [
-            'campaign'      => $campaign,
+            'campaign' => $campaign,
             'totalContacts' => $totalContacts,
         ]);
     }
@@ -256,11 +262,11 @@ class MailingController extends Controller
         }
 
         $campaign->update([
-            'status'           => 'queued',
+            'status' => 'queued',
             'total_recipients' => $recipients->count(),
-            'sent_count'       => 0,
-            'failed_count'     => 0,
-            'sent_at'          => null,
+            'sent_count' => 0,
+            'failed_count' => 0,
+            'sent_at' => null,
         ]);
 
         foreach ($recipients as $recipient) {

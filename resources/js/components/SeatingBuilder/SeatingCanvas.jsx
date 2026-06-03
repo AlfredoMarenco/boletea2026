@@ -193,13 +193,9 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
     const [nodes, setNodes] = useState(layout?.nodes || []);
     const [selectedIds, setSelectedIds] = useState([]);
     const [drawingPoints, setDrawingPoints] = useState([]); // For polygon drawing
-<<<<<<< HEAD
-
-=======
     const [currentMousePos, setCurrentMousePos] = useState(null);
     const [editingPolygonId, setEditingPolygonId] = useState(null);
     
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
     // Row Drawing State
     const [isDrawingRow, setIsDrawingRow] = useState(false);
     const [rowStartPos, setRowStartPos] = useState(null);
@@ -223,13 +219,8 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             setEditingPolygonId(null);
         }
         selectedIdsRef.current = selectedIds;
-<<<<<<< HEAD
-    }, [selectedIds]);
-
-=======
     }, [selectedIds, editingPolygonId]);
     
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
     // Global drag start positions map: { id: { x, y } }
     const dragStartRef = useRef({});
     // History (Undo/Redo)
@@ -487,19 +478,12 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         const curveY = config.curvature * Math.pow(cOffset, 2) * (config.spacing / 10);
                         const rx = lx * Math.cos(angle) - curveY * Math.sin(angle);
                         const ry = lx * Math.sin(angle) + curveY * Math.cos(angle);
-<<<<<<< HEAD
-                        return {
-                            ...seat,
-                            x: anchor.x + rx,
-                            y: anchor.y + ry,
-=======
                         return { 
                             ...seat, 
                             id: seatId,
                             permanent_uuid: permUuid,
                             x: anchor.x + rx, 
                             y: anchor.y + ry, 
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                             curvature: config.curvature,
                             seat_label_direction: config.seatLabelDirection,
                             row_label_enabled: config.rowLabelEnabled,
@@ -911,11 +895,8 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
             return;
         }
 
-<<<<<<< HEAD
-=======
         // The section_container and standing tools are now drawing tools handled above
         
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
         const isStage = e.target === stage || e.target.name() === 'grid' || e.target.name() === 'background';
         if (isStage) {
             setSelectedIds([]);
@@ -1276,231 +1257,29 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                     )}
                 </Layer>
                 <Layer name="zones">
-<<<<<<< HEAD
-                    {nodes.filter(n => ['rect_zone', 'circle_zone', 'zone', 'section_container'].includes(n.type)).map(node => (
-                        <Group
-                            key={node.id}
-                            id={node.id}
-                            x={node.x || 0}
-                            y={node.y || 0}
-                            draggable={mode === 'edit'}
-                            onClick={handleClick}
-                            onTap={handleClick}
-                            onDragStart={(e) => {
-                                if (e.target.id() !== node.id) return;
-                                const contained = nodesRef.current.filter(n =>
-                                    n.type === 'seat' && isPointInRect(n.x, n.y, node.x, node.y, node.width || 400, node.height || 300)
-                                );
-                                const startMap = {};
-                                contained.forEach(n => {
-                                    startMap[n.id] = { x: n.x, y: n.y };
-                                });
-                                dragStartRef.current = startMap;
-                                e.target.setAttr('dragStartX', node.x);
-                                e.target.setAttr('dragStartY', node.y);
-                            }}
-                            onDragMove={(e) => {
-                                if (e.target.id() !== node.id || !dragStartRef.current) return;
-                                const dx = e.target.x() - (e.target.getAttr('dragStartX') || node.x);
-                                const dy = e.target.y() - (e.target.getAttr('dragStartY') || node.y);
-
-                                const layer = e.target.getLayer();
-                                Object.keys(dragStartRef.current).forEach(id => {
-                                    const seatNode = layer.findOne('#' + id);
-                                    const startPos = dragStartRef.current[id];
-                                    if (seatNode && startPos) {
-                                        seatNode.x(startPos.x + dx);
-                                        seatNode.y(startPos.y + dy);
-                                    }
-                                });
-                            }}
-                            onDragEnd={(e) => {
-                                if (e.target.id() !== node.id) return;
-                                const dx = e.target.x() - (e.target.getAttr('dragStartX') || node.x);
-                                const dy = e.target.y() - (e.target.getAttr('dragStartY') || node.y);
-
-                                const updatedNodes = nodesRef.current.map(n => {
-                                    if (n.id === node.id) return { ...n, x: e.target.x(), y: e.target.y() };
-                                    if (dragStartRef.current[n.id]) {
-                                        const start = dragStartRef.current[n.id];
-                                        return { ...n, x: start.x + dx, y: start.y + dy };
-                                    }
-                                    return n;
-                                });
-                                setNodes(updatedNodes);
-                                pushToHistory(updatedNodes);
-                                onChange({ ...layout, nodes: updatedNodes });
-                                dragStartRef.current = {};
-                            }}
-                        >
-                            {node.type === 'section_container' && (
-                                <Rect
-                                    width={node.width || 400}
-                                    height={node.height || 300}
-                                    fill={node.fill || 'rgba(59, 130, 246, 0.1)'}
-                                    stroke={selectedIds.includes(node.id) ? '#3b82f6' : (node.stroke || '#cbd5e1')}
-                                    strokeWidth={selectedIds.includes(node.id) ? 3 : 2}
-                                    dash={selectedIds.includes(node.id) ? null : [10, 5]}
-                                    cornerRadius={8}
-                                />
-                            )}
-
-                            {node.type === 'rect_zone' && (
-                                <Rect
-                                    width={node.width || 200}
-                                    height={node.height || 150}
-                                    fill={selectedIds.includes(node.id) ? 'rgba(59, 130, 246, 0.2)' : 'rgba(148, 163, 184, 0.1)'}
-                                    stroke={selectedIds.includes(node.id) ? '#3b82f6' : '#94a3b8'}
-                                    strokeWidth={2}
-                                    cornerRadius={4}
-                                />
-                            )}
-                            {node.type === 'circle_zone' && (
-                                <Circle
-                                    radius={node.radius || 100}
-                                    fill={selectedIds.includes(node.id) ? 'rgba(236, 72, 153, 0.2)' : 'rgba(148, 163, 184, 0.1)'}
-                                    stroke={selectedIds.includes(node.id) ? '#ec4899' : '#94a3b8'}
-                                    strokeWidth={2}
-                                />
-                            )}
-                            {node.type === 'zone' && (
-                                <Line
-                                    points={node.points}
-                                    fill={selectedIds.includes(node.id) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(148, 163, 184, 0.1)'}
-                                    stroke={selectedIds.includes(node.id) ? '#10b981' : '#94a3b8'}
-                                    strokeWidth={2}
-                                    closed={true}
-                                />
-                            )}
-                            <Text
-                                text={node.type === 'section_container' ? (node.name?.toUpperCase() || 'SECCIÓN') : (node.name || 'Nueva Área')}
-                                fontSize={node.type === 'section_container' ? 16 : 14}
-                                y={-20}
-                                fill={node.type === 'section_container' ? (node.stroke || '#3b82f6') : "#64748b"}
-                                fontStyle="bold"
-                                listening={false}
-                            />
-                        </Group>
-                    ))}
-                </Layer>
-                <Layer name="seats">
-                    {nodes.map((node) => {
-                        if (node.type === 'seat') {
-                            return (
-                                <Group
-                                    key={node.id}
-                                    id={node.id}
-                                    name="selectable"
-                                    x={node.x}
-                                    y={node.y}
-                                    onMouseEnter={() => mode === 'preview' && setHoveredId(node.id)}
-                                    onMouseLeave={() => mode === 'preview' && setHoveredId(null)}
-                                    draggable={mode === 'edit'}
-                                    transformsEnabled="position"
-                                    perfectDrawEnabled={false}
-=======
                     {zones.map(node => {
-                        if (node.type === 'section_container') {
+                        if (['section_container', 'zone', 'rect_zone', 'circle_zone'].includes(node.type)) {
                             return (
                                 <SectionNode 
                                     key={node.id}
                                     node={node}
+                                    stageScale={stageScale}
                                     isSelected={selectedIds.includes(node.id)}
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                                     onDragStart={(e) => {
                                         if (e.target.id() !== node.id) return;
                                         const contained = nodesRef.current.filter(n => n.type === 'seat' && n.section === node.name);
                                         const startMap = {};
-<<<<<<< HEAD
-                                        const layer = e.target.getLayer();
-
-                                        // PERFORMANCE: Pre-map all Konva nodes in this layer to avoid repeated findOne
-                                        const konvaNodesMap = {};
-                                        layer.getChildren().forEach(child => {
-                                            const cid = child.id();
-                                            if (cid) konvaNodesMap[cid] = child;
-                                        });
-
-                                        if (selectedIdsRef.current.includes(node.id)) {
-                                            selectedIdsRef.current.forEach(id => {
-                                                const n = nodesRef.current.find(item => item.id === id);
-                                                if (n) {
-                                                    startMap[id] = {
-                                                        x: n.x,
-                                                        y: n.y,
-                                                        konvaNode: konvaNodesMap[id]
-                                                    };
-
-                                                    // Identify and cache row labels for real-time movement
-                                                    if (n.row_uuid) {
-                                                        const leftLabel = konvaNodesMap[`label-L-${n.row_uuid}`];
-                                                        const rightLabel = konvaNodesMap[`label-R-${n.row_uuid}`];
-                                                        if (leftLabel && !startMap[`label-L-${n.row_uuid}`]) {
-                                                            startMap[`label-L-${n.row_uuid}`] = { x: leftLabel.x(), y: leftLabel.y(), konvaNode: leftLabel };
-                                                        }
-                                                        if (rightLabel && !startMap[`label-R-${n.row_uuid}`]) {
-                                                            startMap[`label-R-${n.row_uuid}`] = { x: rightLabel.x(), y: rightLabel.y(), konvaNode: rightLabel };
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        } else {
-                                            startMap[node.id] = {
-                                                x: node.x,
-                                                y: node.y,
-                                                konvaNode: e.target
-                                            };
-                                        }
-=======
                                         contained.forEach(n => { startMap[n.id] = { x: n.x, y: n.y }; });
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                                         dragStartRef.current = startMap;
                                         e.target.setAttr('dragStartX', node.x);
                                         e.target.setAttr('dragStartY', node.y);
                                     }}
                                     onDragMove={(e) => {
-<<<<<<< HEAD
-                                        const isSelected = selectedIdsRef.current.includes(node.id);
-                                        if (!isSelected) return;
-
-                                        let rawX = e.target.x();
-                                        let rawY = e.target.y();
-
-                                        // PERFORMANCE: Only calculate guides for smaller selections
-                                        const selectionSize = Object.keys(dragStartRef.current).length;
-                                        if (selectionSize < 20) {
-                                            const activeGuides = [];
-                                            // Limit guide search to a small window or sample
-                                            nodesRef.current.forEach((other, idx) => {
-                                                if (other.id === node.id || selectedIdsRef.current.includes(other.id)) return;
-                                                if (other.type !== 'seat' || (nodesRef.current.length > 200 && idx % 2 !== 0)) return;
-
-                                                if (Math.abs(rawX - other.x) < 5) {
-                                                    rawX = other.x;
-                                                    activeGuides.push({ orientation: 'V', pos: other.x });
-                                                }
-                                                if (Math.abs(rawY - other.y) < 5) {
-                                                    rawY = other.y;
-                                                    activeGuides.push({ orientation: 'H', pos: other.y });
-                                                }
-                                            });
-                                            if (activeGuides.length > 0) setGuides(activeGuides.slice(0, 2));
-                                        }
-
-                                        e.target.x(rawX);
-                                        e.target.y(rawY);
-
-                                        const dx = rawX - (e.target.getAttr('dragStartX') || node.x);
-                                        const dy = rawY - (e.target.getAttr('dragStartY') || node.y);
-
-                                        // Move other selected nodes using CACHED REFS
-=======
                                         if (e.target.id() !== node.id || !dragStartRef.current) return;
                                         const dx = e.target.x() - (e.target.getAttr('dragStartX') || node.x);
                                         const dy = e.target.y() - (e.target.getAttr('dragStartY') || node.y);
                                         const layer = e.target.getLayer();
                                         const seatLayer = layer.getStage().findOne('.seats');
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                                         Object.keys(dragStartRef.current).forEach(id => {
                                             const seatNode = seatLayer.findOne('#' + id);
                                             const startPos = dragStartRef.current[id];
@@ -1511,31 +1290,6 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                         });
                                     }}
                                     onDragEnd={(e) => {
-<<<<<<< HEAD
-                                        setGuides([]);
-                                        e.cancelBubble = true;
-                                        let finalX = e.target.x();
-                                        let finalY = e.target.y();
-
-                                        const dx = finalX - (e.target.getAttr('dragStartX') || node.x);
-                                        const dy = finalY - (e.target.getAttr('dragStartY') || node.y);
-                                        let updatedNodes = [...nodesRef.current];
-
-                                        if (selectedIdsRef.current.includes(node.id)) {
-                                            updatedNodes = nodesRef.current.map(n => {
-                                                if (selectedIdsRef.current.includes(n.id)) {
-                                                    const start = dragStartRef.current[n.id] || { x: n.x, y: n.y };
-                                                    return { ...n, x: start.x + dx, y: start.y + dy };
-                                                }
-                                                return n;
-                                            });
-                                        } else {
-                                            updatedNodes = nodesRef.current.map(n =>
-                                                n.id === node.id ? { ...n, x: finalX, y: finalY } : n
-                                            );
-                                        }
-
-=======
                                         if (e.target.id() !== node.id) return;
                                         const dx = e.target.x() - (e.target.getAttr('dragStartX') || node.x);
                                         const dy = e.target.y() - (e.target.getAttr('dragStartY') || node.y);
@@ -1547,43 +1301,11 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                             }
                                             return n;
                                         });
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                                         setNodes(updatedNodes);
                                         pushToHistory(updatedNodes);
                                         onChange({ ...layout, nodes: updatedNodes });
                                         dragStartRef.current = {};
                                     }}
-<<<<<<< HEAD
-                                >
-                                    <Circle
-                                        id={node.id}
-                                        radius={mode === 'preview' && hoveredId === node.id ? node.radius * 1.2 : node.radius}
-                                        fill={
-                                            mode === 'edit'
-                                                ? (selectedIds.includes(node.id) ? '#fbbf24' : '#e2e8f0')
-                                                : (cart.includes(node.id) ? '#10b981' : (hoveredId === node.id ? '#60a5fa' : '#e2e8f0'))
-                                        }
-                                        stroke={selectedIds.includes(node.id) ? '#d97706' : '#94a3b8'}
-                                        strokeWidth={1.5}
-                                        name="selectable"
-                                        perfectDrawEnabled={false}
-                                        shadowForStrokeEnabled={false}
-                                        listening={true}
-                                    />
-                                    <Text
-                                        text={`${node.number}`}
-                                        fontSize={node.radius * 0.8}
-                                        x={-node.radius}
-                                        y={-node.radius / 1.7}
-                                        fill="#475569"
-                                        align="center"
-                                        verticalAlign="middle"
-                                        width={node.radius * 2}
-                                        fontStyle="bold"
-                                        listening={false}
-                                    />
-                                </Group>
-=======
                                     onTransformEnd={(e) => {
                                         const n = e.target;
                                         const updatedNodes = nodesRef.current.map(item => 
@@ -1600,6 +1322,7 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 <StandingNode 
                                     key={node.id}
                                     node={node}
+                                    stageScale={stageScale}
                                     isSelected={selectedIds.includes(node.id)}
                                     onDragEnd={(e) => {
                                         const updatedNodes = nodesRef.current.map(n => 
@@ -1609,18 +1332,22 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                         pushToHistory(updatedNodes);
                                         onChange({ ...layout, nodes: updatedNodes });
                                     }}
+                                    onTransformEnd={(e) => {
+                                        const n = e.target;
+                                        const updatedNodes = nodesRef.current.map(item => 
+                                            item.id === node.id ? { ...item, x: n.x(), y: n.y(), scaleX: n.scaleX(), scaleY: n.scaleY() } : item
+                                        );
+                                        setNodes(updatedNodes);
+                                        onChange({ ...layout, nodes: updatedNodes });
+                                    }}
                                 />
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                             );
                         }
                         return null;
                     })}
-<<<<<<< HEAD
-
-=======
                 </Layer>
                 <Layer name="seats" className="seats">
-                    {seats.map((node) => (
+                    {stageScale > 0.5 && seats.map((node) => (
                         <SeatNode 
                             key={node.id}
                             node={node}
@@ -1669,8 +1396,35 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                             }}
                             onDragMove={(e) => {
                                 if (!dragStartRef.current) return;
-                                const dx = e.target.x() - (e.target.getAttr('dragStartX') || dragStartRef.current[node.id].x);
-                                const dy = e.target.y() - (e.target.getAttr('dragStartY') || dragStartRef.current[node.id].y);
+                                
+                                let rawX = e.target.x();
+                                let rawY = e.target.y();
+
+                                // PERFORMANCE: Only calculate guides for smaller selections
+                                const selectionSize = Object.keys(dragStartRef.current).length;
+                                if (selectionSize < 20) {
+                                    const activeGuides = [];
+                                    nodesRef.current.forEach((other, idx) => {
+                                        if (other.id === node.id || selectedIdsRef.current.includes(other.id)) return;
+                                        if (other.type !== 'seat' || (nodesRef.current.length > 200 && idx % 2 !== 0)) return;
+
+                                        if (Math.abs(rawX - other.x) < 5) {
+                                            rawX = other.x;
+                                            activeGuides.push({ orientation: 'V', pos: other.x });
+                                        }
+                                        if (Math.abs(rawY - other.y) < 5) {
+                                            rawY = other.y;
+                                            activeGuides.push({ orientation: 'H', pos: other.y });
+                                        }
+                                    });
+                                    if (activeGuides.length > 0) setGuides(activeGuides.slice(0, 2));
+                                }
+
+                                e.target.x(rawX);
+                                e.target.y(rawY);
+
+                                const dx = rawX - (e.target.getAttr('dragStartX') || dragStartRef.current[node.id].x);
+                                const dy = rawY - (e.target.getAttr('dragStartY') || dragStartRef.current[node.id].y);
 
                                 Object.keys(dragStartRef.current).forEach(id => {
                                     if (id === node.id) return;
@@ -1683,6 +1437,8 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                             }}
                             onDragEnd={(e) => {
                                 if (!dragStartRef.current) return;
+                                setGuides([]);
+                                e.cancelBubble = true;
                                 const dx = e.target.x() - (e.target.getAttr('dragStartX') || dragStartRef.current[node.id].x);
                                 const dy = e.target.y() - (e.target.getAttr('dragStartY') || dragStartRef.current[node.id].y);
 
@@ -1698,13 +1454,18 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                                 onChange({ ...layout, nodes: updatedNodes });
                                 dragStartRef.current = null;
                             }}
+                            onTransformEnd={(e) => {
+                                const n = e.target;
+                                const updatedNodes = nodesRef.current.map(item => 
+                                    item.id === node.id ? { ...item, x: n.x(), y: n.y(), scaleX: n.scaleX(), scaleY: n.scaleY() } : item
+                                );
+                                setNodes(updatedNodes);
+                                onChange({ ...layout, nodes: updatedNodes });
+                            }}
                             onClick={handleClick}
                             onTap={handleClick}
                         />
                     ))}
-
-                    
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                     {/* Row Labels Layer (Duales: Inicio y Fin) */}
                     {(() => {
                         const rowGroups = {};
@@ -1717,20 +1478,14 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
 
                         return Object.values(rowGroups).map((rowSeats, idx) => {
                             if (rowSeats.length === 0) return null;
-<<<<<<< HEAD
 
                             const first = rowSeats[0]; // Anchor node for properties
-=======
-                            
-                            const first = rowSeats[0];
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                             const isEnabled = first.row_label_enabled ?? true;
                             if (!isEnabled) return null;
 
                             const position = first.row_label_position || 'both';
                             const displayLabel = first.row_label_override || first.row;
 
-<<<<<<< HEAD
                             // Sort by horizontal position to find ends
                             const sorted = [...rowSeats].sort((a, b) => a.x - b.x);
                             const extremeLeft = sorted[0];
@@ -1738,13 +1493,6 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                             const radius = extremeLeft.radius || 10;
 
                             // Calculate direction for offset
-=======
-                            const sorted = [...rowSeats].sort((a,b) => a.x - b.x);
-                            const extremeLeft = sorted[0];
-                            const extremeRight = sorted[sorted.length - 1];
-                            const radius = extremeLeft.radius || 10;
-                            
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                             const dx = extremeRight.x - extremeLeft.x;
                             const dy = extremeRight.y - extremeLeft.y;
                             const angle = Math.atan2(dy, dx);
@@ -1814,31 +1562,6 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
                         return null;
                     })()}
 
-<<<<<<< HEAD
-=======
-                            const blockUuid = selectedSeats[0].block_uuid;
-                            const isWholeBlock = blockUuid && nodes.filter(n => n.block_uuid === blockUuid).every(n => selectedIds.includes(n.id));
-                            
-                            if (isWholeBlock) {
-                                const xmin = Math.min(...selectedSeats.map(s => s.x)) - 30;
-                                const xmax = Math.max(...selectedSeats.map(s => s.x)) + 30;
-                                const ymin = Math.min(...selectedSeats.map(s => s.y)) - 30;
-                                const ymax = Math.max(...selectedSeats.map(s => s.y)) + 30;
-                                
-                                return (
-                                    <Rect 
-                                        x={xmin} y={ymin} 
-                                        width={xmax - xmin} height={ymax - ymin}
-                                        stroke="#3b82f6" strokeWidth={2}
-                                        dash={[5, 5]} cornerRadius={8}
-                                        opacity={0.3} listening={false}
-                                    />
-                                );
-                            }
-                            return null;
-                        })()}
-                    
->>>>>>> e96719816e42aa41ec10865b6a2e30a2357111cc
                 </Layer>
 
                 <Layer name="canvas-top">
@@ -2263,3 +1986,4 @@ const SeatingCanvas = React.forwardRef(({ layout, onChange, mode = 'edit', onSel
 });
 
 export default SeatingCanvas;
+
