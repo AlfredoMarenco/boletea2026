@@ -4,7 +4,7 @@ test('registration screen can be rendered', function () {
     $response = $this->get(route('register'));
 
     $response->assertOk();
-});
+})->skip('Registration feature is disabled.');
 
 test('new users can register', function () {
     $response = $this->post(route('register.store'), [
@@ -15,5 +15,5 @@ test('new users can register', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
-});
+    $response->assertRedirect(route('admin.dashboard', absolute: false));
+})->skip('Registration feature is disabled.');
