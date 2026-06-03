@@ -107,7 +107,8 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
                 reverseGeocode(latitude, longitude);
             },
             (error) => {
-                console.error('Geolocation error:', error);
+                // Use warn instead of error to avoid server-side log spam from bots/IAB browsers
+                console.warn('Geolocation unavailable:', error.code, error.message);
                 let errorMessage = 'No se pudo obtener la ubicación';
 
                 if (error.code === error.PERMISSION_DENIED) {
@@ -124,7 +125,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
             {
                 enableHighAccuracy: false,
                 timeout: 10000,
-                maximumAge: 0,
+                maximumAge: 300000, // Accept cached GPS position up to 5 minutes old
             }
         );
     };
@@ -168,12 +169,14 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        // Try to load from localStorage first
+        // Only load from localStorage - don't auto-request GPS on every page load.
+        // Bots, Facebook IAB, and users who denied permission would generate errors.
+        // Components that need location should call refreshLocation() explicitly.
         const hasStored = loadStoredLocation();
 
-        // If no stored data, request new location
         if (!hasStored) {
-            requestLocation();
+            // Mark as not loading since we won't auto-request
+            setLocationData(prev => ({ ...prev, isLoading: false }));
         }
     }, []);
 

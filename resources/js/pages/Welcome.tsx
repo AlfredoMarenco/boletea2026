@@ -149,6 +149,14 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
 
     // cleanTitle moved to EventCard component
 
+    const hasActiveFilters = !!(
+        filters.search ||
+        filters.city ||
+        filters.venue_id ||
+        (filters.category && filters.category !== 'all') ||
+        (filters.date_start && filters.date_end)
+    );
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-background dark:text-gray-100 font-sans selection:bg-[#c90000] selection:text-white">
             <Head>
@@ -171,6 +179,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                 <FilterBar filters={filters} options={options} />
 
                 {/* Hero Section */}
+                {!hasActiveFilters && (
                 <section className="relative pt-12 pb-8 lg:pt-16 overflow-hidden">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#c90000] opacity-[0.08] blur-[120px] rounded-full pointer-events-none"></div>
 
@@ -225,6 +234,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                         </div>
                     </div>
                 </section>
+                )}
 
 
 
@@ -232,7 +242,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                 <div className="pb-16 bg-gray-50 dark:bg-background">
 
                     {/* Featured Events Section */}
-                    {showFeatured && featuredEvents && featuredEvents.length > 0 && (
+                    {!hasActiveFilters && showFeatured && featuredEvents && featuredEvents.length > 0 && (
                         <section className="pt-8 pb-4 border-b border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2 text-yellow-500">
@@ -254,7 +264,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                     )}
 
                     {/* Nearby Events Section */}
-                    {showNearby && nearbyEvents && nearbyEvents.length > 0 && (
+                    {false && showNearby && nearbyEvents && nearbyEvents.length > 0 && (
                         <section className="pt-4 pb-12 border-b border-gray-200 dark:border-border">
                             <div className="container mx-auto px-6">
                                 <div className="mb-8 flex items-center gap-2">
@@ -278,7 +288,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                         <div className="container mx-auto px-6">
                             <div className="mb-12">
                                 <h2 className="text-3xl font-bold">
-                                    {Object.keys(filters).length > 0 ? 'Resultados de tu búsqueda' : 'Todos los Eventos'}
+                                    {hasActiveFilters ? 'Resultados de tu búsqueda' : 'Todos los Eventos'}
                                 </h2>
                                 <p className="text-gray-500 dark:text-muted-foreground">
                                     {`${events.length} resultados encontrados`}
