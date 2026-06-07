@@ -40,7 +40,11 @@ class AccessControlController extends Controller
 
     public function getEvents(Request $request)
     {
-        $events = AccessEvent::where('status', 'active')->get(['id', 'name', 'date']);
+        $device = $request->user();
+
+        $events = $device->events()
+            ->where('access_events.status', 'active')
+            ->get(['access_events.id', 'access_events.name', 'access_events.date']);
 
         return response()->json($events);
     }
