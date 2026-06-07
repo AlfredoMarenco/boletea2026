@@ -220,6 +220,18 @@ class AccessEventController extends Controller
         $batch = [];
         $existingInFile = [];
 
+        $sanitizeStr = function ($value) {
+            if (empty($value)) {
+                return '';
+            }
+            $encoding = mb_detect_encoding($value, 'UTF-8, ISO-8859-1, Windows-1252', true);
+            if (! $encoding) {
+                $encoding = 'ISO-8859-1';
+            }
+
+            return mb_convert_encoding($value, 'UTF-8', $encoding);
+        };
+
         while (($row = fgetcsv($handle)) !== false) {
             if (empty($row[0])) {
                 continue;
@@ -242,14 +254,14 @@ class AccessEventController extends Controller
                 'code' => $code,
                 'type' => $row[3] ?? 'General',
                 'metadata' => json_encode([
-                    'owner' => mb_convert_encoding($row[1] ?? '', 'UTF-8', 'auto'),
-                    'details' => mb_convert_encoding($row[2] ?? '', 'UTF-8', 'auto'),
-                    'row' => mb_convert_encoding($row[4] ?? '', 'UTF-8', 'auto'),
-                    'seat' => mb_convert_encoding($row[5] ?? '', 'UTF-8', 'auto'),
-                    'price' => mb_convert_encoding($row[6] ?? '', 'UTF-8', 'auto'),
-                    'order_id' => mb_convert_encoding($row[7] ?? '', 'UTF-8', 'auto'),
-                    'source' => mb_convert_encoding($row[8] ?? '', 'UTF-8', 'auto'),
-                    'external_event_id' => mb_convert_encoding($row[9] ?? '', 'UTF-8', 'auto'),
+                    'owner' => $sanitizeStr($row[1] ?? ''),
+                    'details' => $sanitizeStr($row[2] ?? ''),
+                    'row' => $sanitizeStr($row[4] ?? ''),
+                    'seat' => $sanitizeStr($row[5] ?? ''),
+                    'price' => $sanitizeStr($row[6] ?? ''),
+                    'order_id' => $sanitizeStr($row[7] ?? ''),
+                    'source' => $sanitizeStr($row[8] ?? ''),
+                    'external_event_id' => $sanitizeStr($row[9] ?? ''),
                 ], JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE),
                 'status' => 'pending',
                 'created_at' => now(),
