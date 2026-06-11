@@ -9,6 +9,7 @@ interface WorldCupStatus {
     mexico_score: number;
     opponent_score: number;
     last_goal_time: number;
+    match_datetime?: string;
 }
 
 // ── Country name → ISO 3166-1 alpha-2 code ──────────────────────────────────
@@ -298,10 +299,26 @@ export default function WorldCupTheme() {
         if (!status || status.status !== 'countdown') return;
         const update = () => {
             const now    = new Date();
-            const target = new Date();
-            target.setDate(now.getDate() + 1);
-            target.setHours(12, 0, 0, 0);
-            const diff = Math.max(0, target.getTime() - now.getTime());
+            let targetStr = status.match_datetime;
+            let targetDate: Date | null = null;
+            
+            if (targetStr) {
+                // Ensure datetime is interpreted in Mexico City (UTC-6) if no timezone is specified
+                if (!targetStr.includes('Z') && !targetStr.includes('+') && !/[-+]\d{2}:?\d{2}$/.test(targetStr)) {
+                    targetStr = targetStr + '-06:00';
+                }
+                targetDate = new Date(targetStr);
+            }
+            
+            // If target is invalid or not provided, fallback to tomorrow 12:00 in Mexico City timezone (UTC-6)
+            if (!targetDate || isNaN(targetDate.getTime())) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowISO = tomorrow.toISOString().split('T')[0];
+                targetDate = new Date(`${tomorrowISO}T12:00:00-06:00`);
+            }
+            
+            const diff = Math.max(0, targetDate.getTime() - now.getTime());
             setTimeLeft({
                 hours:   Math.floor(diff / 3600000),
                 minutes: Math.floor((diff % 3600000) / 60000),

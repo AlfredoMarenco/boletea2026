@@ -68,6 +68,7 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
         world_cup_score_mode: settings.world_cup_score_mode || 'manual',
         world_cup_match_opponent: settings.world_cup_match_opponent || 'Polonia',
         world_cup_match_status: settings.world_cup_match_status || 'countdown',
+        world_cup_match_datetime: settings.world_cup_match_datetime || '',
         world_cup_mexico_score: parseInt(settings.world_cup_mexico_score || '0'),
         world_cup_opponent_score: parseInt(settings.world_cup_opponent_score || '0'),
     });
@@ -609,6 +610,21 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                                             disabled={wcData.world_cup_score_mode === 'auto'}
                                             className="mt-1"
                                         />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="world_cup_match_datetime" className="text-sm font-medium">Fecha y Hora del Partido</Label>
+                                        <Input 
+                                            id="world_cup_match_datetime" 
+                                            type="datetime-local"
+                                            value={wcData.world_cup_match_datetime} 
+                                            onChange={(e) => setWcData('world_cup_match_datetime', e.target.value)}
+                                            disabled={wcData.world_cup_score_mode === 'auto'}
+                                            className="mt-1"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Fecha y hora programada del partido para la cuenta regresiva.
+                                        </p>
                                     </div>
 
                                     <div>

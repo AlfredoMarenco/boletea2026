@@ -115,6 +115,11 @@ class WorldCupScoreService
         SiteSetting::updateOrCreate(['key' => 'world_cup_match_opponent'], ['value' => $opponentName]);
         SiteSetting::updateOrCreate(['key' => 'world_cup_match_status'], ['value' => 'live']);
 
+        $matchDatetime = $match['datetime'] ?? '';
+        if ($matchDatetime) {
+            SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+        }
+
         return [
             'enabled' => true,
             'opponent' => $opponentName,
@@ -122,6 +127,7 @@ class WorldCupScoreService
             'mexico_score' => $mexicoScore,
             'opponent_score' => $opponentScore,
             'last_goal_time' => (int) (SiteSetting::where('key', 'world_cup_last_goal_time')->first()?->value ?? 0),
+            'match_datetime' => $matchDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
         ];
     }
 
@@ -143,6 +149,11 @@ class WorldCupScoreService
         // Let's set it to countdown since it's scheduled today.
         SiteSetting::updateOrCreate(['key' => 'world_cup_match_status'], ['value' => 'countdown']);
 
+        $matchDatetime = $match['datetime'] ?? '';
+        if ($matchDatetime) {
+            SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+        }
+
         return [
             'enabled' => true,
             'opponent' => $opponentName,
@@ -150,6 +161,7 @@ class WorldCupScoreService
             'mexico_score' => 0,
             'opponent_score' => 0,
             'last_goal_time' => (int) (SiteSetting::where('key', 'world_cup_last_goal_time')->first()?->value ?? 0),
+            'match_datetime' => $matchDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
         ];
     }
 
@@ -208,6 +220,7 @@ class WorldCupScoreService
             'world_cup_mexico_score',
             'world_cup_opponent_score',
             'world_cup_last_goal_time',
+            'world_cup_match_datetime',
         ])->pluck('value', 'key');
 
         return [
@@ -217,6 +230,7 @@ class WorldCupScoreService
             'mexico_score' => (int) ($settings['world_cup_mexico_score'] ?? 0),
             'opponent_score' => (int) ($settings['world_cup_opponent_score'] ?? 0),
             'last_goal_time' => (int) ($settings['world_cup_last_goal_time'] ?? 0),
+            'match_datetime' => $settings['world_cup_match_datetime'] ?? '',
         ];
     }
 }

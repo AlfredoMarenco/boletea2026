@@ -50,6 +50,7 @@ class SiteSettingController extends Controller
             'world_cup_score_mode' => 'nullable|in:auto,manual',
             'world_cup_match_opponent' => 'nullable|string|max:255',
             'world_cup_match_status' => 'nullable|in:countdown,live,finished',
+            'world_cup_match_datetime' => 'nullable|string',
             'world_cup_mexico_score' => 'nullable|integer|min:0',
             'world_cup_opponent_score' => 'nullable|integer|min:0',
             'simulate_mexico_goal' => 'boolean',
@@ -125,6 +126,13 @@ class SiteSettingController extends Controller
             SiteSetting::updateOrCreate(
                 ['key' => 'world_cup_match_opponent'],
                 ['value' => $validated['world_cup_match_opponent'] ?? '']
+            );
+        }
+
+        if ($request->has('world_cup_match_datetime')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_match_datetime'],
+                ['value' => $validated['world_cup_match_datetime'] ?? '']
             );
         }
 
