@@ -116,8 +116,17 @@ class WorldCupScoreService
         SiteSetting::updateOrCreate(['key' => 'world_cup_match_status'], ['value' => 'live']);
 
         $matchDatetime = $match['datetime'] ?? '';
+        $localDatetime = '';
         if ($matchDatetime) {
-            SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+            try {
+                $localDatetime = \Illuminate\Support\Carbon::parse($matchDatetime)
+                    ->timezone('America/Mexico_City')
+                    ->format('Y-m-d\TH:i:s');
+                SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $localDatetime]);
+            } catch (\Exception $e) {
+                $localDatetime = $matchDatetime;
+                SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+            }
         }
 
         return [
@@ -127,7 +136,7 @@ class WorldCupScoreService
             'mexico_score' => $mexicoScore,
             'opponent_score' => $opponentScore,
             'last_goal_time' => (int) (SiteSetting::where('key', 'world_cup_last_goal_time')->first()?->value ?? 0),
-            'match_datetime' => $matchDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
+            'match_datetime' => $localDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
         ];
     }
 
@@ -150,8 +159,17 @@ class WorldCupScoreService
         SiteSetting::updateOrCreate(['key' => 'world_cup_match_status'], ['value' => 'countdown']);
 
         $matchDatetime = $match['datetime'] ?? '';
+        $localDatetime = '';
         if ($matchDatetime) {
-            SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+            try {
+                $localDatetime = \Illuminate\Support\Carbon::parse($matchDatetime)
+                    ->timezone('America/Mexico_City')
+                    ->format('Y-m-d\TH:i:s');
+                SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $localDatetime]);
+            } catch (\Exception $e) {
+                $localDatetime = $matchDatetime;
+                SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $matchDatetime]);
+            }
         }
 
         return [
@@ -161,7 +179,7 @@ class WorldCupScoreService
             'mexico_score' => 0,
             'opponent_score' => 0,
             'last_goal_time' => (int) (SiteSetting::where('key', 'world_cup_last_goal_time')->first()?->value ?? 0),
-            'match_datetime' => $matchDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
+            'match_datetime' => $localDatetime ?: (SiteSetting::where('key', 'world_cup_match_datetime')->first()?->value ?? ''),
         ];
     }
 
