@@ -2,6 +2,7 @@ import { useState, FormEventHandler, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { Head, useForm, Link, router } from '@inertiajs/react';
 import { route } from 'ziggy-js';
+import WorldCupTheme from '@/components/WorldCupTheme';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -47,7 +48,7 @@ interface Props {
 }
 
 export default function Index({ settings, events, banners, postback_urls = [] }: Props) {
-    const [activeTab, setActiveTab] = useState<'general' | 'banners' | 'postbacks'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'banners' | 'postbacks' | 'worldcup'>('general');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     
     // Postback Dialog State
@@ -59,6 +60,16 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
         show_featured_events: settings.show_featured_events === '1' || settings.show_featured_events === undefined,
         show_nearby_events: settings.show_nearby_events === '1' || settings.show_nearby_events === undefined,
         show_floating_banner: settings.show_floating_banner === '1' || settings.show_floating_banner === undefined,
+    });
+
+    // Form for World Cup Settings
+    const { data: wcData, setData: setWcData, post: postWc, processing: processingWc } = useForm({
+        world_cup_theme_enabled: settings.world_cup_theme_enabled === '1',
+        world_cup_score_mode: settings.world_cup_score_mode || 'manual',
+        world_cup_match_opponent: settings.world_cup_match_opponent || 'Polonia',
+        world_cup_match_status: settings.world_cup_match_status || 'countdown',
+        world_cup_mexico_score: parseInt(settings.world_cup_mexico_score || '0'),
+        world_cup_opponent_score: parseInt(settings.world_cup_opponent_score || '0'),
     });
 
     // Form for New Banner (Modal)
@@ -84,6 +95,32 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
             preserveScroll: true,
             forceFormData: true,
             onError: () => toast.error('Error al guardar configuración general')
+        });
+    };
+
+    const submitWc: FormEventHandler = (e) => {
+        e.preventDefault();
+        postWc(route('admin.settings.update'), {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Configuración mundialista guardada correctamente.'),
+            onError: () => toast.error('Error al guardar configuración mundialista')
+        });
+    };
+
+    const triggerGoalSimulation = () => {
+        router.post(route('admin.settings.update'), {
+            ...wcData,
+            simulate_mexico_goal: true
+        }, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('⚽ ¡Gol de México simulado en tiempo real!');
+                setWcData('world_cup_mexico_score', wcData.world_cup_mexico_score + 1);
+                
+                // Dispatch event to trigger the local goal animation immediately!
+                window.dispatchEvent(new CustomEvent('world-cup:trigger-goal'));
+            },
+            onError: () => toast.error('Error al simular gol')
         });
     };
 
@@ -148,6 +185,7 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
             { title: 'Configuración de la Página', href: route('admin.settings.index') },
         ]}>
             <Head title="Configuración del Sitio" />
+            <WorldCupTheme />
 
             <div className="p-6 max-w-5xl mx-auto w-full">
                 
@@ -179,6 +217,12 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                     >
                         Servicio Postback
                         <Badge variant="secondary" className="ml-1 px-1.5 min-w-5 text-[10px]">{postback_urls.length}</Badge>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('worldcup')}
+                        className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'worldcup' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                        Ambiente Mundialista 🇲🇽
                     </button>
                 </div>
 
@@ -502,6 +546,144 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                                 </form>
                             </DialogContent>
                         </Dialog>
+                    </div>
+                )}
+
+                {/* TAB: World Cup Mexico 2026 */}
+                {activeTab === 'worldcup' && (
+                    <div className="animate-in fade-in zoom-in-95 duration-200">
+                        <form onSubmit={submitWc} className="bg-white dark:bg-card p-6 rounded-xl shadow-sm border border-gray-200 dark:border-border space-y-6">
+                            
+                            <div className="flex items-center justify-between border-b pb-4 border-gray-100 dark:border-border">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        ⚽ Configuración del Ambiente Mundialista
+                                    </h2>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                        Personaliza y activa el banner de cuenta regresiva, el marcador en vivo y las animaciones de gol.
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch 
+                                        id="world_cup_theme_enabled" 
+                                        checked={wcData.world_cup_theme_enabled}
+                                        onCheckedChange={(val) => setWcData('world_cup_theme_enabled', val)}
+                                    />
+                                    <Label htmlFor="world_cup_theme_enabled" className="font-semibold text-sm cursor-pointer">
+                                        Activar Tema
+                                    </Label>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {/* Left Section: Match Info */}
+                                <div className="space-y-4">
+                                    <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">Datos del Próximo Partido</h3>
+                                    
+                                    <div>
+                                        <Label htmlFor="world_cup_score_mode" className="text-sm font-medium">Modo de Marcador</Label>
+                                        <Select 
+                                            value={wcData.world_cup_score_mode} 
+                                            onValueChange={(val) => setWcData('world_cup_score_mode', val)}
+                                        >
+                                            <SelectTrigger className="mt-1">
+                                                <SelectValue placeholder="Selecciona el modo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="manual">Manual (Tú actualizas el marcador)</SelectItem>
+                                                <SelectItem value="auto">Automático (Vía worldcupjson.net)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            El modo automático buscará los partidos en vivo de México de forma gratuita. El modo manual te permite control total.
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="world_cup_match_opponent" className="text-sm font-medium">País Oponente</Label>
+                                        <Input 
+                                            id="world_cup_match_opponent" 
+                                            value={wcData.world_cup_match_opponent} 
+                                            onChange={(e) => setWcData('world_cup_match_opponent', e.target.value)}
+                                            placeholder="Ej: Polonia, Argentina, Francia..."
+                                            disabled={wcData.world_cup_score_mode === 'auto'}
+                                            className="mt-1"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="world_cup_match_status" className="text-sm font-medium">Estado del Partido</Label>
+                                        <Select 
+                                            value={wcData.world_cup_match_status} 
+                                            onValueChange={(val) => setWcData('world_cup_match_status', val)}
+                                            disabled={wcData.world_cup_score_mode === 'auto'}
+                                        >
+                                            <SelectTrigger className="mt-1">
+                                                <SelectValue placeholder="Estado" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="countdown">Cuenta regresiva (Antes del partido)</SelectItem>
+                                                <SelectItem value="live">En vivo (Durante el partido)</SelectItem>
+                                                <SelectItem value="finished">Finalizado</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                {/* Right Section: Scores & Simulation */}
+                                <div className="space-y-4 p-4 border rounded-xl bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border">
+                                    <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                                        🏆 Marcador en Vivo {wcData.world_cup_score_mode === 'auto' && <span className="text-xs font-normal text-green-600 bg-green-50 px-2 py-0.5 rounded-full animate-pulse border border-green-200">Auto</span>}
+                                    </h3>
+
+                                    <div className="grid grid-cols-2 gap-4 text-center mt-2">
+                                        <div className="bg-white dark:bg-card p-3 rounded-lg border">
+                                            <Label className="text-xs text-gray-500 font-semibold block uppercase">México 🇲🇽</Label>
+                                            <Input 
+                                                type="number" 
+                                                min="0"
+                                                value={wcData.world_cup_mexico_score} 
+                                                onChange={(e) => setWcData('world_cup_mexico_score', parseInt(e.target.value) || 0)}
+                                                disabled={wcData.world_cup_score_mode === 'auto'}
+                                                className="text-center font-bold text-2xl mt-1.5"
+                                            />
+                                        </div>
+
+                                        <div className="bg-white dark:bg-card p-3 rounded-lg border">
+                                            <Label className="text-xs text-gray-500 font-semibold block uppercase">{wcData.world_cup_match_opponent} (Rival)</Label>
+                                            <Input 
+                                                type="number" 
+                                                min="0"
+                                                value={wcData.world_cup_opponent_score} 
+                                                onChange={(e) => setWcData('world_cup_opponent_score', parseInt(e.target.value) || 0)}
+                                                disabled={wcData.world_cup_score_mode === 'auto'}
+                                                className="text-center font-bold text-2xl mt-1.5"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-200 dark:border-border mt-4">
+                                        <Label className="text-xs text-gray-500 font-semibold block mb-2">PRUEBA DE CELEBRACIÓN</Label>
+                                        <Button 
+                                            type="button" 
+                                            onClick={triggerGoalSimulation}
+                                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 py-5 shadow-lg shadow-emerald-500/10"
+                                        >
+                                            ⚽ Simular Gol de México (Prueba en Vivo)
+                                        </Button>
+                                        <p className="text-[11px] text-gray-500 mt-2 text-center">
+                                            Esto sumará 1 gol a México y lanzará de inmediato la animación de televisión "GOOOL" y confeti en toda la página para todos los visitantes actuales.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-border">
+                                <Button type="submit" disabled={processingWc} className="bg-[#c90000] hover:bg-[#c90000]/90 text-white px-8">
+                                    Guardar Configuración Mundialista
+                                </Button>
+                            </div>
+                        </form>
                     </div>
                 )}
             </div>

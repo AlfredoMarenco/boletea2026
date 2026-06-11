@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { useAppearance } from '@/hooks/use-appearance';
 import { User } from 'lucide-react';
+import WorldCupTheme from '@/components/WorldCupTheme';
 
 interface Props {
     canRegister?: boolean;
@@ -12,7 +13,9 @@ export default function PublicHeader({ canRegister = false }: Props) {
     const { resolvedAppearance } = useAppearance();
 
     return (
-        <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-background/80 dark:border-border">
+        <>
+            <WorldCupTheme />
+            <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:bg-background/80 dark:border-border">
             <div className="container mx-auto flex h-20 items-center justify-between px-6">
                 <div className="flex items-center gap-2">
                     {/* Logo */}
@@ -25,6 +28,7 @@ export default function PublicHeader({ canRegister = false }: Props) {
                                 onError={(e) => { e.currentTarget.src = 'https://boletea.com/img/logoBoletea.png'; }}
                             />
                         </Link>
+
                         <div className="h-6 w-px bg-gray-200 dark:bg-border/50 hidden md:block rounded-full"></div>
                         <Link href={route('static.bolepay')} className="group flex items-center justify-center">
                             <img
@@ -92,5 +96,6 @@ export default function PublicHeader({ canRegister = false }: Props) {
                 </div>
             </div>
         </header>
+        </>
     );
 }

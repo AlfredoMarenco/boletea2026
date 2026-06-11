@@ -62,4 +62,10 @@ Route::get('/app-scanner/download', function () {
     ]);
 })->name('scanner.download');
 
+Route::get('/world-cup/status', function () {
+    $service = app(\App\Services\WorldCupScoreService::class);
+
+    return response()->json($service->updateScore());
+})->name('world-cup.status');
+
 require __DIR__.'/settings.php';

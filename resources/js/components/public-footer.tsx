@@ -29,7 +29,7 @@ export default function PublicFooter() {
                             />
                         </Link>
                         <p className="text-gray-500 dark:text-muted-foreground text-sm leading-relaxed max-w-xs">
-                            Tu plataforma de confianza para los mejores eventos, conciertos y experiencias en vivo. Compra seguro, vive al máximo.
+                            Tu plataforma de confianza para los mejores eventos, conciertos y experiencias en vivo en México. Compra seguro, vive al máximo.
                         </p>
                         <div className="flex items-center gap-4">
                             <SocialLink href="https://facebook.com/boleteaoficial" icon={Facebook} />

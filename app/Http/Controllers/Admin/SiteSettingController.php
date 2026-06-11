@@ -45,6 +45,14 @@ class SiteSettingController extends Controller
             'floating_banner_type' => 'nullable|in:manual,event',
             'floating_banner_link' => 'nullable|string',
             'floating_banner_event_id' => 'nullable|exists:external_events,id',
+            // World Cup settings
+            'world_cup_theme_enabled' => 'boolean',
+            'world_cup_score_mode' => 'nullable|in:auto,manual',
+            'world_cup_match_opponent' => 'nullable|string|max:255',
+            'world_cup_match_status' => 'nullable|in:countdown,live,finished',
+            'world_cup_mexico_score' => 'nullable|integer|min:0',
+            'world_cup_opponent_score' => 'nullable|integer|min:0',
+            'simulate_mexico_goal' => 'boolean',
         ]);
 
         SiteSetting::updateOrCreate(
@@ -97,6 +105,79 @@ class SiteSettingController extends Controller
                 ['value' => '/storage/'.$path]
             );
         }
+
+        // World Cup Settings update
+        if ($request->has('world_cup_theme_enabled')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_theme_enabled'],
+                ['value' => $request->boolean('world_cup_theme_enabled') ? '1' : '0']
+            );
+        }
+
+        if ($request->has('world_cup_score_mode')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_score_mode'],
+                ['value' => $validated['world_cup_score_mode']]
+            );
+        }
+
+        if ($request->has('world_cup_match_opponent')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_match_opponent'],
+                ['value' => $validated['world_cup_match_opponent'] ?? '']
+            );
+        }
+
+        if ($request->has('world_cup_match_status')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_match_status'],
+                ['value' => $validated['world_cup_match_status']]
+            );
+        }
+
+        if ($request->has('world_cup_mexico_score')) {
+            $newScore = (int) $validated['world_cup_mexico_score'];
+            $oldScoreVal = SiteSetting::where('key', 'world_cup_mexico_score')->first()?->value ?? '0';
+            $oldScore = (int) $oldScoreVal;
+
+            if ($newScore > $oldScore) {
+                SiteSetting::updateOrCreate(
+                    ['key' => 'world_cup_last_goal_time'],
+                    ['value' => (string) now()->timestamp]
+                );
+            }
+
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_mexico_score'],
+                ['value' => (string) $newScore]
+            );
+        }
+
+        if ($request->has('world_cup_opponent_score')) {
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_opponent_score'],
+                ['value' => (string) $validated['world_cup_opponent_score']]
+            );
+        }
+
+        // Goal simulation trigger
+        if ($request->boolean('simulate_mexico_goal')) {
+            $currentScoreVal = SiteSetting::where('key', 'world_cup_mexico_score')->first()?->value ?? '0';
+            $newScore = (int) $currentScoreVal + 1;
+
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_last_goal_time'],
+                ['value' => (string) now()->timestamp]
+            );
+
+            SiteSetting::updateOrCreate(
+                ['key' => 'world_cup_mexico_score'],
+                ['value' => (string) $newScore]
+            );
+        }
+
+        // Clear World Cup cache when settings are modified
+        \Illuminate\Support\Facades\Cache::forget('world_cup_api_status');
 
         return redirect()->back()->with('success', 'Configuración actualizada correctamente.');
     }

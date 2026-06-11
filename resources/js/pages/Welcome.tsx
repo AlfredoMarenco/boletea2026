@@ -186,8 +186,9 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                     <div className="container mx-auto px-6">
                         <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-10 xl:gap-16">
                             <div className="text-center lg:text-left">
-                                <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl">
-                                    Vive la <span className="text-[#c90000]">experiencia</span>.
+                                <h1 className="mb-6 text-4xl font-extrabold tracking-tight md:text-6xl lg:text-6xl xl:text-7xl 2xl:text-8xl leading-tight">
+                                    <span className="text-[#006847]">Vive</span> la{' '}
+                                    <span style={{ background: 'linear-gradient(90deg, #006847 0%, #CE1126 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>experiencia</span>.
                                 </h1>
                                 <p className="mx-auto mb-8 max-w-2xl text-lg text-gray-600 dark:text-muted-foreground lg:mx-0 lg:text-lg xl:text-xl">
                                     Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad.
@@ -249,7 +250,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                                     <svg className="w-8 h-8 drop-shadow-sm" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                     </svg>
-                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                         Eventos Destacados
                                     </h2>
                                 </div>
@@ -287,7 +288,7 @@ function WelcomeContent({ canRegister, events, nearbyEvents, carouselEvents, fea
                     <section className="py-12">
                         <div className="container mx-auto px-6">
                             <div className="mb-12">
-                                <h2 className="text-3xl font-bold">
+                                <h2 className="text-3xl font-bold flex items-center gap-2">
                                     {hasActiveFilters ? 'Resultados de tu búsqueda' : 'Todos los Eventos'}
                                 </h2>
                                 <p className="text-gray-500 dark:text-muted-foreground">
