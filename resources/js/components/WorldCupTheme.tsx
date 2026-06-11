@@ -310,12 +310,9 @@ export default function WorldCupTheme() {
                 targetDate = new Date(targetStr);
             }
             
-            // If target is invalid or not provided, fallback to tomorrow 12:00 in Mexico City timezone (UTC-6)
+            // If target is invalid or not provided, fallback to today's match kickoff in Mexico City timezone (UTC-6)
             if (!targetDate || isNaN(targetDate.getTime())) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowISO = tomorrow.toISOString().split('T')[0];
-                targetDate = new Date(`${tomorrowISO}T12:00:00-06:00`);
+                targetDate = new Date('2026-06-11T13:00:00-06:00');
             }
             
             const diff = Math.max(0, targetDate.getTime() - now.getTime());

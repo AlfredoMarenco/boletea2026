@@ -243,12 +243,12 @@ class WorldCupScoreService
 
         return [
             'enabled' => ($settings['world_cup_theme_enabled'] ?? '0') === '1',
-            'opponent' => $settings['world_cup_match_opponent'] ?? 'Polonia',
+            'opponent' => ($settings['world_cup_match_opponent'] ?? null) ?: 'Sudáfrica',
             'status' => $settings['world_cup_match_status'] ?? 'countdown',
             'mexico_score' => (int) ($settings['world_cup_mexico_score'] ?? 0),
             'opponent_score' => (int) ($settings['world_cup_opponent_score'] ?? 0),
             'last_goal_time' => (int) ($settings['world_cup_last_goal_time'] ?? 0),
-            'match_datetime' => $settings['world_cup_match_datetime'] ?? '',
+            'match_datetime' => ($settings['world_cup_match_datetime'] ?? null) ?: '2026-06-11T13:00:00',
         ];
     }
 }
