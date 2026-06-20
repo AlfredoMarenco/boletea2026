@@ -244,7 +244,7 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                             <section>
                                 <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
                                 <div
-                                    className="prose prose-lg dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none"
+                                    className="prose prose-sm dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none break-words overflow-x-auto"
                                     dangerouslySetInnerHTML={{
                                         __html: (event.description ? (() => {
                                             try {
