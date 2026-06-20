@@ -317,7 +317,18 @@ export default function Edit({ event, salesCenters = [], salesCenterGroups = [],
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="performance_url">Liga de Compra Externa (Performance URL)</Label>
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                        <Label htmlFor="performance_url">Liga de Compra Externa (Performance URL)</Label>
+                                        <a
+                                            href={route('event.show', event.slug || event.id)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-bold"
+                                        >
+                                            <LinkIcon className="size-3" />
+                                            Vista previa: {route('event.show', event.slug || event.id)}
+                                        </a>
+                                    </div>
                                     <Input
                                         id="performance_url"
                                         value={data.performance_url}

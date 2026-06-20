@@ -164,6 +164,12 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
             <PublicHeader />
 
             <main className="pt-20">
+                {event.status === 'draft' && (
+                    <div className="bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-600 dark:text-yellow-400 py-3 px-6 text-center text-sm font-semibold flex items-center justify-center gap-2">
+                        <span className="flex h-2 w-2 rounded-full bg-yellow-500 animate-ping" />
+                        <span>Vista previa: Este evento está en modo Borrador y solo es visible para usuarios autenticados.</span>
+                    </div>
+                )}
                 {/* Hero / Header Section */}
                 <div className="relative min-h-[50vh] flex flex-col justify-end w-full overflow-hidden bg-gray-900">
                     {/* Background Image with Overlay */}

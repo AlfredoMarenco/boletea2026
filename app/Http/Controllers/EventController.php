@@ -16,7 +16,7 @@ class EventController extends Controller
             ->orWhere('id', $slug)
             ->firstOrFail();
 
-        if ($event->status !== 'published') {
+        if ($event->status !== 'published' && ! auth()->check()) {
             return redirect()->route('home');
         }
 

@@ -249,7 +249,7 @@ class ExternalEventController extends Controller
         $event->categories()->sync($categoryIds);
         $event->linkedEvents()->sync($linkedEventIds);
 
-        return redirect()->route('admin.events.index')->with('success', 'Evento actualizado correctamente.');
+        return redirect()->route('admin.events.edit', $event->id)->with('success', 'Evento actualizado correctamente.');
     }
 
     public function sync(EventImportService $service)
