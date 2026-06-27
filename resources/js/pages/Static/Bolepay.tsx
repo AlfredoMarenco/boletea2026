@@ -482,6 +482,9 @@ export default function Bolepay() {
                                     </div>
                                 </FadeIn>
                             ))}
+                            <Link href={route('static.terminosycondiciones')+ "#bolepay"} className="text-blue-600 dark:text-blue-400 hover:underline text-center block">
+                                Consulta los terminos y concidciones de Bolepay
+                            </Link>
                         </div>
                     </div>
                 </section>
@@ -494,7 +497,7 @@ export default function Bolepay() {
                                 <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">¿Dónde comprar?</h3>
                                 <Link href={route('sales-centers.public')} className="inline-flex items-center gap-2 px-8 py-4 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-full font-bold text-lg transition-transform hover:-translate-y-1 shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50">
                                     <MapPin className="w-6 h-6" />
-                                    Ubica tu casilla
+                                    Ubica tu taquilla
                                 </Link>
                             </FadeIn>
                         </div>

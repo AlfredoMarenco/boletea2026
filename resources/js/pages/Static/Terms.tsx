@@ -119,6 +119,41 @@ export default function Terms() {
                             Si tienes una disputa y tu disputa involucra un evento (o el boleto de un evento) que está localizado en los Estados Unidos Mexicanos , entonces la disputa será regida por las leyes y la jurisdicción de Torreón Coahuila, renunciando en este acto de cualquier otro jurisdicción que pudiere corresponderle de conformidad a su domicilio presente o futuro.
                         </p>
                     </section>
+
+                    <section id="bolepay"> 
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">Bolepay</h3>
+                        <div className="mt-6 space-y-6">
+                            <div>
+                                <h4 className="text-lg font-semibold text-gray-800 mb-2">Modalidad de Pago</h4>
+                                <ol className="list-decimal pl-6 space-y-2">
+                                    <li>Pago de un enganche y cargo por servicio sobre el total del precio al momento de adquirir el boleto.</li>
+                                    <li>El cliente podrá realizar abonos parciales por cualquier monto y en cualquier fecha, considerando siempre que el total a diferir deberá estar cubierto antes de la fecha de vencimiento.</li>
+                                </ol>
+                            </div>
+
+                            <div>
+                                <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                                    Manifestación de Conformidad y Aceptación
+                                </h4>
+                                <p className="mb-3 italic">
+                                    Manifiesto conformidad y aceptación con las condiciones establecidas en la compra del boleto en su modalidad “Crédito sin tarjeta”, mismas que se detallan a continuación:
+                                </p>
+                                <ul className="list-disc pl-6 space-y-2">
+                                    <li>Un pago inicial del 25% más el pago del cargo por servicio y cargo por administración.</li>
+                                    <li>El cliente recibirá una orden de compra en la cual hará sus abonos parciales. El boleto para acceso al evento lo recibirá una vez que haya completado el total a diferir.</li>
+                                    <li>
+                                        En caso de llegar a la fecha de vencimiento sin haber completado el pago total a diferir, Sistemas Innovadores para Espectáculos S.A. de C.V. (en lo sucesivo Bolepay) tendrá la facultad de cancelar definitivamente el o los boletos, quedándome sin acceso al evento y sin derecho a reactivación. Debido al incumplimiento, no tendré derecho a la devolución del enganche pagado, ni el cargo por servicio, ni cargos administrativos.
+                                    </li>
+                                    <li>
+                                        En caso de llegar a la fecha de vencimiento sin haber completado el total a diferir, obtendré en el monedero electrónico de Boletea la cantidad que sumen todos los abonos parciales que haya realizado. Dicho monedero podré utilizarlo en cualquier otro concierto que Boletea tenga a la venta.
+                                    </li>
+                                    <li>
+                                        El boleto debe estar liquidado completamente 10 días antes del evento; de lo contrario, Bolepay tendrá la facultad de cancelar definitivamente el boleto, quedándome sin acceso al evento y sin derecho a reactivación, ni devolución de las cantidades pagadas (además, se pondrá a la venta el boleto nuevamente).
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </StaticLayout>
