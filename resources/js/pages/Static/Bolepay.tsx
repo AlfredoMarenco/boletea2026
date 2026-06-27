@@ -504,9 +504,9 @@ export default function Bolepay() {
                                 <h3 className="text-xl font-bold mb-8 text-gray-900 dark:text-white">Sigue nuestras redes y vive al máximo</h3>
                                 <div className="flex justify-center gap-6 items-center">
                                     <div className="flex items-center gap-4">
-                                        <SocialLink href="https://facebook.com/boletea" icon={Facebook} />
-                                        <SocialLink href="https://instagram.com/boletea" icon={Instagram} />
-                                        <SocialLink href="https://tiktok.com/@boletea" icon={TiktokIcon} />
+                                        <SocialLink href="https://facebook.com/bolepaymx" icon={Facebook} />
+                                        <SocialLink href="https://instagram.com/bolepaymx" icon={Instagram} />
+                                        <SocialLink href="https://tiktok.com/@bolepaymx" icon={TiktokIcon} />
                                     </div>
                                 </div>
                             </FadeIn>
