@@ -84,7 +84,7 @@ class RefundController extends Controller
 
         if ($allCanceled) {
             return response()->json([
-                'message' => 'Esta orden de compra está marcada como cancelada y no es elegible para reembolso.',
+                'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
             ], 422);
         }
 
@@ -93,7 +93,7 @@ class RefundController extends Controller
                 // Web Card orders represent the whole purchase, so one active request blocks the entire order.
                 return response()->json([
                     'status' => 'already_requested',
-                    'message' => 'Ya existe un trámite de reembolso registrado y activo para este número de orden.',
+                    'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
                 ], 422);
             } else {
                 // For Taquilla orders (Cash or Card), check if all tickets in the purchase are already requested
@@ -116,7 +116,7 @@ class RefundController extends Controller
                 if (count($allPurchaseTickets) > 0 && count(array_intersect($allPurchaseTickets, $requestedTickets)) >= count($allPurchaseTickets)) {
                     return response()->json([
                         'status' => 'already_requested',
-                        'message' => 'Todos los boletos de esta orden ya se encuentran en trámites activos.',
+                        'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
                     ], 422);
                 }
             }
@@ -132,7 +132,7 @@ class RefundController extends Controller
 
             if (empty($activeTickets)) {
                 return response()->json([
-                    'message' => 'Todos los boletos de esta orden están cancelados y no son elegibles para reembolso.',
+                    'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
                 ], 422);
             }
 
