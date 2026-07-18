@@ -22,6 +22,7 @@ class RefundRequest extends Model
         'tickets_path',
         'validated_tickets',
         'validated_documents',
+        'include_charges',
         'status',
         'admin_notes',
     ];
@@ -29,6 +30,7 @@ class RefundRequest extends Model
     protected $casts = [
         'validated_tickets' => 'array',
         'validated_documents' => 'array',
+        'include_charges' => 'boolean',
     ];
 
     public function refundEvent(): BelongsTo

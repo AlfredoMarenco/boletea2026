@@ -123,6 +123,7 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
     Route::delete('events/{event}', [AdminRefundController::class, 'destroyEvent'])->name('events.destroy');
 
     Route::get('requests', [AdminRefundController::class, 'requestsIndex'])->name('requests');
+    Route::get('requests/export-csv', [AdminRefundController::class, 'exportCsv'])->name('requests.export_csv');
     Route::post('requests/{refundRequest}/status', [AdminRefundController::class, 'updateRequestStatus'])->name('requests.status');
     Route::get('requests/{refundRequest}/file/{type}', [AdminRefundController::class, 'downloadFile'])->name('requests.file');
 });

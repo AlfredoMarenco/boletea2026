@@ -317,10 +317,27 @@ class AdminRefundController extends Controller
             'status' => 'required|in:pending,processing,approved,rejected',
             'admin_notes' => 'nullable|string',
             'validated_documents' => 'nullable|array',
+            'include_charges' => 'nullable|boolean',
+            'proof_of_payment' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
         ]);
+
+        if ($request->hasFile('proof_of_payment')) {
+            $path = $request->file('proof_of_payment')->store('refunds/proofs');
+            $refundRequest->proof_of_payment_path = $path;
+            $refundRequest->save();
+        }
 
         $newStatus = $validated['status'];
         $validatedDocs = $validated['validated_documents'] ?? [];
+
+        if ($newStatus === 'approved') {
+            if (empty($refundRequest->proof_of_payment_path)) {
+                return back()->withErrors([
+                    'proof_of_payment' => 'Es obligatorio adjuntar el comprobante de transferencia para aprobar el reembolso.',
+                ]);
+            }
+            $validatedDocs['proof'] = true;
+        }
 
         if (in_array($newStatus, ['processing', 'approved'])) {
             $invalidDocs = [];
@@ -357,7 +374,12 @@ class AdminRefundController extends Controller
             }
         }
 
-        $refundRequest->update($validated);
+        $refundRequest->update([
+            'status' => $validated['status'],
+            'admin_notes' => $validated['admin_notes'] ?? $refundRequest->admin_notes,
+            'validated_documents' => $validatedDocs,
+            'include_charges' => $request->boolean('include_charges'),
+        ]);
 
         // Send status update notification email if email is registered
         if ($refundRequest->email) {
@@ -394,6 +416,143 @@ class AdminRefundController extends Controller
         // Return streaming response compatible with fake disk in tests
         return Storage::disk('local')->response($path, basename($path), [
             'Content-Disposition' => 'inline; filename="'.basename($path).'"',
+        ]);
+    }
+
+    /**
+     * Export refund requests to CSV matching the accounting REEMBOLSOS BLT structure.
+     */
+    public function exportCsv(Request $request)
+    {
+        $search = $request->input('search');
+        $status = $request->input('status') ?: 'processing';
+        $refundEventId = $request->input('refund_event_id');
+
+        $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('buyer_name', 'like', "%{$search}%")
+                    ->orWhere('clabe', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($refundEventId) {
+            $query->where('refund_event_id', $refundEventId);
+        }
+
+        $requests = $query->orderBy('created_at', 'asc')->get();
+
+        $filename = 'REEMBOLSOS_BLT_'.strtoupper($status).'_'.date('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($requests) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM for Microsoft Excel compatibility
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            // CSV Header matching exact structure from REEMBOLSOS BLT
+            fputcsv($handle, [
+                'IT',
+                'ORDEN',
+                'EVENTO',
+                'NOMBRE DEL TITULAR DE LA TARJETA',
+                'TC/CL INT',
+                'C/D',
+                'BANCO',
+                'SC/CC',
+                'Blts',
+                'Precio',
+                'MONTO',
+                'Correo',
+                'ATN',
+                'Fec Solic',
+                'Fec Reembolso',
+                'BANCO',
+                'Referencia',
+                'ORDEN',
+                'STATUS',
+                'PROFECO',
+                'FOLIO',
+                'RECIBIDA',
+                'AUDIENCIA',
+                'OBSERVACION',
+            ]);
+
+            foreach ($requests as $idx => $req) {
+                $purchase = $req->refundPurchase;
+                $allTickets = $purchase?->tickets_details ?? [];
+
+                $isPartial = ! empty($req->validated_tickets) && is_array($req->validated_tickets);
+                $validatedList = $isPartial ? array_map(fn ($v) => strtolower(trim((string) $v)), $req->validated_tickets) : [];
+
+                $matchedTickets = $isPartial
+                    ? collect($allTickets)->filter(function ($t) use ($validatedList) {
+                        return in_array(strtolower(trim((string) ($t['barcode'] ?? ''))), $validatedList)
+                            || in_array(strtolower(trim((string) ($t['ticket_id'] ?? ''))), $validatedList);
+                    })->values()->all()
+                    : $allTickets;
+
+                $targetTickets = count($matchedTickets) > 0 ? $matchedTickets : $allTickets;
+
+                $bltsCount = count($targetTickets) > 0 ? count($targetTickets) : 1;
+
+                $includeCharges = (bool) ($req->include_charges ?? false);
+                $scCc = $includeCharges ? 'CC' : 'SC';
+
+                if (count($targetTickets) > 0) {
+                    $priceTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+                    $cxsTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxs'] ?? 0));
+                    $tcTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['tc'] ?? 0));
+                    $cxadmTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxadm'] ?? 0));
+                    $chargesTotal = $cxsTotal + $tcTotal + $cxadmTotal;
+                } else {
+                    $priceTotal = (float) ($purchase?->amount ?? 0);
+                    $chargesTotal = 0;
+                }
+
+                $montoRefund = $includeCharges ? ($priceTotal + $chargesTotal) : $priceTotal;
+                $unitPrice = $bltsCount > 0 ? ($montoRefund / $bltsCount) : $montoRefund;
+
+                $eventTitle = $req->refundEvent?->externalEvent?->title ?? 'DESCONOCIDO';
+
+                fputcsv($handle, [
+                    $idx + 1,                                                   // IT
+                    $req->order_number,                                         // ORDEN
+                    $eventTitle,                                                // EVENTO
+                    $req->buyer_name,                                           // NOMBRE DEL TITULAR DE LA TARJETA
+                    $req->clabe ?? $req->card_last_four ?? '',                  // TC/CL INT
+                    'CLABE',                                                    // C/D
+                    $req->bank_name ?? 'NO ESPECIFICADO',                       // BANCO
+                    $scCc,                                                      // SC/CC (SC = Sin Cargos, CC = Con Cargos)
+                    $bltsCount,                                                 // Blts
+                    '$'.number_format($unitPrice, 2, '.', ''),                  // Precio
+                    '$'.number_format($montoRefund, 2, '.', ''),                // MONTO
+                    $req->email ?? '',                                          // Correo
+                    auth()->user()?->name ?? 'ADMIN',                           // ATN
+                    $req->created_at ? $req->created_at->format('d/m/Y') : '',  // Fec Solic
+                    $req->updated_at && $req->status === 'approved' ? $req->updated_at->format('d/m/Y') : '', // Fec Reembolso
+                    $req->bank_name ?? '',                                      // BANCO
+                    '',                                                         // Referencia
+                    '',                                                         // ORDEN (R - para control interno)
+                    '',                                                         // STATUS (S - para control interno)
+                    '',                                                         // PROFECO
+                    '',                                                         // FOLIO
+                    '',                                                         // RECIBIDA
+                    '',                                                         // AUDIENCIA
+                    '',                                                         // OBSERVACION (X - para control interno)
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 }

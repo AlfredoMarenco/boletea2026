@@ -30,6 +30,7 @@ interface RefundRequest {
     status: 'pending' | 'processing' | 'approved' | 'rejected';
     admin_notes: string | null;
     validated_documents?: Record<string, boolean> | null;
+    include_charges?: boolean;
     created_at: string;
     refund_event?: {
         external_event?: {
@@ -97,8 +98,10 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
 
     // Document validation and preview states
     const [validatedDocs, setValidatedDocs] = useState<Record<string, boolean>>({});
+    const [includeCharges, setIncludeCharges] = useState<boolean>(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewTitle, setPreviewTitle] = useState<string>('');
+    const [proofFile, setProofFile] = useState<File | null>(null);
 
     // Apply filtering
     useEffect(() => {
@@ -121,31 +124,43 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         setSelectedRequest(req);
         setAdminNotes(req.admin_notes || '');
         setValidatedDocs(req.validated_documents || {});
+        setIncludeCharges(!!req.include_charges);
+        setProofFile(null);
     };
 
     const handleCloseReview = () => {
         setSelectedRequest(null);
         setValidatedDocs({});
+        setIncludeCharges(false);
         setPreviewUrl(null);
         setPreviewTitle('');
+        setProofFile(null);
     };
 
     const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'approved' | 'rejected') => {
         if (!selectedRequest) return;
 
         setLoading(true);
+        const docsToSubmit = { ...validatedDocs };
+        if (newStatus === 'approved' || proofFile || selectedRequest.proof_of_payment_path) {
+            docsToSubmit.proof = true;
+        }
+
         router.post(
             route('admin.refunds.requests.status', { refundRequest: selectedRequest.id }),
             {
                 status: newStatus,
                 admin_notes: adminNotes,
-                validated_documents: validatedDocs,
+                validated_documents: docsToSubmit,
+                include_charges: includeCharges,
+                proof_of_payment: proofFile || undefined,
             },
             {
                 onSuccess: () => {
                     handleCloseReview();
                     setLoading(false);
                 },
+                onError: () => setLoading(false),
                 onFinish: () => setLoading(false),
             }
         );
@@ -217,6 +232,23 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                             Trámites de Reembolso Recibidos
                         </h1>
                         <p className="text-sm text-gray-500">Valide los datos bancarios y documentos adjuntos de los clientes contra el registro de la orden.</p>
+                    </div>
+                    <div>
+                        <a
+                            href={route('admin.refunds.requests.export_csv', {
+                                search: search || undefined,
+                                status: status || 'processing',
+                                refund_event_id: refundEventId || undefined,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Exportar CSV {status ? `(${status === 'processing' ? 'En Trámite' : status === 'pending' ? 'Pendientes' : status === 'approved' ? 'Aprobados' : status === 'rejected' ? 'Rechazados' : status})` : '(En Trámite)'}
+                        </a>
                     </div>
                 </div>
 
@@ -381,8 +413,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
 
                             <div className="p-6 space-y-6">
 
-                                {/* Top row: CSV record + Client info side by side */}
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {/* Stacked layout: CSV record box on top, Client info box below */}
+                                <div className="flex flex-col gap-4">
 
                                     {/* CSV Record Card */}
                                     <div className="rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 p-4">
@@ -392,7 +424,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         </div>
                                         {selectedRequest.refund_purchase ? (
                                             <>
-                                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-xs mb-3">
                                                     <div>
                                                         <p className="text-gray-400 mb-0.5">Titular de Compra</p>
                                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.buyer_name}</p>
@@ -401,7 +433,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         <p className="text-gray-400 mb-0.5">Método de Pago</p>
                                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.payment_method}</p>
                                                     </div>
-                                                    <div className="col-span-2">
+                                                    <div>
                                                         <p className="text-gray-400 mb-0.5">Monto Total Orden (CSV)</p>
                                                         <p className="font-bold text-base text-gray-900 dark:text-white">${parseFloat(selectedRequest.refund_purchase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN</p>
                                                     </div>
@@ -432,8 +464,9 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                             <span className="font-semibold text-gray-800 dark:text-gray-200">{t.area}</span>
                                                                             {t.seat && t.seat !== '0' && <span className="text-gray-400"> · Asiento {t.seat}</span>}
                                                                             <div className="text-[10px] text-gray-400 mt-0.5">
-                                                                                Boleto: ${bPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                                                {bCharges > 0 && <span> | Cargos: ${bCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>}
+                                                                                Boleto: ${bPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })} | TC: ${bTc.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                                {bCxs > 0 && <span> | CXS: ${bCxs.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>}
+                                                                                {bCxadm > 0 && <span> | CXADM: ${bCxadm.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>}
                                                                             </div>
                                                                         </div>
                                                                         <div className="text-right">
@@ -461,7 +494,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
                                             <h3 className="font-semibold text-sm text-green-800 dark:text-green-300">Información Capturada por el Cliente</h3>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs mb-4">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-xs mb-4">
                                             <div>
                                                 <p className="text-gray-400 mb-0.5">Nombre del Titular</p>
                                                 <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.buyer_name}</p>
@@ -470,7 +503,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                 <p className="text-gray-400 mb-0.5">Banco</p>
                                                 <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.bank_name || 'No especificado'}</p>
                                             </div>
-                                            <div className="col-span-2">
+                                            <div className="col-span-2 sm:col-span-1 md:col-span-2">
                                                 <p className="text-gray-400 mb-0.5">CLABE Interbancaria</p>
                                                 <p className="font-bold text-base font-mono tracking-wide text-[#c90000]">{selectedRequest.clabe}</p>
                                             </div>
@@ -511,55 +544,70 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             const cxadmTotal = targetTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxadm || 0)) || 0), 0);
                                             const chargesTotal = cxsTotal + tcTotal + cxadmTotal;
                                             const grandTotalPaid = priceTotal + chargesTotal;
+                                            const finalRefundTotal = includeCharges ? grandTotalPaid : priceTotal;
 
                                             return (
                                                 <div className="rounded-xl bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-4 space-y-3 shadow-xs">
+                                                    {/* Toggle option for including charges */}
+                                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-gray-50 dark:bg-neutral-950 border border-gray-200/80 dark:border-neutral-800 mb-1">
+                                                        <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={includeCharges}
+                                                                onChange={(e) => setIncludeCharges(e.target.checked)}
+                                                                className="rounded border-gray-350 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                                                            />
+                                                            <span>¿Incluir cargos por servicio y tarjeta en el reembolso?</span>
+                                                        </label>
+                                                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider self-start sm:self-auto ${includeCharges ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-900/40' : 'bg-gray-200 text-gray-700 dark:bg-neutral-800 dark:text-gray-300'}`}>
+                                                            {includeCharges ? 'CC - Con Cargos' : 'SC - Sin Cargos (Por Defecto)'}
+                                                        </span>
+                                                    </div>
+
                                                     <div className="flex items-baseline justify-between pb-2.5 border-b border-green-100 dark:border-green-900/40">
                                                         <div>
                                                             <span className="text-xs font-bold text-green-800 dark:text-green-400 uppercase tracking-wider block">
                                                                 Total a Reembolsar
                                                             </span>
                                                             <span className="text-[11px] text-gray-500 dark:text-gray-400">
-                                                                {isPartialTaquilla ? `(${targetTickets.length} boleto${targetTickets.length !== 1 ? 's' : ''} validado${targetTickets.length !== 1 ? 's' : ''} - sin cargos)` : '(Costo base de boletos - sin cargos)'}
+                                                                {includeCharges ? '(Precio base de boletos + cargos incluidos)' : (isPartialTaquilla ? `(${targetTickets.length} boleto${targetTickets.length !== 1 ? 's' : ''} validado${targetTickets.length !== 1 ? 's' : ''} - sin cargos)` : '(Costo base de boletos - sin cargos)')}
                                                             </span>
                                                         </div>
                                                         <span className="text-2xl font-black text-green-700 dark:text-green-400">
-                                                            ${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                                                            ${finalRefundTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
                                                         </span>
                                                     </div>
 
                                                     <div className="text-xs space-y-1.5 text-gray-600 dark:text-gray-300">
                                                         <div className="flex justify-between font-semibold">
-                                                            <span>• Subtotal Boletos (Costo a reembolsar):</span>
+                                                            <span>• Subtotal Boletos:</span>
                                                             <span className="text-gray-900 dark:text-white">${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                                                         </div>
 
-                                                        {chargesTotal > 0 && (
-                                                            <div className="pt-2 pb-1 border-t border-dashed border-gray-200 dark:border-neutral-800 space-y-1">
-                                                                <div className="flex justify-between items-center text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                                                                    <span>Cargos no reembolsables:</span>
-                                                                    <span className="line-through">${chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                                                </div>
-                                                                {cxsTotal > 0 && (
-                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
-                                                                        <span>- Cargo por Servicio (CXS):</span>
-                                                                        <span>${cxsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                                                    </div>
-                                                                )}
-                                                                {tcTotal > 0 && (
-                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
-                                                                        <span>- Cargo Tarjeta (TC):</span>
-                                                                        <span>${tcTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                                                    </div>
-                                                                )}
-                                                                {cxadmTotal > 0 && (
-                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
-                                                                        <span>- Cargo Adm. (CXADM):</span>
-                                                                        <span>${cxadmTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                                                                    </div>
-                                                                )}
+                                                        <div className="pt-2 pb-1 border-t border-dashed border-gray-200 dark:border-neutral-800 space-y-1">
+                                                            <div className="flex justify-between items-center text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                                                                <span>{includeCharges ? 'Cargos incluidos en reembolso:' : 'Cargos no reembolsables:'}</span>
+                                                                <span className={includeCharges ? 'font-bold text-emerald-700 dark:text-emerald-400' : 'line-through'}>
+                                                                    ${chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                </span>
                                                             </div>
-                                                        )}
+                                                            {cxsTotal > 0 && (
+                                                                <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                    <span>- Cargo por Servicio (CXS):</span>
+                                                                    <span>${cxsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                <span>- Cargo Tarjeta (TC):</span>
+                                                                <span>${tcTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                            </div>
+                                                            {cxadmTotal > 0 && (
+                                                                <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                    <span>- Cargo Adm. (CXADM):</span>
+                                                                    <span>${cxadmTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
 
                                                         {chargesTotal > 0 && (
                                                             <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-neutral-800 text-[11px] text-gray-400 font-medium">
@@ -586,41 +634,50 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     </div>
                                 )}
                                 <div>
-                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Documentos Adjuntos</p>
-                                    <div className="flex flex-row flex-wrap gap-3">
-                                        <div className="flex flex-col items-center gap-2">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Documentos Adjuntos por el Cliente</p>
+                                        <span className="text-[11px] text-gray-400">Verifique la validez de cada archivo</span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {/* INE / Pasaporte Card */}
+                                        <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['ine'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
                                             <button
+                                                type="button"
                                                 onClick={() => {
                                                     setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' }));
                                                     setPreviewTitle('INE / Pasaporte');
                                                 }}
-                                                className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs['ine'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
+                                                className="w-full flex flex-col items-center group mb-2"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                </svg>
-                                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">INE / Pasaporte</span>
-                                                <span className="text-[10px] text-gray-400 mt-1">Ver</span>
+                                                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">INE / Pasaporte</span>
+                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Documento ↗</span>
                                             </button>
-                                            <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                            <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
                                                 <input
                                                     type="checkbox"
                                                     checked={!!validatedDocs['ine']}
                                                     onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
-                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
+                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
                                                 />
                                                 ¿INE Válido?
                                             </label>
                                         </div>
 
+                                        {/* Tickets Cards */}
                                         {(() => {
                                             if (!selectedRequest.tickets_path) {
                                                 return (
-                                                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 dark:bg-neutral-950 dark:border-neutral-800 opacity-40 text-center w-36 h-28">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
+                                                    <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-950/40 opacity-50 flex flex-col items-center justify-center text-center">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7 text-gray-400 mb-1">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        <span className="text-xs text-gray-400">Sin Boletos</span>
+                                                        <span className="text-xs text-gray-400 font-medium">Sin Boletos Físicos</span>
                                                     </div>
                                                 );
                                             }
@@ -634,62 +691,64 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             } catch (e) {}
 
                                             if (parsedTickets && typeof parsedTickets === 'object') {
-                                                return (
-                                                    <div className="contents">
-                                                        {Object.keys(parsedTickets).map(subId => {
-                                                            const key = `ticket_${subId}`;
-                                                            return (
-                                                                <div key={subId} className="flex flex-col items-center gap-2">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId }));
-                                                                            setPreviewTitle(`Boleto ${subId}`);
-                                                                        }}
-                                                                        className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs[key] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                                                                        </svg>
-                                                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boleto {subId}</span>
-                                                                        <span className="text-[10px] text-gray-400 mt-1">Ver</span>
-                                                                    </button>
-                                                                    <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={!!validatedDocs[key]}
-                                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
-                                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
-                                                                        />
-                                                                        ¿Boleto Válido?
-                                                                    </label>
+                                                return Object.keys(parsedTickets).map(subId => {
+                                                    const key = `ticket_${subId}`;
+                                                    return (
+                                                        <div key={subId} className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs[key] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId }));
+                                                                    setPreviewTitle(`Boleto ${subId}`);
+                                                                }}
+                                                                className="w-full flex flex-col items-center group mb-2"
+                                                            >
+                                                                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                                    </svg>
                                                                 </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                );
+                                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boleto {subId}</span>
+                                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boleto ↗</span>
+                                                            </button>
+                                                            <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={!!validatedDocs[key]}
+                                                                    onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
+                                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                                                                />
+                                                                ¿Boleto Válido?
+                                                            </label>
+                                                        </div>
+                                                    );
+                                                });
                                             }
 
                                             return (
-                                                <div className="flex flex-col items-center gap-2">
+                                                <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['tickets'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
                                                     <button
+                                                        type="button"
                                                         onClick={() => {
                                                             setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' }));
                                                             setPreviewTitle('Boletos Físicos');
                                                         }}
-                                                        className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs['tickets'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
+                                                        className="w-full flex flex-col items-center group mb-2"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                                                        </svg>
-                                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boletos Físicos</span>
-                                                        <span className="text-[10px] text-gray-400 mt-1">Ver</span>
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boletos Físicos</span>
+                                                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boletos ↗</span>
                                                     </button>
-                                                    <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                                    <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
                                                         <input
                                                             type="checkbox"
                                                             checked={!!validatedDocs['tickets']}
                                                             onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
-                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
+                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
                                                         />
                                                         ¿Boletos Válidos?
                                                     </label>
@@ -697,6 +756,90 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             );
                                         })()}
                                     </div>
+                                </div>
+
+                                {/* Dedicated Section: Admin Proof of Transfer Upload */}
+                                <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/50 dark:bg-emerald-950/20 p-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="flex items-start sm:items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-700 dark:text-emerald-300 flex-shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5h16.5a1.5 1.5 0 011.5 1.5v9a1.5 1.5 0 01-1.5 1.5H3.75a1.5 1.5 0 01-1.5-1.5v-9a1.5 1.5 0 011.5-1.5z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-xs uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                                                    Comprobante de Pago del Reembolso
+                                                </h3>
+                                                <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                                                    Adjunte la transferencia realizada al cliente para autorizar el reembolso final.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {selectedRequest.proof_of_payment_path || proofFile ? (
+                                            <div className="flex items-center gap-2 self-start sm:self-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (proofFile) {
+                                                            setPreviewUrl(URL.createObjectURL(proofFile));
+                                                            setPreviewTitle('Comprobante de Pago (Nuevo)');
+                                                        } else {
+                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'proof' }));
+                                                            setPreviewTitle('Comprobante de Pago');
+                                                        }
+                                                    }}
+                                                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs flex items-center gap-1.5"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    </svg>
+                                                    Ver Comprobante
+                                                </button>
+                                                <label className="px-3 py-2 bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 font-bold text-xs rounded-xl cursor-pointer transition">
+                                                    Cambiar
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*,application/pdf"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files[0]) {
+                                                                setProofFile(e.target.files[0]);
+                                                                setValidatedDocs(prev => ({ ...prev, proof: true }));
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                        ) : (
+                                            <label className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition shadow-md shadow-emerald-600/20 inline-flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                                                </svg>
+                                                Subir Comprobante de Pago
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,application/pdf"
+                                                    className="hidden"
+                                                    onChange={(e) => {
+                                                        if (e.target.files && e.target.files[0]) {
+                                                            setProofFile(e.target.files[0]);
+                                                            setValidatedDocs(prev => ({ ...prev, proof: true }));
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        )}
+                                    </div>
+
+                                    {proofFile && (
+                                        <div className="mt-2.5 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Archivo seleccionado para guardar: <strong>{proofFile.name}</strong> ({(proofFile.size / 1024).toFixed(1)} KB)
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Admin Notes + Actions */}
@@ -710,7 +853,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none"
                                     />
 
-                                    <div className="flex flex-wrap sm:justify-end gap-3">
+                                    <div className="flex flex-wrap sm:justify-end gap-3 items-center">
                                         <Button onClick={handleCloseReview} variant="outline" disabled={loading} className="w-full sm:w-auto">
                                             Cancelar
                                         </Button>
@@ -755,7 +898,6 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     return;
                                                 }
                                                 if (confirm("¿Estás seguro de rechazar definitivamente esta solicitud? El cliente no podrá corregir los documentos.")) {
-                                                    // Set all documents as validated so backend considers it a permanent rejection
                                                     const allApproved: Record<string, boolean> = {};
                                                     if (selectedRequest?.ine_path) allApproved.ine = true;
                                                     if (selectedRequest?.proof_of_payment_path) allApproved.proof = true;
@@ -773,7 +915,6 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         }
                                                     }
                                                     setValidatedDocs(allApproved);
-                                                    // Small delay to ensure state updates before network request
                                                     setTimeout(() => {
                                                         setLoading(true);
                                                         router.post(
@@ -801,13 +942,30 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             Rechazar Definitivamente
                                         </Button>
 
-                                        <Button
-                                            onClick={() => handleUpdateStatus('approved')}
-                                            disabled={loading || (getInvalidDocsList().length > 0)}
-                                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-                                        >
-                                            Aprobar Reembolso
-                                        </Button>
+                                        {(() => {
+                                            const hasProof = !!selectedRequest.proof_of_payment_path || !!proofFile;
+                                            const canApprove = !loading && getInvalidDocsList().length === 0 && hasProof;
+
+                                            return (
+                                                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                                                    {!hasProof && (
+                                                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/60 dark:border-amber-900/50 flex items-center gap-1.5">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 text-amber-500 flex-shrink-0">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                                            </svg>
+                                                            Adjunte comprobante de pago para aprobar
+                                                        </span>
+                                                    )}
+                                                    <Button
+                                                        onClick={() => handleUpdateStatus('approved')}
+                                                        disabled={!canApprove}
+                                                        className={`w-full sm:w-auto ${canApprove ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'}`}
+                                                    >
+                                                        Aprobar Reembolso
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 

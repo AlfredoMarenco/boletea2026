@@ -234,15 +234,19 @@ test('admin can change request status and download files', function () {
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
         'status' => 'processing',
         'admin_notes' => 'Checking with bank.',
+        'validated_documents' => ['ine' => true],
     ]);
 
     $response->assertStatus(302);
     expect($refundRequest->fresh()->status)->toBe('processing');
 
-    // Test changing status to approved
+    // Test changing status to approved with proof of payment
+    $proof = UploadedFile::fake()->image('proof.jpg');
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
         'status' => 'approved',
         'admin_notes' => 'CLABE and INE verified.',
+        'validated_documents' => ['ine' => true, 'proof' => true],
+        'proof_of_payment' => $proof,
     ]);
 
     $response->assertStatus(302);
@@ -256,4 +260,47 @@ test('admin can change request status and download files', function () {
     ]));
 
     $downloadResponse->assertStatus(200);
+});
+
+test('admin can export refund requests to csv matching accounting format', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.refunds.requests.export_csv', ['status' => 'processing']));
+    $response->assertStatus(200);
+    $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+});
+
+test('admin can toggle include_charges and it reflects in csv export as CC or SC', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $ine = UploadedFile::fake()->image('ine.jpg');
+
+    $refundRequest = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'refund_purchase_id' => $this->cardPurchase->id,
+        'order_number' => '67890',
+        'buyer_name' => 'Card Buyer',
+        'email' => 'cardbuyer@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'card_last_four' => '4321',
+        'ine_path' => $ine->store('refunds/ine'),
+        'status' => 'processing',
+        'include_charges' => true,
+    ]);
+
+    $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
+        'status' => 'processing',
+        'include_charges' => true,
+        'validated_documents' => ['ine' => true],
+    ]);
+
+    $response->assertStatus(302);
+    expect($refundRequest->fresh()->include_charges)->toBeTrue();
+
+    $csvResponse = $this->get(route('admin.refunds.requests.export_csv', ['status' => 'processing']));
+    $csvResponse->assertStatus(200);
+    expect($csvResponse->streamedContent())->toContain('CC');
 });
