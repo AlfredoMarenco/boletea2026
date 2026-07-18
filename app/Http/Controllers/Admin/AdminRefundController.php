@@ -318,6 +318,7 @@ class AdminRefundController extends Controller
         $refundRequest->update($validated);
 
         // Send status update notification email if email is registered
+        /*
         if ($refundRequest->email) {
             try {
                 Mail::to($refundRequest->email)->send(new RefundStatusMail($refundRequest));
@@ -325,6 +326,7 @@ class AdminRefundController extends Controller
                 // Fail silently to prevent administrative page crash
             }
         }
+        */
 
         return back()->with('success', 'El estado del reembolso ha sido actualizado.');
     }

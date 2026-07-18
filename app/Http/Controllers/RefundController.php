@@ -386,6 +386,7 @@ class RefundController extends Controller
         ]);
 
         // Send email notification
+        /*
         if ($refundRequest->email) {
             try {
                 Mail::to($refundRequest->email)->send(new RefundStatusMail($refundRequest));
@@ -393,6 +394,7 @@ class RefundController extends Controller
                 // Fail silently in production
             }
         }
+        */
 
         return redirect()->route('refund.success')->with('order_number', $validated['order_number']);
     }
