@@ -1,8 +1,9 @@
 import PublicHeader from '@/components/public-header';
 import PublicFooter from '@/components/public-footer';
 import { GeolocationProvider } from '@/contexts/GeolocationProvider';
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import React, { useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Client-side image compression utility using HTML5 Canvas
 const compressImage = (file: File): Promise<File> => {
@@ -58,7 +59,7 @@ const compressImage = (file: File): Promise<File> => {
             };
             img.onerror = () => resolve(file);
         };
-        img.onerror = () => resolve(file);
+        reader.onerror = () => resolve(file);
     });
 };
 
@@ -425,34 +426,70 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                                 </div>
                             )}
 
-                            <div className="mb-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-800 dark:text-blue-300 space-y-2">
-                                <p><strong>Importante:</strong> Para hacer válido el reembolso, la información solicitada debe ser precisa y todos los campos son obligatorios.</p>
-                                <p>Boletea Tickets puede hacer contacto vía correo en caso de que exista una aclaración con los datos proporcionados.</p>
-                                <p>Los tiempos de devolución pueden tomar entre <strong>15 y 30 días hábiles</strong> una vez teniendo la información necesaria.</p>
-                            </div>
+                            
 
                             {/* STEP 1: VERIFY ORDER & EMAIL / CARD */}
                             {step === 1 && (
                                 <div>
-                                    {!(requiresEmail || requiresCard) ? (
+                                    {!events || events.length === 0 ? (
+                                        <div className="py-10 px-6 text-center rounded-3xl bg-gray-50/80 dark:bg-neutral-900/50 border border-gray-200/80 dark:border-neutral-800 space-y-6">
+                                            <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-xs">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                                </svg>
+                                            </div>
+
+                                            <div className="max-w-md mx-auto space-y-2">
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                                                    No hay eventos disponibles para trámites
+                                                </h3>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                                    Por el momento no contamos con eventos habilitados para la recepción de solicitudes de reembolso. Si requieres asistencia o tienes dudas con tu orden, contáctanos.
+                                                </p>
+                                            </div>
+
+                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                                <a
+                                                    href="https://wa.me/528711024187?text=Hola%20tengo%20una%20duda%20sobre%20reembolsos"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    </svg>
+                                                    Contactar Soporte
+                                                </a>
+                                                <Link
+                                                    href="/"
+                                                    className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition text-center"
+                                                >
+                                                    Volver al Inicio
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    ) : !(requiresEmail || requiresCard) ? (
                                         <form onSubmit={handleVerifyOrder} className="space-y-5">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                                                     Selecciona el Evento <span className="text-red-500 ml-1">*</span>
                                                 </label>
-                                                <select
-                                                    value={eventId}
-                                                    onChange={(e) => setEventId(e.target.value)}
-                                                    required
-                                                    className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
-                                                >
-                                                    <option value="">-- Elige un evento --</option>
-                                                    {events.map((ev) => (
-                                                        <option key={ev.id} value={ev.id}>
-                                                            {ev.title} {ev.start_date ? `(${ev.start_date})` : ''}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <Select value={eventId} onValueChange={(value) => setEventId(value)}>
+                                                    <SelectTrigger className="w-full h-auto p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c90000] focus:ring-offset-0 text-sm font-medium transition shadow-xs">
+                                                        <SelectValue placeholder="-- Elige un evento --" />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="rounded-2xl border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl p-1.5 max-h-72">
+                                                        {events.map((ev) => (
+                                                            <SelectItem
+                                                                key={ev.id}
+                                                                value={String(ev.id)}
+                                                                className="rounded-xl py-3 px-3 text-sm font-medium cursor-pointer focus:bg-[#c90000]/10 focus:text-[#c90000] dark:focus:bg-[#c90000]/20 dark:focus:text-red-400 transition"
+                                                            >
+                                                                {ev.title} {ev.start_date ? `(${ev.start_date})` : ''}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                             </div>
 
                                             <div>
@@ -541,6 +578,13 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                                     )}
                                 </div>
                             )}
+
+                            <div className="mt-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-800 dark:text-blue-300 space-y-2">
+                                <p><strong>Importante:</strong> Para hacer válido el reembolso, la información solicitada debe ser precisa y todos los campos son obligatorios.</p>
+                                <p>Boletea Tickets puede hacer contacto vía correo en caso de que exista una aclaración con los datos proporcionados.</p>
+                                <p>Los tiempos de devolución pueden tomar entre <strong>15 y 30 días hábiles</strong> una vez teniendo la información necesaria.</p>
+                                <p>Para aclaraciones WhatsApp <strong>871 102 4187</strong>.</p>
+                            </div>
 
                             {/* STEP 2: DOCUMENTS UPLOAD & BANK INFO */}
                             {step === 2 && (
