@@ -410,7 +410,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     <p className="text-xs text-gray-400 mb-1.5 font-medium">
                                                         {selectedRequest.validated_tickets ? 'Boletos en este trámite:' : 'Boletos de la orden:'}
                                                     </p>
-                                                    <div className="max-h-32 overflow-y-auto space-y-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-blue-100 dark:border-neutral-800 text-xs">
+                                                    <div className="max-h-36 overflow-y-auto space-y-1.5 bg-white dark:bg-neutral-900 p-2.5 rounded-lg border border-blue-100 dark:border-neutral-800 text-xs">
                                                         {selectedRequest.refund_purchase.tickets_details
                                                             .filter((t) => {
                                                                 if (!selectedRequest.validated_tickets || selectedRequest.validated_tickets.length === 0) return true;
@@ -418,19 +418,35 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                 return validatedList.includes(String(t.barcode).trim().toLowerCase()) ||
                                                                     validatedList.includes(String(t.ticket_id).trim().toLowerCase());
                                                             })
-                                                            .map((t, idx) => (
-                                                                <div key={idx} className="flex justify-between items-center border-b border-gray-50 dark:border-neutral-800 py-1 last:border-0">
-                                                                    <div>
-                                                                        <span className="font-medium">{t.area}</span>
-                                                                        {t.seat && t.seat !== '0' && <span className="text-gray-400"> · Asiento {t.seat}</span>}
+                                                            .map((t, idx) => {
+                                                                const bPrice = parseFloat(String(t.price)) || 0;
+                                                                const bCxs = parseFloat(String(t.cxs || 0)) || 0;
+                                                                const bTc = parseFloat(String(t.tc || 0)) || 0;
+                                                                const bCxadm = parseFloat(String(t.cxadm || 0)) || 0;
+                                                                const bCharges = bCxs + bTc + bCxadm;
+                                                                const bTotalPaid = t.total ? parseFloat(String(t.total)) : (bPrice + bCharges);
+
+                                                                return (
+                                                                    <div key={idx} className="flex justify-between items-center border-b border-gray-50 dark:border-neutral-800 py-1.5 last:border-0">
+                                                                        <div>
+                                                                            <span className="font-semibold text-gray-800 dark:text-gray-200">{t.area}</span>
+                                                                            {t.seat && t.seat !== '0' && <span className="text-gray-400"> · Asiento {t.seat}</span>}
+                                                                            <div className="text-[10px] text-gray-400 mt-0.5">
+                                                                                Boleto: ${bPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                                {bCharges > 0 && <span> | Cargos: ${bCharges.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <span className="font-bold text-green-700 dark:text-green-400 block text-xs">
+                                                                                A reembolsar: ${bPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-gray-400 block">
+                                                                                Pagado: ${bTotalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                            </span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-right">
-                                                                        <span className="font-semibold text-gray-700 dark:text-gray-300">
-                                                                            ${(t.total || (parseFloat(String(t.price)) + parseFloat(String(t.cxs || 0)) + parseFloat(String(t.tc || 0)) + parseFloat(String(t.cxadm || 0)))).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                                                );
+                                                            })}
                                                     </div>
                                                 </div>
                                             </>
@@ -474,60 +490,87 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             )}
                                         </div>
 
-                                        {/* Amount Breakdown - validated taquilla tickets */}
-                                        {selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0 && (() => {
-                                            const validatedList = selectedRequest.validated_tickets.map(t => String(t).trim().toLowerCase());
-                                            const tickets = selectedRequest.refund_purchase?.tickets_details || [];
-                                            const matchedTickets = tickets.filter(t =>
-                                                validatedList.includes(String(t.barcode).trim().toLowerCase()) ||
-                                                validatedList.includes(String(t.ticket_id).trim().toLowerCase())
-                                            );
-                                            if (matchedTickets.length === 0) return null;
+                                        {/* Amount Breakdown - calculate refund total as base ticket price only */}
+                                        {(() => {
+                                            const isPartialTaquilla = selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0;
+                                            const validatedList = isPartialTaquilla ? selectedRequest.validated_tickets!.map(t => String(t).trim().toLowerCase()) : [];
+                                            const allTickets = selectedRequest.refund_purchase?.tickets_details || [];
 
-                                            const priceTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.price)) || 0), 0);
-                                            const cxsTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxs || 0)) || 0), 0);
-                                            const tcTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.tc || 0)) || 0), 0);
-                                            const cxadmTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxadm || 0)) || 0), 0);
-                                            // Use pre-computed total per ticket if available
-                                            const partialAmount = matchedTickets.reduce((acc, t) => {
-                                                const ticketTotal = t.total
-                                                    ? parseFloat(String(t.total))
-                                                    : (parseFloat(String(t.price)) || 0) + (parseFloat(String(t.cxs || 0)) || 0) + (parseFloat(String(t.tc || 0)) || 0) + (parseFloat(String(t.cxadm || 0)) || 0);
-                                                return acc + ticketTotal;
-                                            }, 0);
-                                            const hasBreakdown = cxsTotal > 0 || tcTotal > 0 || cxadmTotal > 0;
+                                            const targetTickets = isPartialTaquilla
+                                                ? allTickets.filter(t => validatedList.includes(String(t.barcode).trim().toLowerCase()) || validatedList.includes(String(t.ticket_id).trim().toLowerCase()))
+                                                : allTickets;
+
+                                            if (targetTickets.length === 0 && !selectedRequest.refund_purchase) return null;
+
+                                            const priceTotal = targetTickets.length > 0
+                                                ? targetTickets.reduce((acc, t) => acc + (parseFloat(String(t.price)) || 0), 0)
+                                                : parseFloat(selectedRequest.refund_purchase?.amount || '0');
+
+                                            const cxsTotal = targetTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxs || 0)) || 0), 0);
+                                            const tcTotal = targetTickets.reduce((acc, t) => acc + (parseFloat(String(t.tc || 0)) || 0), 0);
+                                            const cxadmTotal = targetTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxadm || 0)) || 0), 0);
+                                            const chargesTotal = cxsTotal + tcTotal + cxadmTotal;
+                                            const grandTotalPaid = priceTotal + chargesTotal;
 
                                             return (
-                                                <div className="rounded-lg bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-3">
-                                                    <div className="flex items-baseline justify-between mb-2">
-                                                        <span className="text-xs font-semibold text-green-700 dark:text-green-400">
-                                                            Total a Reembolsar ({matchedTickets.length} boleto{matchedTickets.length !== 1 ? 's' : ''})
-                                                        </span>
-                                                        <span className="text-xl font-black text-green-700 dark:text-green-400">
-                                                            ${partialAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                                                <div className="rounded-xl bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-4 space-y-3 shadow-xs">
+                                                    <div className="flex items-baseline justify-between pb-2.5 border-b border-green-100 dark:border-green-900/40">
+                                                        <div>
+                                                            <span className="text-xs font-bold text-green-800 dark:text-green-400 uppercase tracking-wider block">
+                                                                Total a Reembolsar
+                                                            </span>
+                                                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                                                {isPartialTaquilla ? `(${targetTickets.length} boleto${targetTickets.length !== 1 ? 's' : ''} validado${targetTickets.length !== 1 ? 's' : ''} - sin cargos)` : '(Costo base de boletos - sin cargos)'}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-2xl font-black text-green-700 dark:text-green-400">
+                                                            ${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
                                                         </span>
                                                     </div>
-                                                    {hasBreakdown && (
-                                                        <div className="text-[10px] space-y-0.5 pt-2 border-t border-green-100 dark:border-green-900/50 text-gray-500">
-                                                            <div className="flex justify-between"><span>Precio boletos</span><span>${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-                                                            {cxsTotal > 0 && <div className="flex justify-between"><span>Cargo por Servicio</span><span>${cxsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
-                                                            {tcTotal > 0 && <div className="flex justify-between"><span>Cargo Tarjeta</span><span>${tcTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
-                                                            {cxadmTotal > 0 && <div className="flex justify-between"><span>Cargo Administrativo</span><span>${cxadmTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
+
+                                                    <div className="text-xs space-y-1.5 text-gray-600 dark:text-gray-300">
+                                                        <div className="flex justify-between font-semibold">
+                                                            <span>• Subtotal Boletos (Costo a reembolsar):</span>
+                                                            <span className="text-gray-900 dark:text-white">${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                                                         </div>
-                                                    )}
+
+                                                        {chargesTotal > 0 && (
+                                                            <div className="pt-2 pb-1 border-t border-dashed border-gray-200 dark:border-neutral-800 space-y-1">
+                                                                <div className="flex justify-between items-center text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                                                                    <span>Cargos no reembolsables:</span>
+                                                                    <span className="line-through">${chargesTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                {cxsTotal > 0 && (
+                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                        <span>- Cargo por Servicio (CXS):</span>
+                                                                        <span>${cxsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                )}
+                                                                {tcTotal > 0 && (
+                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                        <span>- Cargo Tarjeta (TC):</span>
+                                                                        <span>${tcTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                )}
+                                                                {cxadmTotal > 0 && (
+                                                                    <div className="flex justify-between pl-3 text-[11px] text-gray-500">
+                                                                        <span>- Cargo Adm. (CXADM):</span>
+                                                                        <span>${cxadmTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {chargesTotal > 0 && (
+                                                            <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-neutral-800 text-[11px] text-gray-400 font-medium">
+                                                                <span>Total Pagado en Orden (Precio + Cargos):</span>
+                                                                <span>${grandTotalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             );
                                         })()}
-
-                                        {/* Non-taquilla: show total from purchase directly */}
-                                        {(!selectedRequest.validated_tickets || selectedRequest.validated_tickets.length === 0) && selectedRequest.refund_purchase && (
-                                            <div className="rounded-lg bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-3 flex items-baseline justify-between">
-                                                <span className="text-xs font-semibold text-green-700 dark:text-green-400">Total a Reembolsar (orden completa)</span>
-                                                <span className="text-xl font-black text-green-700 dark:text-green-400">
-                                                    ${parseFloat(selectedRequest.refund_purchase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN
-                                                </span>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 

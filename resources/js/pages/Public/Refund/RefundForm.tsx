@@ -439,13 +439,30 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                                                 </svg>
                                             </div>
 
-                                            <div className="max-w-md mx-auto space-y-2">
+                                            <div className="max-w-md mx-auto space-y-3">
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                                                     No hay eventos disponibles para trámites
                                                 </h3>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                                                    Por el momento no contamos con eventos habilitados para la recepción de solicitudes de reembolso. Si requieres asistencia o tienes dudas con tu orden, contáctanos.
+                                                    Por el momento no contamos con eventos habilitados para la recepción de solicitudes de reembolso.
                                                 </p>
+
+                                                {/* Upcoming Event Notice Callout */}
+                                                <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-left flex items-start gap-3 shadow-xs">
+                                                    <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5h12v9H6V7z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 block uppercase tracking-wider">
+                                                            Próxima Apertura de Registro
+                                                        </span>
+                                                        <p className="text-xs font-medium text-amber-800 dark:text-amber-200/90 leading-snug">
+                                                            Los registros para el evento <strong className="font-bold">"Juntos en Durango"</strong> darán inicio el <strong className="underline decoration-amber-400 font-bold">lunes 20 de julio</strong>.
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
@@ -589,7 +606,7 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                             {/* STEP 2: DOCUMENTS UPLOAD & BANK INFO */}
                             {step === 2 && (
                                 <form onSubmit={handleSubmitRefund} className="space-y-6">
-                                    <div className="p-4 rounded-2xl bg-[#c90000]/5 text-sm dark:bg-[#c90000]/10 border border-[#c90000]/10">
+                                    <div className="p-4 mt-2 mb-2 rounded-2xl bg-[#c90000]/5 text-sm dark:bg-[#c90000]/10 border border-[#c90000]/10">
                                         <p className="text-gray-700 dark:text-gray-300">
                                             Orden: <strong>#{orderNumber}</strong> ({paymentMethod})
                                         </p>
