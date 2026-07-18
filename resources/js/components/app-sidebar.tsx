@@ -1,6 +1,6 @@
 import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle, Image as ImageIcon, Settings, Mail, Tablet } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, MapPin, Map, Building, Users, Puzzle, Image as ImageIcon, Settings, Mail, Tablet, Undo } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -66,7 +66,16 @@ const mainNavItems: NavItem[] = [
             { title: 'Audiencias', href: '/admin/mailing/audiences' },
         ]
     },
+    {
+        title: 'Reembolsos',
+        icon: Undo,
+        items: [
+            { title: 'Eventos Habilitados', href: route('admin.refunds.events') },
+            { title: 'Solicitudes Recibidas', href: route('admin.refunds.requests') },
+        ]
+    },
 ];
+
 
 const footerNavItems: NavItem[] = [
     {

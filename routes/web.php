@@ -68,4 +68,14 @@ Route::get('/world-cup/status', function () {
     return response()->json($service->updateScore());
 })->name('world-cup.status');
 
+// --- Public Refund Routes --- //
+Route::get('/reembolsos', [\App\Http\Controllers\RefundController::class, 'showForm'])->name('refund.form');
+Route::post('/reembolsos/validar-orden', [\App\Http\Controllers\RefundController::class, 'validateOrder'])->name('refund.validate_order');
+Route::post('/reembolsos/validar-seguridad', [\App\Http\Controllers\RefundController::class, 'validateSecondary'])->name('refund.validate_secondary');
+Route::post('/reembolsos/validar-boleto', [\App\Http\Controllers\RefundController::class, 'validateTicket'])->name('refund.validate_ticket');
+Route::post('/reembolsos/solicitar', [\App\Http\Controllers\RefundController::class, 'submitRequest'])->name('refund.submit');
+Route::get('/reembolsos/exito', [\App\Http\Controllers\RefundController::class, 'showSuccess'])->name('refund.success');
+Route::get('/reembolsos/estatus', [\App\Http\Controllers\RefundController::class, 'showTrackingForm'])->name('refund.track_form');
+Route::post('/reembolsos/estatus', [\App\Http\Controllers\RefundController::class, 'trackStatus'])->name('refund.track_status');
+
 require __DIR__.'/settings.php';

@@ -111,3 +111,18 @@ Route::prefix('access')->name('access.')->group(function () {
     Route::post('devices/{device}/toggle', [AccessDeviceController::class, 'toggle'])->name('devices.toggle');
     Route::post('apk/upload', [AccessDeviceController::class, 'uploadApk'])->name('apk.upload');
 });
+
+// ─── Refund Management ───────────────────────────────────────────────────────────
+use App\Http\Controllers\Admin\AdminRefundController;
+
+Route::prefix('refunds')->name('refunds.')->group(function () {
+    Route::get('events', [AdminRefundController::class, 'eventsIndex'])->name('events');
+    Route::post('events', [AdminRefundController::class, 'storeEvent'])->name('events.store');
+    Route::post('events/{event}/toggle', [AdminRefundController::class, 'toggleEvent'])->name('events.toggle');
+    Route::post('events/{event}/upload-csv', [AdminRefundController::class, 'uploadCsv'])->name('events.upload_csv');
+    Route::delete('events/{event}', [AdminRefundController::class, 'destroyEvent'])->name('events.destroy');
+
+    Route::get('requests', [AdminRefundController::class, 'requestsIndex'])->name('requests');
+    Route::post('requests/{refundRequest}/status', [AdminRefundController::class, 'updateRequestStatus'])->name('requests.status');
+    Route::get('requests/{refundRequest}/file/{type}', [AdminRefundController::class, 'downloadFile'])->name('requests.file');
+});

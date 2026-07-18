@@ -1,0 +1,617 @@
+import AppLayout from '@/layouts/app-layout';
+import { Head, router } from '@inertiajs/react';
+import { route } from 'ziggy-js';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { useState, useEffect } from 'react';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+
+interface RefundRequest {
+    id: number;
+    refund_event_id: number;
+    order_number: string;
+    email: string | null;
+    buyer_name: string;
+    clabe: string;
+    bank_name: string;
+    card_last_four: string | null;
+    ine_path: string;
+    proof_of_payment_path: string | null;
+    tickets_path: string | null;
+    validated_tickets: string[] | null;
+    status: 'pending' | 'processing' | 'approved' | 'rejected';
+    admin_notes: string | null;
+    created_at: string;
+    refund_event?: {
+        external_event?: {
+            title: string;
+        };
+    };
+    refund_purchase?: {
+        buyer_name: string;
+        payment_method: string;
+        amount: string;
+        tickets_details: Array<{
+            ticket_id: string;
+            barcode: string;
+            area: string;
+            seat: string;
+            price: number;
+            cxs: number;
+            tc: number;
+            cxadm: number;
+            total: number;
+        }>;
+    } | null;
+}
+
+interface RefundEvent {
+    id: number;
+    external_event?: {
+        title: string;
+    };
+}
+
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+interface PaginatedData<T> {
+    data: T[];
+    links: PaginationLink[];
+    current_page: number;
+    last_page: number;
+    total: number;
+}
+
+interface Props {
+    requests: PaginatedData<RefundRequest>;
+    refundEvents: RefundEvent[];
+    filters: {
+        search?: string | null;
+        status?: string | null;
+        refund_event_id?: string | null;
+    };
+}
+
+export default function RequestsIndex({ requests, refundEvents, filters }: Props) {
+    const [search, setSearch] = useState(filters?.search || '');
+    const [status, setStatus] = useState(filters?.status || '');
+    const [refundEventId, setRefundEventId] = useState(filters?.refund_event_id || '');
+
+    // Modal/Review states
+    const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
+    const [adminNotes, setAdminNotes] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    // Apply filtering
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            router.get(
+                route('admin.refunds.requests'),
+                {
+                    search: search || undefined,
+                    status: status || undefined,
+                    refund_event_id: refundEventId || undefined,
+                },
+                { preserveState: true, preserveScroll: true, replace: true }
+            );
+        }, 400);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [search, status, refundEventId]);
+
+    const handleOpenReview = (req: RefundRequest) => {
+        setSelectedRequest(req);
+        setAdminNotes(req.admin_notes || '');
+    };
+
+    const handleCloseReview = () => {
+        setSelectedRequest(null);
+    };
+
+    const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'approved' | 'rejected') => {
+        if (!selectedRequest) return;
+
+        setLoading(true);
+        router.post(
+            route('admin.refunds.requests.status', { refundRequest: selectedRequest.id }),
+            {
+                status: newStatus,
+                admin_notes: adminNotes,
+            },
+            {
+                onSuccess: () => {
+                    handleCloseReview();
+                    setLoading(false);
+                },
+                onFinish: () => setLoading(false),
+            }
+        );
+    };
+
+    const getStatusBadgeClass = (status: string) => {
+        switch (status) {
+            case 'pending':
+                return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
+            case 'processing':
+                return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'approved':
+                return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+            case 'rejected':
+                return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+            default:
+                return 'bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-400';
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'pending': return 'Pendiente';
+            case 'processing': return 'En Trámite';
+            case 'approved': return 'Aprobado';
+            case 'rejected': return 'Rechazado';
+            default: return status;
+        }
+    };
+
+    return (
+        <AppLayout breadcrumbs={[{ title: 'Solicitudes de Reembolso', href: route('admin.refunds.requests') }]}>
+            <Head title="Solicitudes de Reembolso" />
+
+            <div className="p-6">
+                {/* Header */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                            Trámites de Reembolso Recibidos
+                        </h1>
+                        <p className="text-sm text-gray-500">Valide los datos bancarios y documentos adjuntos de los clientes contra el registro de la orden.</p>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 bg-white dark:bg-card p-4 rounded-lg border border-gray-200 dark:border-border">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Buscar</label>
+                        <Input
+                            type="text"
+                            placeholder="Orden, Correo, Titular, CLABE..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Evento</label>
+                        <select
+                            value={refundEventId}
+                            onChange={(e) => setRefundEventId(e.target.value)}
+                            className="w-full p-2 h-9 rounded-md border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-sm focus:outline-none"
+                        >
+                            <option value="">Todos los eventos</option>
+                            {refundEvents.map((ev) => (
+                                <option key={ev.id} value={ev.id}>
+                                    {ev.external_event?.title || `Evento #${ev.id}`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase">Estado de Solicitud</label>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)}
+                            className="w-full p-2 h-9 rounded-md border border-gray-300 dark:border-neutral-800 bg-white dark:bg-neutral-900 text-sm focus:outline-none"
+                        >
+                            <option value="">Todos</option>
+                            <option value="pending">Pendientes</option>
+                            <option value="processing">En Trámite</option>
+                            <option value="approved">Aprobados</option>
+                            <option value="rejected">Rechazados</option>
+                        </select>
+                    </div>
+                </div>
+
+                {/* Table of Requests */}
+                <div className="bg-white rounded-md shadow overflow-hidden dark:bg-background border border-gray-200 dark:border-border">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Orden</TableHead>
+                                    <TableHead>Evento</TableHead>
+                                    <TableHead>Cliente (Solicitado)</TableHead>
+                                    <TableHead>CLABE</TableHead>
+                                    <TableHead className="text-center">Estado</TableHead>
+                                    <TableHead className="text-center">Fecha Envío</TableHead>
+                                    <TableHead className="text-right">Acciones</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {requests.data.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                                            No se encontraron solicitudes de reembolso.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    requests.data.map((req) => (
+                                        <TableRow key={req.id}>
+                                            <TableCell className="font-semibold">#{req.order_number}</TableCell>
+                                            <TableCell className="max-w-[200px] truncate">
+                                                {req.refund_event?.external_event?.title || 'Desconocido'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-medium text-gray-900 dark:text-white">
+                                                    {req.buyer_name}
+                                                </div>
+                                                {req.email && (
+                                                    <div className="text-xs text-gray-400">
+                                                        {req.email}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs">{req.clabe}</TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge className={`px-2 py-0.5 capitalize ${getStatusBadgeClass(req.status)}`}>
+                                                    {getStatusLabel(req.status)}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center text-xs text-gray-500">
+                                                {new Date(req.created_at).toLocaleDateString()}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Button onClick={() => handleOpenReview(req)} size="sm" variant="outline">
+                                                    Revisar
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Pagination Links */}
+                    {requests.total > 0 && (
+                        <div className="p-4 border-t border-gray-200 dark:border-border flex items-center justify-between text-xs text-gray-500">
+                            <div>
+                                Mostrando página {requests.current_page} de {requests.last_page} ({requests.total} solicitudes en total)
+                            </div>
+                            <div className="flex space-x-1">
+                                {requests.links.map((link, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => {
+                                            if (link.url) {
+                                                const urlObj = new URL(link.url);
+                                                const page = urlObj.searchParams.get('page');
+                                                router.get(route('admin.refunds.requests'), {
+                                                    search: search || undefined,
+                                                    status: status || undefined,
+                                                    refund_event_id: refundEventId || undefined,
+                                                    page: page || undefined
+                                                });
+                                            }
+                                        }}
+                                        disabled={!link.url}
+                                        className={`px-3 py-1.5 rounded border ${link.active ? 'bg-[#c90000] text-white border-[#c90000]' : 'bg-white dark:bg-neutral-900 border-gray-300 dark:border-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100'} disabled:opacity-50`}
+                                        dangerouslySetInnerHTML={{ __html: link.label }}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* REVIEW DETAIL MODAL */}
+                {selectedRequest && (
+                    <div className="fixed inset-0 bg-black/60 flex items-start justify-center p-4 z-50 overflow-y-auto backdrop-blur-sm">
+                        <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-5xl my-8 border border-gray-200 dark:border-neutral-800 shadow-2xl">
+
+                            {/* Modal Header */}
+                            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-neutral-800">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-[#c90000]/10 flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-[#c90000]">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Solicitud #{selectedRequest.order_number}</h2>
+                                        <p className="text-xs text-gray-500">{selectedRequest.refund_event?.external_event?.title}</p>
+                                    </div>
+                                </div>
+                                <button onClick={handleCloseReview} className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-neutral-800 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+
+                                {/* Top row: CSV record + Client info side by side */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+                                    {/* CSV Record Card */}
+                                    <div className="rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50/50 dark:bg-blue-950/20 p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
+                                            <h3 className="font-semibold text-sm text-blue-800 dark:text-blue-300">Registro en CSV Importado</h3>
+                                        </div>
+                                        {selectedRequest.refund_purchase ? (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs mb-3">
+                                                    <div>
+                                                        <p className="text-gray-400 mb-0.5">Titular de Compra</p>
+                                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.buyer_name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-400 mb-0.5">Método de Pago</p>
+                                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.payment_method}</p>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <p className="text-gray-400 mb-0.5">Monto Total Orden (CSV)</p>
+                                                        <p className="font-bold text-base text-gray-900 dark:text-white">${parseFloat(selectedRequest.refund_purchase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN</p>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-400 mb-1.5 font-medium">
+                                                        {selectedRequest.validated_tickets ? 'Boletos en este trámite:' : 'Boletos de la orden:'}
+                                                    </p>
+                                                    <div className="max-h-32 overflow-y-auto space-y-1 bg-white dark:bg-neutral-900 p-2 rounded-lg border border-blue-100 dark:border-neutral-800 text-xs">
+                                                        {selectedRequest.refund_purchase.tickets_details
+                                                            .filter((t) => {
+                                                                if (!selectedRequest.validated_tickets || selectedRequest.validated_tickets.length === 0) return true;
+                                                                const validatedList = selectedRequest.validated_tickets.map(vt => String(vt).trim().toLowerCase());
+                                                                return validatedList.includes(String(t.barcode).trim().toLowerCase()) ||
+                                                                    validatedList.includes(String(t.ticket_id).trim().toLowerCase());
+                                                            })
+                                                            .map((t, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center border-b border-gray-50 dark:border-neutral-800 py-1 last:border-0">
+                                                                    <div>
+                                                                        <span className="font-medium">{t.area}</span>
+                                                                        {t.seat && t.seat !== '0' && <span className="text-gray-400"> · Asiento {t.seat}</span>}
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                                                            ${(t.total || (parseFloat(String(t.price)) + parseFloat(String(t.cxs || 0)) + parseFloat(String(t.tc || 0)) + parseFloat(String(t.cxadm || 0)))).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <p className="text-red-500 text-xs">No se encontró registro en el CSV importado para esta orden.</p>
+                                        )}
+                                    </div>
+
+                                    {/* Client Info Card */}
+                                    <div className="rounded-xl border border-green-100 dark:border-green-900/40 bg-green-50/50 dark:bg-green-950/20 p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+                                            <h3 className="font-semibold text-sm text-green-800 dark:text-green-300">Información Capturada por el Cliente</h3>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-xs mb-4">
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Nombre del Titular</p>
+                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.buyer_name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Banco</p>
+                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.bank_name || 'No especificado'}</p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-gray-400 mb-0.5">CLABE Interbancaria</p>
+                                                <p className="font-bold text-base font-mono tracking-wide text-[#c90000]">{selectedRequest.clabe}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Correo Electrónico</p>
+                                                <p className="font-medium text-gray-700 dark:text-gray-300 break-all">{selectedRequest.email}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-400 mb-0.5">Fecha de Trámite</p>
+                                                <p className="font-medium text-gray-700 dark:text-gray-300">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
+                                            </div>
+                                            {selectedRequest.card_last_four && (
+                                                <div>
+                                                    <p className="text-gray-400 mb-0.5">Últimos 4 dígitos tarjeta</p>
+                                                    <p className="font-semibold text-gray-800 dark:text-gray-200">···· {selectedRequest.card_last_four}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Amount Breakdown - validated taquilla tickets */}
+                                        {selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0 && (() => {
+                                            const validatedList = selectedRequest.validated_tickets.map(t => String(t).trim().toLowerCase());
+                                            const tickets = selectedRequest.refund_purchase?.tickets_details || [];
+                                            const matchedTickets = tickets.filter(t =>
+                                                validatedList.includes(String(t.barcode).trim().toLowerCase()) ||
+                                                validatedList.includes(String(t.ticket_id).trim().toLowerCase())
+                                            );
+                                            if (matchedTickets.length === 0) return null;
+
+                                            const priceTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.price)) || 0), 0);
+                                            const cxsTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxs || 0)) || 0), 0);
+                                            const tcTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.tc || 0)) || 0), 0);
+                                            const cxadmTotal = matchedTickets.reduce((acc, t) => acc + (parseFloat(String(t.cxadm || 0)) || 0), 0);
+                                            // Use pre-computed total per ticket if available
+                                            const partialAmount = matchedTickets.reduce((acc, t) => {
+                                                const ticketTotal = t.total
+                                                    ? parseFloat(String(t.total))
+                                                    : (parseFloat(String(t.price)) || 0) + (parseFloat(String(t.cxs || 0)) || 0) + (parseFloat(String(t.tc || 0)) || 0) + (parseFloat(String(t.cxadm || 0)) || 0);
+                                                return acc + ticketTotal;
+                                            }, 0);
+                                            const hasBreakdown = cxsTotal > 0 || tcTotal > 0 || cxadmTotal > 0;
+
+                                            return (
+                                                <div className="rounded-lg bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-3">
+                                                    <div className="flex items-baseline justify-between mb-2">
+                                                        <span className="text-xs font-semibold text-green-700 dark:text-green-400">
+                                                            Total a Reembolsar ({matchedTickets.length} boleto{matchedTickets.length !== 1 ? 's' : ''})
+                                                        </span>
+                                                        <span className="text-xl font-black text-green-700 dark:text-green-400">
+                                                            ${partialAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN
+                                                        </span>
+                                                    </div>
+                                                    {hasBreakdown && (
+                                                        <div className="text-[10px] space-y-0.5 pt-2 border-t border-green-100 dark:border-green-900/50 text-gray-500">
+                                                            <div className="flex justify-between"><span>Precio boletos</span><span>${priceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                                                            {cxsTotal > 0 && <div className="flex justify-between"><span>Cargo por Servicio</span><span>${cxsTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
+                                                            {tcTotal > 0 && <div className="flex justify-between"><span>Cargo Tarjeta</span><span>${tcTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
+                                                            {cxadmTotal > 0 && <div className="flex justify-between"><span>Cargo Administrativo</span><span>${cxadmTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Non-taquilla: show total from purchase directly */}
+                                        {(!selectedRequest.validated_tickets || selectedRequest.validated_tickets.length === 0) && selectedRequest.refund_purchase && (
+                                            <div className="rounded-lg bg-white dark:bg-neutral-900 border border-green-200 dark:border-green-900/50 p-3 flex items-baseline justify-between">
+                                                <span className="text-xs font-semibold text-green-700 dark:text-green-400">Total a Reembolsar (orden completa)</span>
+                                                <span className="text-xl font-black text-green-700 dark:text-green-400">
+                                                    ${parseFloat(selectedRequest.refund_purchase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Validated Ticket IDs (Taquilla only) */}
+                                {selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0 && (
+                                    <div className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 p-4">
+                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">IDs de Boletos Validados ({selectedRequest.validated_tickets.length})</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {selectedRequest.validated_tickets.map((t, idx) => (
+                                                <span key={idx} className="px-2 py-0.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-xs font-mono text-gray-700 dark:text-gray-300">{t}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Documents */}
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Documentos Adjuntos</p>
+                                    <div className="flex flex-row flex-wrap gap-3">
+                                        <a
+                                            href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' })}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                            </svg>
+                                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">INE / Pasaporte</span>
+                                            <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
+                                        </a>
+
+                                        {(() => {
+                                            if (!selectedRequest.tickets_path) {
+                                                return (
+                                                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 dark:bg-neutral-950 dark:border-neutral-800 opacity-40 text-center w-36">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="text-xs text-gray-400">Sin Boletos</span>
+                                                    </div>
+                                                );
+                                            }
+
+                                            let parsedTickets = null;
+                                            try {
+                                                const parsed = JSON.parse(selectedRequest.tickets_path);
+                                                if (typeof parsed === 'object' && parsed !== null) {
+                                                    parsedTickets = parsed;
+                                                }
+                                            } catch (e) {}
+
+                                            if (parsedTickets && typeof parsedTickets === 'object') {
+                                                return (
+                                                    <div className="contents">
+                                                        {Object.keys(parsedTickets).map(subId => (
+                                                            <a
+                                                                key={subId}
+                                                                href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId })}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                                </svg>
+                                                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boleto {subId}</span>
+                                                                <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+
+                                            return (
+                                                <a
+                                                    href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' })}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                    </svg>
+                                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boletos Físicos</span>
+                                                    <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
+                                                </a>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+
+                                {/* Admin Notes + Actions */}
+                                <div className="border-t border-gray-200 dark:border-neutral-800 pt-5">
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Notas del Administrador</label>
+                                    <textarea
+                                        value={adminNotes}
+                                        onChange={(e) => setAdminNotes(e.target.value)}
+                                        rows={3}
+                                        placeholder="Motivo de rechazo, observaciones o comentarios internos..."
+                                        className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none"
+                                    />
+
+                                    <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+                                        <Button onClick={handleCloseReview} variant="outline" disabled={loading} className="w-full sm:w-auto">
+                                            Cancelar
+                                        </Button>
+                                        <Button onClick={() => handleUpdateStatus('processing')} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
+                                            Poner en Trámite
+                                        </Button>
+                                        <Button onClick={() => handleUpdateStatus('rejected')} variant="destructive" disabled={loading} className="w-full sm:w-auto">
+                                            Rechazar
+                                        </Button>
+                                        <Button onClick={() => handleUpdateStatus('approved')} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+                                            Aprobar Reembolso
+                                        </Button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </AppLayout>
+    );
+}
