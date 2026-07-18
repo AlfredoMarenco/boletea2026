@@ -6,9 +6,10 @@ import React from 'react';
 
 interface Props {
     order_number: string;
+    tracking_id?: string;
 }
 
-export default function Success({ order_number }: Props) {
+export default function Success({ order_number, tracking_id }: Props) {
     return (
         <GeolocationProvider>
             <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#121212] dark:text-gray-100 font-sans flex flex-col">
@@ -34,9 +35,23 @@ export default function Success({ order_number }: Props) {
                                 Solicitud Registrada
                             </h1>
 
-                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
                                 Su solicitud de reembolso para la orden <strong className="text-gray-900 dark:text-white">#{order_number}</strong> ha sido recibida correctamente en nuestro sistema.
                             </p>
+
+                            {tracking_id && (
+                                <div className="p-4 mb-6 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-center">
+                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
+                                        Código de Seguimiento Único
+                                    </p>
+                                    <p className="text-2xl font-mono font-black text-[#c90000] tracking-widest select-all">
+                                        {tracking_id}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        Guarde este código para consultar el estatus de su trámite en línea.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="p-4 bg-gray-50 dark:bg-neutral-900 rounded-2xl text-left text-xs text-gray-600 dark:text-gray-400 space-y-2 border border-gray-100 dark:border-neutral-800 mb-8">
                                 <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Próximos Pasos:</p>

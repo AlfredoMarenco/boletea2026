@@ -141,6 +141,7 @@ class AdminRefundController extends Controller
         $barcodeIdx = $findIdx(['barcode', 'codigo_barras', 'codigo_barra', 'codigobarras']);
         $areaIdx = $findIdx(['nombre_rel_area', 'area', 'seccion', 'zona']);
         $seatIdx = $findIdx(['numero_asiento', 'asiento', 'seat']);
+        $statusIdx = $findIdx(['estatus_compra', 'estatus_de_compra', 'estatus', 'purchase_status', 'estatus de compra', 'compra_estatus', 'estado', 'estado_compra']);
 
         // Check if essential OrderID column exists
         if ($orderIdx === null) {
@@ -188,6 +189,7 @@ class AdminRefundController extends Controller
             $barcode = $barcodeIdx !== null ? $getColVal($barcodeIdx) : '';
             $area = $areaIdx !== null ? $getColVal($areaIdx) : '';
             $seat = $seatIdx !== null ? $getColVal($seatIdx) : '';
+            $purchaseStatus = $statusIdx !== null ? $getColVal($statusIdx) : '';
 
             $rawCardLastFour = $cardLastFourIdx !== null ? $getColVal($cardLastFourIdx) : '';
             $cardLastFour = '';
@@ -224,6 +226,7 @@ class AdminRefundController extends Controller
                 'tc' => $tc,
                 'cxadm' => $cxadm,
                 'total' => $totalItemCost,
+                'status' => $purchaseStatus,
             ];
         }
 
@@ -313,12 +316,50 @@ class AdminRefundController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:pending,processing,approved,rejected',
             'admin_notes' => 'nullable|string',
+            'validated_documents' => 'nullable|array',
         ]);
+
+        $newStatus = $validated['status'];
+        $validatedDocs = $validated['validated_documents'] ?? [];
+
+        if (in_array($newStatus, ['processing', 'approved'])) {
+            $invalidDocs = [];
+            if (! empty($refundRequest->ine_path) && empty($validatedDocs['ine'])) {
+                $invalidDocs[] = 'INE / Pasaporte';
+            }
+            if (! empty($refundRequest->proof_of_payment_path) && empty($validatedDocs['proof'])) {
+                $invalidDocs[] = 'Comprobante de Pago';
+            }
+            if (! empty($refundRequest->tickets_path)) {
+                $parsed = null;
+                try {
+                    $parsed = json_decode($refundRequest->tickets_path, true);
+                } catch (\Exception $e) {
+                }
+
+                if (is_array($parsed)) {
+                    foreach ($parsed as $subId => $path) {
+                        if (empty($validatedDocs['ticket_'.$subId])) {
+                            $invalidDocs[] = 'Boleto '.$subId;
+                        }
+                    }
+                } else {
+                    if (empty($validatedDocs['tickets'])) {
+                        $invalidDocs[] = 'Boletos Físicos';
+                    }
+                }
+            }
+
+            if (! empty($invalidDocs)) {
+                return back()->withErrors([
+                    'status' => 'No es posible pasar a este estado hasta que todos los documentos sean marcados como válidos. Pendientes: '.implode(', ', $invalidDocs),
+                ]);
+            }
+        }
 
         $refundRequest->update($validated);
 
         // Send status update notification email if email is registered
-        /*
         if ($refundRequest->email) {
             try {
                 Mail::to($refundRequest->email)->send(new RefundStatusMail($refundRequest));
@@ -326,7 +367,6 @@ class AdminRefundController extends Controller
                 // Fail silently to prevent administrative page crash
             }
         }
-        */
 
         return back()->with('success', 'El estado del reembolso ha sido actualizado.');
     }

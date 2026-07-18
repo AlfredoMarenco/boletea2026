@@ -74,6 +74,20 @@ class RefundController extends Controller
             $buyerName = '';
         }
 
+        // Check if all tickets in the purchase are canceled
+        $ticketsDetails = collect($purchase->tickets_details ?? []);
+        $allCanceled = $ticketsDetails->isNotEmpty() && $ticketsDetails->every(function ($t) {
+            $status = strtolower(trim($t['status'] ?? ''));
+
+            return $status === 'cancelado' || $status === 'cancelada';
+        });
+
+        if ($allCanceled) {
+            return response()->json([
+                'message' => 'Esta orden de compra está marcada como cancelada y no es elegible para reembolso.',
+            ], 422);
+        }
+
         if ($existingRequests->isNotEmpty()) {
             if (! $isTaquilla && $isCard) {
                 // Web Card orders represent the whole purchase, so one active request blocks the entire order.
@@ -83,7 +97,7 @@ class RefundController extends Controller
                 ], 422);
             } else {
                 // For Taquilla orders (Cash or Card), check if all tickets in the purchase are already requested
-                $allPurchaseTickets = collect($purchase->tickets_details ?? [])->map(function ($t) {
+                $allPurchaseTickets = $ticketsDetails->map(function ($t) {
                     return strtolower(trim($t['ticket_id'] ?? $t['barcode'] ?? ''));
                 })->filter()->unique()->values()->toArray();
 
@@ -109,6 +123,19 @@ class RefundController extends Controller
         }
 
         if ($isTaquilla) {
+            // For Taquilla, filter out canceled tickets so they cannot be selected/validated
+            $activeTickets = $ticketsDetails->filter(function ($t) {
+                $status = strtolower(trim($t['status'] ?? ''));
+
+                return $status !== 'cancelado' && $status !== 'cancelada';
+            })->values()->toArray();
+
+            if (empty($activeTickets)) {
+                return response()->json([
+                    'message' => 'Todos los boletos de esta orden están cancelados y no son elegibles para reembolso.',
+                ], 422);
+            }
+
             // Taquilla orders require ticket validation
             return response()->json([
                 'status' => 'matched',
@@ -117,7 +144,7 @@ class RefundController extends Controller
                 'requires_tickets' => true,
                 'buyer_name' => $buyerName,
                 'payment_method' => $purchase->payment_method ?? 'Efectivo',
-                'tickets' => $purchase->tickets_details,
+                'tickets' => $activeTickets,
             ]);
         }
 
@@ -234,6 +261,13 @@ class RefundController extends Controller
             ], 422);
         }
 
+        $ticketStatus = strtolower(trim($matchedTicket['status'] ?? ''));
+        if ($ticketStatus === 'cancelado' || $ticketStatus === 'cancelada') {
+            return response()->json([
+                'message' => 'El boleto ingresado está cancelado y no es elegible para reembolso.',
+            ], 422);
+        }
+
         // Check if the ticket has already been requested
         $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
@@ -322,7 +356,19 @@ class RefundController extends Controller
             }
         }
 
-        // Double check duplicates
+        // Double check canceled status and duplicates
+        if ($purchase) {
+            $ticketsDetails = collect($purchase->tickets_details ?? []);
+            $allCanceled = $ticketsDetails->isNotEmpty() && $ticketsDetails->every(function ($t) {
+                $status = strtolower(trim($t['status'] ?? ''));
+
+                return $status === 'cancelado' || $status === 'cancelada';
+            });
+            if ($allCanceled) {
+                return back()->withErrors(['order_number' => 'Esta orden de compra está cancelada y no es elegible para reembolso.']);
+            }
+        }
+
         if (! $isTaquilla && $isCard) {
             // Web Card orders
             $existingRequest = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
@@ -334,6 +380,21 @@ class RefundController extends Controller
                 return back()->withErrors(['order_number' => 'Ya existe un trámite activo para esta orden completa.']);
             }
         } else {
+            // Validate that no validated_ticket is canceled
+            if ($purchase && ! empty($validated['validated_tickets'])) {
+                foreach ($validated['validated_tickets'] as $submittingTicket) {
+                    $matched = collect($purchase->tickets_details ?? [])->first(function ($t) use ($submittingTicket) {
+                        return strtolower(trim($t['barcode'] ?? $t['ticket_id'] ?? '')) === strtolower(trim($submittingTicket));
+                    });
+                    if ($matched) {
+                        $ticketStatus = strtolower(trim($matched['status'] ?? ''));
+                        if ($ticketStatus === 'cancelado' || $ticketStatus === 'cancelada') {
+                            return back()->withErrors(['order_number' => 'El boleto con ID/Código '.$submittingTicket.' está cancelado y no es elegible para reembolso.']);
+                        }
+                    }
+                }
+            }
+
             // For Taquilla orders, we allow multiple requests for the same order, but NOT the same tickets
             $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
                 ->where('order_number', $validated['order_number'])
@@ -370,10 +431,16 @@ class RefundController extends Controller
             $ticketsPath = count($photosMap) > 0 ? json_encode($photosMap) : null;
         }
 
+        $trackingId = null;
+        do {
+            $trackingId = 'REF-'.strtoupper(\Illuminate\Support\Str::random(8));
+        } while (RefundRequest::where('tracking_id', $trackingId)->exists());
+
         $refundRequest = RefundRequest::create([
             'refund_event_id' => $validated['refund_event_id'],
             'refund_purchase_id' => $purchase?->id,
             'order_number' => $validated['order_number'],
+            'tracking_id' => $trackingId,
             'email' => $validated['email'],
             'buyer_name' => $validated['buyer_name'],
             'clabe' => $validated['clabe'],
@@ -386,7 +453,6 @@ class RefundController extends Controller
         ]);
 
         // Send email notification
-        /*
         if ($refundRequest->email) {
             try {
                 Mail::to($refundRequest->email)->send(new RefundStatusMail($refundRequest));
@@ -394,14 +460,17 @@ class RefundController extends Controller
                 // Fail silently in production
             }
         }
-        */
 
-        return redirect()->route('refund.success')->with('order_number', $validated['order_number']);
+        return redirect()->route('refund.success')->with([
+            'order_number' => $validated['order_number'],
+            'tracking_id' => $trackingId,
+        ]);
     }
 
     public function showSuccess(): InertiaResponse|\Illuminate\Http\RedirectResponse
     {
         $orderNumber = session('order_number');
+        $trackingId = session('tracking_id');
 
         if (! $orderNumber) {
             return redirect()->route('refund.form');
@@ -409,6 +478,7 @@ class RefundController extends Controller
 
         return Inertia::render('Public/Refund/Success', [
             'order_number' => $orderNumber,
+            'tracking_id' => $trackingId,
         ]);
     }
 
@@ -438,17 +508,16 @@ class RefundController extends Controller
     public function trackStatus(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'refund_event_id' => 'required|exists:refund_events,id',
-            'order_number' => 'required|string',
+            'tracking_id' => 'required|string',
         ]);
 
-        $refundRequest = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
-            ->where('order_number', $validated['order_number'])
+        $refundRequest = RefundRequest::with('refundEvent.externalEvent')
+            ->where('tracking_id', $validated['tracking_id'])
             ->first();
 
         if (! $refundRequest) {
             return response()->json([
-                'message' => 'No se encontró ningún trámite de reembolso registrado para ese número de orden.',
+                'message' => 'No se encontró ningún trámite de reembolso registrado para ese código de seguimiento.',
             ], 404);
         }
 
@@ -456,8 +525,154 @@ class RefundController extends Controller
             'status' => $refundRequest->status,
             'buyer_name' => $refundRequest->buyer_name,
             'bank_name' => $refundRequest->bank_name,
+            'event_title' => $refundRequest->refundEvent->externalEvent->title ?? 'Evento',
+            'order_number' => $refundRequest->order_number,
             'admin_notes' => $refundRequest->admin_notes,
             'created_at' => $refundRequest->created_at->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Show the public form to update invalid documents.
+     */
+    public function showUpdateDocumentsForm(Request $request, RefundRequest $refundRequest): InertiaResponse
+    {
+        if ($refundRequest->status !== 'rejected') {
+            abort(403, 'Esta solicitud no requiere corrección de documentos en este momento.');
+        }
+
+        $invalidDocs = $this->getInvalidDocuments($refundRequest);
+
+        return Inertia::render('Public/Refund/UpdateDocuments', [
+            'refundRequest' => [
+                'id' => $refundRequest->id,
+                'order_number' => $refundRequest->order_number,
+                'buyer_name' => $refundRequest->buyer_name,
+                'admin_notes' => $refundRequest->admin_notes,
+                'tracking_id' => $refundRequest->tracking_id,
+                'invalid_documents' => $invalidDocs,
+            ],
+        ]);
+    }
+
+    /**
+     * Handle the update of rejected documents.
+     */
+    public function updateDocuments(Request $request, RefundRequest $refundRequest)
+    {
+        if ($refundRequest->status !== 'rejected') {
+            abort(403, 'Esta solicitud no requiere corrección de documentos.');
+        }
+
+        $invalidDocs = $this->getInvalidDocuments($refundRequest);
+        $rules = [];
+
+        if (in_array('ine', $invalidDocs)) {
+            $rules['ine'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+        }
+        if (in_array('proof', $invalidDocs)) {
+            $rules['proof'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+        }
+        if (in_array('tickets', $invalidDocs)) {
+            $rules['tickets'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+        }
+
+        // Taquilla tickets
+        $ticketsToUpdate = [];
+        foreach ($invalidDocs as $docKey) {
+            if (str_starts_with($docKey, 'ticket_')) {
+                $subId = substr($docKey, 7);
+                $rules['ticket_photo_'.$subId] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+                $ticketsToUpdate[] = $subId;
+            }
+        }
+
+        $validated = $request->validate($rules);
+
+        $updates = [];
+        $validatedDocs = $refundRequest->validated_documents ?? [];
+
+        if (in_array('ine', $invalidDocs) && $request->hasFile('ine')) {
+            $updates['ine_path'] = $request->file('ine')->store('refunds/ine');
+            $validatedDocs['ine'] = false;
+        }
+
+        if (in_array('proof', $invalidDocs) && $request->hasFile('proof')) {
+            $updates['proof_of_payment_path'] = $request->file('proof')->store('refunds/proof');
+            $validatedDocs['proof'] = false;
+        }
+
+        if (in_array('tickets', $invalidDocs) && $request->hasFile('tickets')) {
+            $updates['tickets_path'] = $request->file('tickets')->store('refunds/tickets');
+            $validatedDocs['tickets'] = false;
+        }
+
+        if (! empty($ticketsToUpdate)) {
+            $currentTickets = json_decode($refundRequest->tickets_path, true) ?: [];
+            foreach ($ticketsToUpdate as $subId) {
+                $inputKey = 'ticket_photo_'.$subId;
+                if ($request->hasFile($inputKey)) {
+                    $currentTickets[$subId] = $request->file($inputKey)->store('refunds/tickets');
+                    $validatedDocs['ticket_'.$subId] = false;
+                }
+            }
+            $updates['tickets_path'] = json_encode($currentTickets);
+        }
+
+        // Set request back to pending status for re-review and save
+        $updates['status'] = 'pending';
+        $updates['validated_documents'] = $validatedDocs;
+
+        // Clear admin notes as they will be re-evaluated
+        $updates['admin_notes'] = null;
+
+        $refundRequest->update($updates);
+
+        return redirect()->route('refund.success')->with([
+            'order_number' => $refundRequest->order_number,
+            'tracking_id' => $refundRequest->tracking_id,
+        ]);
+    }
+
+    /**
+     * Helper to compute invalid/unvalidated documents in a request.
+     */
+    private function getInvalidDocuments(RefundRequest $refundRequest): array
+    {
+        $invalid = [];
+        $validated = $refundRequest->validated_documents ?? [];
+
+        // INE check
+        if (! empty($refundRequest->ine_path) && empty($validated['ine'])) {
+            $invalid[] = 'ine';
+        }
+
+        // Proof of payment check
+        if (! empty($refundRequest->proof_of_payment_path) && empty($validated['proof'])) {
+            $invalid[] = 'proof';
+        }
+
+        // Tickets check
+        if (! empty($refundRequest->tickets_path)) {
+            $parsed = null;
+            try {
+                $parsed = json_decode($refundRequest->tickets_path, true);
+            } catch (\Exception $e) {
+            }
+
+            if (is_array($parsed)) {
+                foreach ($parsed as $subId => $path) {
+                    if (empty($validated['ticket_'.$subId])) {
+                        $invalid[] = 'ticket_'.$subId;
+                    }
+                }
+            } else {
+                if (empty($validated['tickets'])) {
+                    $invalid[] = 'tickets';
+                }
+            }
+        }
+
+        return $invalid;
     }
 }

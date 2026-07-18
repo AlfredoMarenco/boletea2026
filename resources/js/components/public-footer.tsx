@@ -94,6 +94,11 @@ export default function PublicFooter() {
                                     Preguntas Frecuentes
                                 </Link>
                             </li>
+                            <li>
+                                <Link href={route('refund.form')} className="hover:text-[#c90000] font-medium text-[#c90000] transition-colors">
+                                    Trámites de Reembolso
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 

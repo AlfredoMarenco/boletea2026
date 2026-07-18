@@ -11,6 +11,7 @@ class RefundRequest extends Model
         'refund_event_id',
         'refund_purchase_id',
         'order_number',
+        'tracking_id',
         'email',
         'buyer_name',
         'clabe',
@@ -20,12 +21,14 @@ class RefundRequest extends Model
         'proof_of_payment_path',
         'tickets_path',
         'validated_tickets',
+        'validated_documents',
         'status',
         'admin_notes',
     ];
 
     protected $casts = [
         'validated_tickets' => 'array',
+        'validated_documents' => 'array',
     ];
 
     public function refundEvent(): BelongsTo

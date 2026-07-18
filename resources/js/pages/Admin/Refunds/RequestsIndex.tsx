@@ -29,6 +29,7 @@ interface RefundRequest {
     validated_tickets: string[] | null;
     status: 'pending' | 'processing' | 'approved' | 'rejected';
     admin_notes: string | null;
+    validated_documents?: Record<string, boolean> | null;
     created_at: string;
     refund_event?: {
         external_event?: {
@@ -94,6 +95,11 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [adminNotes, setAdminNotes] = useState('');
     const [loading, setLoading] = useState(false);
 
+    // Document validation and preview states
+    const [validatedDocs, setValidatedDocs] = useState<Record<string, boolean>>({});
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewTitle, setPreviewTitle] = useState<string>('');
+
     // Apply filtering
     useEffect(() => {
         const delayDebounceFn = setTimeout(() => {
@@ -114,10 +120,14 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const handleOpenReview = (req: RefundRequest) => {
         setSelectedRequest(req);
         setAdminNotes(req.admin_notes || '');
+        setValidatedDocs(req.validated_documents || {});
     };
 
     const handleCloseReview = () => {
         setSelectedRequest(null);
+        setValidatedDocs({});
+        setPreviewUrl(null);
+        setPreviewTitle('');
     };
 
     const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'approved' | 'rejected') => {
@@ -129,6 +139,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
             {
                 status: newStatus,
                 admin_notes: adminNotes,
+                validated_documents: validatedDocs,
             },
             {
                 onSuccess: () => {
@@ -138,6 +149,35 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                 onFinish: () => setLoading(false),
             }
         );
+    };
+
+    const getInvalidDocsList = () => {
+        if (!selectedRequest) return [];
+        const invalid: string[] = [];
+        if (selectedRequest.ine_path && !validatedDocs['ine']) {
+            invalid.push('INE / Pasaporte');
+        }
+        if (selectedRequest.proof_of_payment_path && !validatedDocs['proof']) {
+            invalid.push('Comprobante de Pago');
+        }
+        if (selectedRequest.tickets_path) {
+            let parsed = null;
+            try {
+                parsed = JSON.parse(selectedRequest.tickets_path);
+            } catch (e) {}
+            if (parsed && typeof parsed === 'object') {
+                Object.keys(parsed).forEach(subId => {
+                    if (!validatedDocs['ticket_' + subId]) {
+                        invalid.push('Boleto ' + subId);
+                    }
+                });
+            } else {
+                if (!validatedDocs['tickets']) {
+                    invalid.push('Boletos Físicos');
+                }
+            }
+        }
+        return invalid;
     };
 
     const getStatusBadgeClass = (status: string) => {
@@ -502,28 +542,38 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         </div>
                                     </div>
                                 )}
-
-                                {/* Documents */}
                                 <div>
                                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Documentos Adjuntos</p>
                                     <div className="flex flex-row flex-wrap gap-3">
-                                        <a
-                                            href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' })}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                            </svg>
-                                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">INE / Pasaporte</span>
-                                            <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
-                                        </a>
+                                        <div className="flex flex-col items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' }));
+                                                    setPreviewTitle('INE / Pasaporte');
+                                                }}
+                                                className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs['ine'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                </svg>
+                                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">INE / Pasaporte</span>
+                                                <span className="text-[10px] text-gray-400 mt-1">Ver</span>
+                                            </button>
+                                            <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!validatedDocs['ine']}
+                                                    onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
+                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
+                                                />
+                                                ¿INE Válido?
+                                            </label>
+                                        </div>
 
                                         {(() => {
                                             if (!selectedRequest.tickets_path) {
                                                 return (
-                                                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 dark:bg-neutral-950 dark:border-neutral-800 opacity-40 text-center w-36">
+                                                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-dashed border-gray-200 dark:bg-neutral-950 dark:border-neutral-800 opacity-40 text-center w-36 h-28">
                                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 mb-2">
                                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
@@ -543,38 +593,64 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             if (parsedTickets && typeof parsedTickets === 'object') {
                                                 return (
                                                     <div className="contents">
-                                                        {Object.keys(parsedTickets).map(subId => (
-                                                            <a
-                                                                key={subId}
-                                                                href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId })}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
-                                                            >
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                                                                </svg>
-                                                                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boleto {subId}</span>
-                                                                <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
-                                                            </a>
-                                                        ))}
+                                                        {Object.keys(parsedTickets).map(subId => {
+                                                            const key = `ticket_${subId}`;
+                                                            return (
+                                                                <div key={subId} className="flex flex-col items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId }));
+                                                                            setPreviewTitle(`Boleto ${subId}`);
+                                                                        }}
+                                                                        className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs[key] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                                        </svg>
+                                                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boleto {subId}</span>
+                                                                        <span className="text-[10px] text-gray-400 mt-1">Ver</span>
+                                                                    </button>
+                                                                    <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={!!validatedDocs[key]}
+                                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
+                                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
+                                                                        />
+                                                                        ¿Boleto Válido?
+                                                                    </label>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 );
                                             }
 
                                             return (
-                                                <a
-                                                    href={route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' })}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                                                    </svg>
-                                                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boletos Físicos</span>
-                                                    <span className="text-[10px] text-gray-400 mt-1">Abrir</span>
-                                                </a>
+                                                <div className="flex flex-col items-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' }));
+                                                            setPreviewTitle('Boletos Físicos');
+                                                        }}
+                                                        className={`flex flex-col items-center justify-center p-4 rounded-xl bg-gray-50 border transition dark:bg-neutral-950 dark:border-neutral-800 text-center w-36 group ${validatedDocs['tickets'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 hover:bg-gray-100 hover:border-gray-300'}`}
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-8 h-8 text-gray-400 group-hover:text-[#c90000] mb-2 transition">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                        </svg>
+                                                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Boletos Físicos</span>
+                                                        <span className="text-[10px] text-gray-400 mt-1">Ver</span>
+                                                    </button>
+                                                    <label className="flex items-center gap-1.5 cursor-pointer mt-1 text-[10px] font-semibold text-gray-600 dark:text-gray-400">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!validatedDocs['tickets']}
+                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
+                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-3 w-3 cursor-pointer"
+                                                        />
+                                                        ¿Boletos Válidos?
+                                                    </label>
+                                                </div>
                                             );
                                         })()}
                                     </div>
@@ -591,22 +667,166 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none"
                                     />
 
-                                    <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
+                                    <div className="flex flex-wrap sm:justify-end gap-3">
                                         <Button onClick={handleCloseReview} variant="outline" disabled={loading} className="w-full sm:w-auto">
                                             Cancelar
                                         </Button>
-                                        <Button onClick={() => handleUpdateStatus('processing')} disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto">
-                                            Poner en Trámite
+
+                                        {(() => {
+                                            const invalidList = getInvalidDocsList();
+                                            const hasInvalid = invalidList.length > 0;
+
+                                            if (hasInvalid) {
+                                                return (
+                                                    <Button
+                                                        onClick={() => {
+                                                            if (!adminNotes.trim()) {
+                                                                alert("Por favor escribe en las Notas del Administrador qué documentos son inválidos y por qué.");
+                                                                return;
+                                                            }
+                                                            handleUpdateStatus('rejected');
+                                                        }}
+                                                        disabled={loading}
+                                                        className="bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
+                                                    >
+                                                        Solicitar Corrección ({invalidList.length})
+                                                    </Button>
+                                                );
+                                            } else {
+                                                return (
+                                                    <Button
+                                                        onClick={() => handleUpdateStatus('processing')}
+                                                        disabled={loading}
+                                                        className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
+                                                    >
+                                                        Enviar a Contabilidad
+                                                    </Button>
+                                                );
+                                            }
+                                        })()}
+
+                                        <Button
+                                            onClick={() => {
+                                                if (!adminNotes.trim()) {
+                                                    alert("Por favor escribe en las Notas el motivo del rechazo definitivo.");
+                                                    return;
+                                                }
+                                                if (confirm("¿Estás seguro de rechazar definitivamente esta solicitud? El cliente no podrá corregir los documentos.")) {
+                                                    // Set all documents as validated so backend considers it a permanent rejection
+                                                    const allApproved: Record<string, boolean> = {};
+                                                    if (selectedRequest?.ine_path) allApproved.ine = true;
+                                                    if (selectedRequest?.proof_of_payment_path) allApproved.proof = true;
+                                                    if (selectedRequest?.tickets_path) {
+                                                        let parsed = null;
+                                                        try {
+                                                            parsed = JSON.parse(selectedRequest.tickets_path);
+                                                        } catch (e) {}
+                                                        if (parsed && typeof parsed === 'object') {
+                                                            Object.keys(parsed).forEach(subId => {
+                                                                allApproved['ticket_' + subId] = true;
+                                                            });
+                                                        } else {
+                                                            allApproved.tickets = true;
+                                                        }
+                                                    }
+                                                    setValidatedDocs(allApproved);
+                                                    // Small delay to ensure state updates before network request
+                                                    setTimeout(() => {
+                                                        setLoading(true);
+                                                        router.post(
+                                                            route('admin.refunds.requests.status', { refundRequest: selectedRequest!.id }),
+                                                            {
+                                                                status: 'rejected',
+                                                                admin_notes: adminNotes,
+                                                                validated_documents: allApproved,
+                                                            },
+                                                            {
+                                                                onSuccess: () => {
+                                                                    handleCloseReview();
+                                                                    setLoading(false);
+                                                                },
+                                                                onFinish: () => setLoading(false),
+                                                            }
+                                                        );
+                                                    }, 100);
+                                                }
+                                            }}
+                                            variant="destructive"
+                                            disabled={loading}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            Rechazar Definitivamente
                                         </Button>
-                                        <Button onClick={() => handleUpdateStatus('rejected')} variant="destructive" disabled={loading} className="w-full sm:w-auto">
-                                            Rechazar
-                                        </Button>
-                                        <Button onClick={() => handleUpdateStatus('approved')} disabled={loading} className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto">
+
+                                        <Button
+                                            onClick={() => handleUpdateStatus('approved')}
+                                            disabled={loading || (getInvalidDocsList().length > 0)}
+                                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
+                                        >
                                             Aprobar Reembolso
                                         </Button>
                                     </div>
                                 </div>
 
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* LIGHTBOX OVERLAY FOR DOCUMENT PREVIEW */}
+                {previewUrl && (
+                    <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center p-4 z-[60] backdrop-blur-md transition-all duration-305 animate-in fade-in zoom-in-95">
+                        <div className="w-full max-w-4xl bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl flex flex-col max-h-[85vh]">
+                            <div className="p-4 bg-neutral-950/80 border-b border-neutral-800 flex justify-between items-center text-white">
+                                <span className="font-bold text-sm tracking-wide uppercase text-gray-300">{previewTitle}</span>
+                                <button
+                                    onClick={() => setPreviewUrl(null)}
+                                    className="p-1.5 rounded-full hover:bg-neutral-800 text-gray-400 hover:text-white transition"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="flex-grow overflow-auto p-6 flex items-center justify-center bg-neutral-950">
+                                <img
+                                    src={previewUrl}
+                                    alt={previewTitle}
+                                    className="max-w-full max-h-[60vh] object-contain rounded-lg border border-neutral-800 shadow-lg"
+                                    onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                        const parent = (e.target as HTMLElement).parentElement;
+                                        if (parent && !parent.querySelector('.fallback-container')) {
+                                            const fallback = document.createElement('div');
+                                            fallback.className = 'text-center p-8 fallback-container';
+                                            fallback.innerHTML = `
+                                                <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                                </svg>
+                                                <p class="text-sm text-gray-300 mb-4 font-semibold">El archivo no se puede previsualizar directamente (es PDF o documento).</p>
+                                                <a href="${previewUrl}" target="_blank" class="inline-flex items-center gap-2 px-6 py-3 bg-[#c90000] hover:bg-[#a10000] text-white rounded-xl font-bold transition shadow-md">
+                                                    Descargar / Abrir Archivo
+                                                </a>
+                                            `;
+                                            parent.appendChild(fallback);
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div className="p-4 bg-neutral-950/80 border-t border-neutral-800 flex justify-end gap-3">
+                                <a
+                                    href={previewUrl}
+                                    download
+                                    className="px-5 py-2.5 bg-neutral-800 hover:bg-neutral-750 text-white rounded-xl font-bold text-xs transition border border-neutral-700"
+                                >
+                                    Descargar Archivo
+                                </a>
+                                <button
+                                    onClick={() => setPreviewUrl(null)}
+                                    className="px-5 py-2.5 bg-[#c90000] hover:bg-[#a10000] text-white rounded-xl font-bold text-xs transition"
+                                >
+                                    Cerrar Vista Previa
+                                </button>
                             </div>
                         </div>
                     </div>

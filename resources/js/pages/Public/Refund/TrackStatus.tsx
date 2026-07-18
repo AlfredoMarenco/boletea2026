@@ -14,16 +14,56 @@ interface Props {
 }
 
 export default function TrackStatus({ events }: Props) {
-    const [eventId, setEventId] = useState('');
-    const [orderNumber, setOrderNumber] = useState('');
+    const [trackingId, setTrackingId] = useState('');
     const [loading, setLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [requestData, setRequestData] = useState<any | null>(null);
 
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (code) {
+                const cleanCode = code.trim();
+                setTrackingId(cleanCode);
+                
+                const autoFetch = async () => {
+                    setLoading(true);
+                    setErrorMessage('');
+                    setRequestData(null);
+                    try {
+                        const response = await fetch(route('refund.track_status'), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                            },
+                            body: JSON.stringify({
+                                tracking_id: cleanCode,
+                            }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok) {
+                            setErrorMessage(data.message || 'No se encontró ningún trámite registrado.');
+                            return;
+                        }
+                        setRequestData(data);
+                    } catch (err) {
+                        setErrorMessage('Error de red al consultar el estatus.');
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                autoFetch();
+            }
+        }
+    }, []);
+
     const handleTrack = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!eventId || !orderNumber) {
-            setErrorMessage('Por favor seleccione el evento e ingrese el número de orden.');
+        if (!trackingId.trim()) {
+            setErrorMessage('Por favor ingrese su código de seguimiento.');
             return;
         }
 
@@ -40,8 +80,7 @@ export default function TrackStatus({ events }: Props) {
                     'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
                 },
                 body: JSON.stringify({
-                    refund_event_id: eventId,
-                    order_number: orderNumber,
+                    tracking_id: trackingId.trim(),
                 }),
             });
 
@@ -88,7 +127,7 @@ export default function TrackStatus({ events }: Props) {
                                 Consultar Estatus
                             </h1>
                             <p className="text-sm text-gray-500 mt-2">
-                                Ingrese los detalles de su compra para conocer el avance de su devolución.
+                                Ingrese su código de seguimiento para conocer el avance de su devolución.
                             </p>
                         </div>
 
@@ -105,41 +144,22 @@ export default function TrackStatus({ events }: Props) {
                             <form onSubmit={handleTrack} className="space-y-5 mb-8">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                        Selecciona el Evento
-                                    </label>
-                                    <select
-                                        value={eventId}
-                                        onChange={(e) => setEventId(e.target.value)}
-                                        required
-                                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
-                                    >
-                                        <option value="">-- Elige un evento --</option>
-                                        {events.map((ev) => (
-                                            <option key={ev.id} value={ev.id}>
-                                                {ev.title}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                        Número de Orden
+                                        Código de Seguimiento
                                     </label>
                                     <input
                                         type="text"
-                                        value={orderNumber}
-                                        onChange={(e) => setOrderNumber(e.target.value)}
-                                        placeholder="Ej: 2057100"
+                                        value={trackingId}
+                                        onChange={(e) => setTrackingId(e.target.value)}
+                                        placeholder="Ej: REF-A1B2C3D4"
                                         required
-                                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition text-center font-mono text-lg font-bold tracking-widest uppercase"
                                     />
                                 </div>
 
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full p-4 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white rounded-2xl font-bold transition disabled:opacity-50"
+                                    className="w-full p-4 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white rounded-2xl font-bold transition disabled:opacity-50 animate-pulse-subtle"
                                 >
                                     {loading ? 'Consultando...' : 'Buscar Trámite'}
                                 </button>
@@ -148,9 +168,23 @@ export default function TrackStatus({ events }: Props) {
                             {/* Tracking Results Area */}
                             {requestData && (
                                 <div className="pt-6 border-t border-gray-100 dark:border-neutral-800 space-y-6">
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-400">Beneficiario: <strong>{requestData.buyer_name}</strong></span>
-                                        <span className="text-gray-400">Registrado: {new Date(requestData.created_at).toLocaleDateString()}</span>
+                                    <div className="bg-gray-50 dark:bg-neutral-900/50 p-4 rounded-2xl border border-gray-100 dark:border-neutral-800 text-xs space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Beneficiario:</span>
+                                            <span className="font-bold text-gray-800 dark:text-gray-200">{requestData.buyer_name}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Evento:</span>
+                                            <span className="font-semibold text-gray-800 dark:text-gray-200">{requestData.event_title}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Orden de Compra:</span>
+                                            <span className="font-mono font-semibold text-gray-800 dark:text-gray-200">#{requestData.order_number}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">Registrado el:</span>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{new Date(requestData.created_at).toLocaleDateString()}</span>
+                                        </div>
                                     </div>
 
                                     {/* Timeline */}

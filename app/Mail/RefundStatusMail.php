@@ -59,17 +59,53 @@ class RefundStatusMail extends Mailable
 
         $eventName = $this->request->refundEvent->externalEvent->title ?? 'Evento';
 
+        $invalidDocs = [];
+        $validated = $this->request->validated_documents ?? [];
+
+        // INE check
+        if (! empty($this->request->ine_path) && empty($validated['ine'])) {
+            $invalidDocs[] = 'Identificación Oficial (INE / Pasaporte)';
+        }
+
+        // Proof of payment check
+        if (! empty($this->request->proof_of_payment_path) && empty($validated['proof'])) {
+            $invalidDocs[] = 'Comprobante de Pago';
+        }
+
+        // Tickets check
+        if (! empty($this->request->tickets_path)) {
+            $parsed = null;
+            try {
+                $parsed = json_decode($this->request->tickets_path, true);
+            } catch (\Exception $e) {
+            }
+
+            if (is_array($parsed)) {
+                foreach ($parsed as $subId => $path) {
+                    if (empty($validated['ticket_'.$subId])) {
+                        $invalidDocs[] = 'Foto de Boleto '.$subId;
+                    }
+                }
+            } else {
+                if (empty($validated['tickets'])) {
+                    $invalidDocs[] = 'Fotos de Boletos Físicos';
+                }
+            }
+        }
+
         $bodyText = match ($this->request->status) {
             'pending' => 'Hemos recibido su solicitud de reembolso de manera correcta. Nuestro equipo revisará la información y los documentos proporcionados.',
             'processing' => 'Su solicitud ha sido revisada y ahora se encuentra **en trámite**. Estamos procesando la verificación bancaria correspondiente.',
             'approved' => '¡Buenas noticias! Su reembolso ha sido **Aprobado**. Se ha procedido a realizar la transferencia interbancaria a la cuenta CLABE registrada a nombre de: **'.$this->request->buyer_name.'**.',
-            'rejected' => 'Lamentamos informarle que su solicitud ha sido **Rechazada** tras la revisión de nuestros administradores.',
+            'rejected' => ! empty($invalidDocs)
+                ? 'Le informamos que su solicitud ha sido **Rechazada** debido a inconsistencias o archivos ilegibles en sus documentos adjuntos. Es necesario que corrija los archivos listados abajo para poder continuar.'
+                : 'Lamentamos informarle que su solicitud ha sido **Rechazada** tras la revisión de nuestros administradores.',
         };
 
         $html = "
         <div style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; background-color: #ffffff;\">
-            <div style=\"background-color: #c90000; padding: 24px; text-align: center;\">
-                <h1 style=\"color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;\">BOLETEA</h1>
+            <div style=\"background-color: #ffffff; padding: 24px; text-align: center; border-bottom: 1px solid #f3f4f6;\">
+                <img src=\"https://boletea.com/img/logoBoletea.png\" alt=\"Boletea\" style=\"height: 40px; width: auto; display: inline-block; vertical-align: middle;\" />
             </div>
             <div style=\"padding: 32px; color: #1f2937; line-height: 1.6;\">
                 <h2 style=\"margin-top: 0; font-size: 20px; font-weight: 700; color: #111827;\">Actualización de su Trámite</h2>
@@ -106,22 +142,58 @@ class RefundStatusMail extends Mailable
                 </p>
         ";
 
-        if ($this->request->status === 'rejected' && $this->request->admin_notes) {
-            $html .= "
-                <!-- Rejection Notes -->
-                <div style=\"background-color: #fef2f2; border: 1px solid #fee2e2; padding: 18px; border-radius: 12px; margin-bottom: 28px;\">
-                    <p style=\"margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #b91c1c;\">Motivo del Rechazo:</p>
-                    <p style=\"margin: 0; font-size: 14px; color: #991b1b; font-style: italic;\">
-                        \"{$this->request->admin_notes}\"
+        if ($this->request->status === 'rejected') {
+            if (! empty($invalidDocs)) {
+                $updateUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                    'refund.update_documents',
+                    now()->addHours(48),
+                    ['refundRequest' => $this->request->id]
+                );
+
+                $html .= '
+                    <!-- Correction Docs -->
+                    <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 18px; border-radius: 12px; margin-bottom: 28px;">
+                        <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #b91c1c;">Documentos requeridos para corregir:</p>
+                        <ul style="margin: 0 0 12px 0; padding-left: 20px; font-size: 14px; color: #991b1b;">
+                ';
+                foreach ($invalidDocs as $docName) {
+                    $html .= "<li style=\"margin-bottom: 4px;\"><strong>{$docName}</strong></li>";
+                }
+                $html .= '
+                        </ul>
+                ';
+                if ($this->request->admin_notes) {
+                    $html .= "
+                        <p style=\"margin: 10px 0 0 0; font-size: 13px; font-weight: bold; color: #b91c1c;\">Motivo / Indicaciones:</p>
+                        <p style=\"margin: 4px 0 0 0; font-size: 14px; color: #991b1b; font-style: italic;\">\"{$this->request->admin_notes}\"</p>
+                    ";
+                }
+                $html .= "
+                    </div>
+                    <div style=\"text-align: center; margin-top: 32px; margin-bottom: 32px;\">
+                        <a href=\"{$updateUrl}\" style=\"background-color: #c90000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);\">
+                            Corregir Documentos Aquí
+                        </a>
+                        <p style=\"font-size: 11px; color: #9ca3af; margin-top: 8px; margin-bottom: 0;\">Este enlace es seguro y expirará en 48 horas.</p>
+                    </div>
+                ";
+            } elseif ($this->request->admin_notes) {
+                $html .= "
+                    <!-- Rejection Notes -->
+                    <div style=\"background-color: #fef2f2; border: 1px solid #fee2e2; padding: 18px; border-radius: 12px; margin-bottom: 28px;\">
+                        <p style=\"margin: 0 0 6px 0; font-size: 13px; font-weight: bold; color: #b91c1c;\">Motivo del Rechazo:</p>
+                        <p style=\"margin: 0; font-size: 14px; color: #991b1b; font-style: italic;\">
+                            \"{$this->request->admin_notes}\"
+                        </p>
+                    </div>
+                    <p style=\"font-size: 14px; color: #6b7280; margin-bottom: 24px;\">
+                        Puede volver a ingresar al formulario de reembolso para realizar una nueva solicitud si lo considera pertinente.
                     </p>
-                </div>
-                <p style=\"font-size: 14px; color: #6b7280; margin-bottom: 24px;\">
-                    Puede volver a ingresar al formulario de reembolso para corregir sus datos y realizar una nueva solicitud si lo considera pertinente.
-                </p>
-            ";
+                ";
+            }
         }
 
-        $trackingUrl = url('/reembolsos/estatus');
+        $trackingUrl = url('/reembolsos/estatus?code='.$this->request->tracking_id);
 
         $html .= "
                 <div style=\"text-align: center; margin-top: 32px; margin-bottom: 16px;\">

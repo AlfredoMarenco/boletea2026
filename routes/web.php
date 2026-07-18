@@ -77,5 +77,11 @@ Route::post('/reembolsos/solicitar', [\App\Http\Controllers\RefundController::cl
 Route::get('/reembolsos/exito', [\App\Http\Controllers\RefundController::class, 'showSuccess'])->name('refund.success');
 Route::get('/reembolsos/estatus', [\App\Http\Controllers\RefundController::class, 'showTrackingForm'])->name('refund.track_form');
 Route::post('/reembolsos/estatus', [\App\Http\Controllers\RefundController::class, 'trackStatus'])->name('refund.track_status');
+Route::get('/reembolsos/actualizar-documentos/{refundRequest}', [\App\Http\Controllers\RefundController::class, 'showUpdateDocumentsForm'])
+    ->name('refund.update_documents')
+    ->middleware('signed');
+Route::post('/reembolsos/actualizar-documentos/{refundRequest}', [\App\Http\Controllers\RefundController::class, 'updateDocuments'])
+    ->name('refund.submit_update_documents')
+    ->middleware('signed');
 
 require __DIR__.'/settings.php';
