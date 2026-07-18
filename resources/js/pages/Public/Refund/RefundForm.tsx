@@ -70,9 +70,10 @@ interface RefundEvent {
 
 interface Props {
     events: RefundEvent[];
+    ticketSampleImage?: string | null;
 }
 
-export default function RefundForm({ events }: Props) {
+export default function RefundForm({ events, ticketSampleImage }: Props) {
     const [step, setStep] = useState(1);
     const [eventId, setEventId] = useState('');
     const [orderNumber, setOrderNumber] = useState('');
@@ -99,6 +100,10 @@ export default function RefundForm({ events }: Props) {
     const [validatedTicketsList, setValidatedTicketsList] = useState<any[]>([]);
     const [ticketVerificationError, setTicketVerificationError] = useState('');
     const [ticketLoading, setTicketLoading] = useState(false);
+    
+    // Help and Legal states
+    const [showSampleModal, setShowSampleModal] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     const handleVerifyOrder = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -643,6 +648,18 @@ export default function RefundForm({ events }: Props) {
                                                 <p className="text-[11px] text-gray-400 mt-1">
                                                     Ingrese los códigos de barras (ID del boleto) uno por uno para certificar que pertenecen a esta orden.
                                                 </p>
+                                                {ticketSampleImage && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowSampleModal(true)}
+                                                        className="text-xs text-[#c90000] dark:text-red-400 hover:underline font-semibold mt-1.5 flex items-center gap-1"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        ¿Dónde encuentro el ID de mi boleto?
+                                                    </button>
+                                                )}
                                             </div>
 
                                             {ticketVerificationError && (
@@ -738,9 +755,22 @@ export default function RefundForm({ events }: Props) {
                                         )}
                                     </div>
 
+                                    {/* Legal disclaimer checkbox */}
+                                    <div className="flex items-start space-x-3 p-4 border border-gray-150 dark:border-neutral-800 rounded-2xl bg-gray-50/50 dark:bg-neutral-900/50">
+                                        <input
+                                            type="checkbox"
+                                            id="acceptedTerms"
+                                            checked={acceptedTerms}
+                                            onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                            required
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#c90000] focus:ring-[#c90000] cursor-pointer"
+                                        />
+                                        <label htmlFor="acceptedTerms" className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed select-none cursor-pointer">
+                                            Bajo protesta de decir verdad, firmo de conformidad al calce, ratificando de que todos los datos asentados en la hoja que antecede son verdaderos y que pertenecen a la operación que se especifica, a sabiendas del problema civil y legal al que me sujetare en dado caso de que los datos proporcionados sean falsos, o contengan algún tipo de dolo o mala fe. Ratifico los mismos para el único fin, que es el trámite de devolución a mi cuenta bancaria por la operación que se menciona.
+                                        </label>
+                                    </div>
 
-
-                                    <div className="flex space-x-3 pt-4">
+                                    <div className="flex space-x-3 pt-2">
                                         <button
                                             type="button"
                                             disabled={loading || isCompresing}
@@ -751,7 +781,7 @@ export default function RefundForm({ events }: Props) {
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={loading || isCompresing}
+                                            disabled={loading || isCompresing || !acceptedTerms}
                                             className="w-2/3 p-4 bg-[#c90000] hover:bg-[#a60000] text-white rounded-2xl font-bold transition shadow-lg shadow-[#c90000]/20 disabled:opacity-50"
                                         >
                                             {isCompresing ? 'Comprimiendo...' : loading ? 'Enviando...' : 'Enviar Solicitud'}
@@ -762,6 +792,39 @@ export default function RefundForm({ events }: Props) {
                         </div>
                     </div>
                 </main>
+
+                {/* Ticket ID Help Modal */}
+                {showSampleModal && ticketSampleImage && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-250">
+                        <div 
+                            className="bg-white dark:bg-neutral-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative animate-in zoom-in-95 duration-250"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ubicación del ID de Boleto</h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSampleModal(false)}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full text-gray-400 hover:text-gray-600 transition"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="border rounded-2xl overflow-hidden bg-gray-50 dark:bg-neutral-950 flex justify-center items-center p-2 mb-4">
+                                <img
+                                    src={ticketSampleImage}
+                                    alt="Guía de ubicación de ID"
+                                    className="max-h-[60vh] object-contain rounded-xl"
+                                />
+                            </div>
+                            <p className="text-xs text-gray-500 text-center leading-relaxed">
+                                Utiliza el código numérico señalado en la imagen de muestra para validar tus boletos.
+                            </p>
+                        </div>
+                    </div>
+                )}
 
                 <PublicFooter />
             </div>

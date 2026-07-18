@@ -30,8 +30,11 @@ class RefundController extends Controller
                 ];
             });
 
+        $ticketSampleImage = \App\Models\SiteSetting::where('key', 'refund_ticket_sample_image')->first()?->value;
+
         return Inertia::render('Public/Refund/RefundForm', [
             'events' => $events,
+            'ticketSampleImage' => $ticketSampleImage,
         ]);
     }
 
@@ -83,8 +86,12 @@ class RefundController extends Controller
         });
 
         if ($allCanceled) {
+            $msg = (! $isTaquilla && $isCard)
+                ? 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.'
+                : 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.';
+
             return response()->json([
-                'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
+                'message' => $msg,
             ], 422);
         }
 
@@ -93,7 +100,7 @@ class RefundController extends Controller
                 // Web Card orders represent the whole purchase, so one active request blocks the entire order.
                 return response()->json([
                     'status' => 'already_requested',
-                    'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
+                    'message' => 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.',
                 ], 422);
             } else {
                 // For Taquilla orders (Cash or Card), check if all tickets in the purchase are already requested
@@ -116,7 +123,7 @@ class RefundController extends Controller
                 if (count($allPurchaseTickets) > 0 && count(array_intersect($allPurchaseTickets, $requestedTickets)) >= count($allPurchaseTickets)) {
                     return response()->json([
                         'status' => 'already_requested',
-                        'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
+                        'message' => 'Su solicitud de reembolso ya está en trámite o no es elegible. No es necesario realizar alguna acción. Para aclaraciones, WhatsApp al 871 102 4187.',
                     ], 422);
                 }
             }
@@ -132,7 +139,7 @@ class RefundController extends Controller
 
             if (empty($activeTickets)) {
                 return response()->json([
-                    'message' => 'La compra ya está en trámite de reembolso o no es elegible para realizar una solicitud de reembolso. No es necesario realizar acción alguna.',
+                    'message' => 'Su solicitud de reembolso ya está en trámite o no es elegible. No es necesario realizar alguna acción. Para aclaraciones, WhatsApp al 871 102 4187.',
                 ], 422);
             }
 

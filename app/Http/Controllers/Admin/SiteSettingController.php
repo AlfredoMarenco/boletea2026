@@ -107,6 +107,21 @@ class SiteSettingController extends Controller
             );
         }
 
+        if ($request->hasFile('refund_ticket_sample_image')) {
+            $request->validate(['refund_ticket_sample_image' => 'image|max:10240']);
+            $oldImage = SiteSetting::where('key', 'refund_ticket_sample_image')->first();
+            if ($oldImage && $oldImage->value && strpos($oldImage->value, '/storage/') === 0) {
+                Storage::disk('public')->delete(str_replace('/storage/', '', $oldImage->value));
+            }
+
+            $path = $request->file('refund_ticket_sample_image')->store('refunds', 'public');
+
+            SiteSetting::updateOrCreate(
+                ['key' => 'refund_ticket_sample_image'],
+                ['value' => '/storage/'.$path]
+            );
+        }
+
         // World Cup Settings update
         if ($request->has('world_cup_theme_enabled')) {
             SiteSetting::updateOrCreate(

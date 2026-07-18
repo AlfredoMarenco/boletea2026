@@ -60,6 +60,7 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
         show_featured_events: settings.show_featured_events === '1' || settings.show_featured_events === undefined,
         show_nearby_events: settings.show_nearby_events === '1' || settings.show_nearby_events === undefined,
         show_floating_banner: settings.show_floating_banner === '1' || settings.show_floating_banner === undefined,
+        refund_ticket_sample_image: null as File | null,
     });
 
     // Form for World Cup Settings
@@ -289,6 +290,31 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                                                 Si está apagado, se ocultará completamente la alerta flotante de la esquina, sin importar cuántos banners tengas configurados.
                                             </p>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-gray-200 dark:border-border pt-6 mt-6">
+                                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">Imagen Guía de Boleto (Reembolsos)</h3>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Sube una imagen de muestra para guiar a los usuarios indicando dónde se ubica el ID del boleto.
+                                    </p>
+                                    <div className="grid gap-4 max-w-md">
+                                        {settings.refund_ticket_sample_image && (
+                                            <div className="mb-2">
+                                                <span className="text-xs font-semibold text-gray-400 block mb-1">Imagen actual:</span>
+                                                <img
+                                                    src={settings.refund_ticket_sample_image}
+                                                    alt="Boleto Guía"
+                                                    className="h-32 object-contain rounded-xl border bg-white dark:bg-neutral-900 p-1"
+                                                />
+                                            </div>
+                                        )}
+                                        <Input
+                                            id="refund_ticket_sample_image"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setGeneralData('refund_ticket_sample_image', e.target.files ? e.target.files[0] : null)}
+                                        />
                                     </div>
                                 </div>
                             </div>
