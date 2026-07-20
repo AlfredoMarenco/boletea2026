@@ -833,7 +833,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     type="checkbox"
                                                     checked={!!validatedDocs['ine']}
                                                     onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
-                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                                                    disabled={selectedRequest.status === 'approved'}
+                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                 />
                                                 ¿INE Válido?
                                             </label>
@@ -886,7 +887,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                     type="checkbox"
                                                                     checked={!!validatedDocs[key]}
                                                                     onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
-                                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                                                                    disabled={selectedRequest.status === 'approved'}
+                                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 />
                                                                 ¿Boleto Válido?
                                                             </label>
@@ -918,7 +920,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                             type="checkbox"
                                                             checked={!!validatedDocs['tickets']}
                                                             onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
-                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer"
+                                                            disabled={selectedRequest.status === 'approved'}
+                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         ¿Boletos Válidos?
                                                     </label>
@@ -968,22 +971,24 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     </svg>
                                                     Ver Comprobante
                                                 </button>
-                                                <label className="px-3 py-2 bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 font-bold text-xs rounded-xl cursor-pointer transition">
-                                                    Cambiar
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*,application/pdf"
-                                                        className="hidden"
-                                                        onChange={(e) => {
-                                                            if (e.target.files && e.target.files[0]) {
-                                                                setProofFile(e.target.files[0]);
-                                                                setValidatedDocs(prev => ({ ...prev, proof: true }));
-                                                            }
-                                                        }}
-                                                    />
-                                                </label>
+                                                {selectedRequest.status !== 'approved' && (
+                                                    <label className="px-3 py-2 bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 font-bold text-xs rounded-xl cursor-pointer transition">
+                                                        Cambiar
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*,application/pdf"
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                if (e.target.files && e.target.files[0]) {
+                                                                    setProofFile(e.target.files[0]);
+                                                                    setValidatedDocs(prev => ({ ...prev, proof: true }));
+                                                                }
+                                                            }}
+                                                        />
+                                                    </label>
+                                                )}
                                             </div>
-                                        ) : (
+                                        ) : selectedRequest.status !== 'approved' ? (
                                             <label className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition shadow-md shadow-emerald-600/20 inline-flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -1001,7 +1006,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     }}
                                                 />
                                             </label>
-                                        )}
+                                        ) : null}
                                     </div>
 
                                     {proofFile && (
@@ -1019,129 +1024,147 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         value={adminNotes}
                                         onChange={(e) => setAdminNotes(e.target.value)}
                                         rows={3}
-                                        placeholder="Motivo de rechazo, observaciones o comentarios internos..."
-                                        className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none"
+                                        placeholder={selectedRequest.status === 'approved' ? "Sin observaciones registradas." : "Motivo de rechazo, observaciones o comentarios internos..."}
+                                        disabled={selectedRequest.status === 'approved'}
+                                        className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
 
                                     <div className="flex flex-wrap sm:justify-end gap-3 items-center">
                                         <Button onClick={handleCloseReview} variant="outline" disabled={loading} className="w-full sm:w-auto">
-                                            Cancelar
+                                            {selectedRequest.status === 'approved' ? 'Cerrar' : 'Cancelar'}
                                         </Button>
 
-                                        {(() => {
-                                            const invalidList = getInvalidDocsList();
-                                            const hasInvalid = invalidList.length > 0;
+                                        {selectedRequest.status === 'approved' && (
+                                            <span className="px-4 py-2.5 bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-900/40 text-green-800 dark:text-green-300 font-bold text-xs rounded-xl flex items-center gap-1.5 select-none">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4 text-green-600 dark:text-green-500">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Trámite Reembolsado / Finalizado
+                                            </span>
+                                        )}
 
-                                            if (hasInvalid) {
-                                                return (
-                                                    <Button
-                                                        onClick={() => {
-                                                            if (!adminNotes.trim()) {
-                                                                alert("Por favor escribe en las Notas del Administrador qué documentos son inválidos y por qué.");
-                                                                return;
-                                                            }
-                                                            handleUpdateStatus('rejected');
-                                                        }}
-                                                        disabled={loading}
-                                                        className="bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
-                                                    >
-                                                        Solicitar Corrección ({invalidList.length})
-                                                    </Button>
-                                                );
-                                            } else {
-                                                return (
-                                                    <Button
-                                                        onClick={() => {
-                                                            setPendingStatusUpdate('processing');
-                                                            setShowShowareReminder(true);
-                                                        }}
-                                                        disabled={loading}
-                                                        className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
-                                                    >
-                                                        Enviar a Contabilidad
-                                                    </Button>
-                                                );
-                                            }
-                                        })()}
+                                        {selectedRequest.status !== 'approved' && (
+                                            <>
+                                                {(() => {
+                                                    const invalidList = getInvalidDocsList();
+                                                    const hasInvalid = invalidList.length > 0;
 
-                                        <Button
-                                            onClick={() => {
-                                                if (!adminNotes.trim()) {
-                                                    alert("Por favor escribe en las Notas el motivo del rechazo definitivo.");
-                                                    return;
-                                                }
-                                                if (confirm("¿Estás seguro de rechazar definitivamente esta solicitud? El cliente no podrá corregir los documentos.")) {
-                                                    const allApproved: Record<string, boolean> = {};
-                                                    if (selectedRequest?.ine_path) allApproved.ine = true;
-                                                    if (selectedRequest?.proof_of_payment_path) allApproved.proof = true;
-                                                    if (selectedRequest?.tickets_path) {
-                                                        let parsed = null;
-                                                        try {
-                                                            parsed = JSON.parse(selectedRequest.tickets_path);
-                                                        } catch (e) { }
-                                                        if (parsed && typeof parsed === 'object') {
-                                                            Object.keys(parsed).forEach(subId => {
-                                                                allApproved['ticket_' + subId] = true;
-                                                            });
-                                                        } else {
-                                                            allApproved.tickets = true;
-                                                        }
-                                                    }
-                                                    setValidatedDocs(allApproved);
-                                                    setTimeout(() => {
-                                                        setLoading(true);
-                                                        router.post(
-                                                            route('admin.refunds.requests.status', { refundRequest: selectedRequest!.id }),
-                                                            {
-                                                                status: 'rejected',
-                                                                admin_notes: adminNotes,
-                                                                validated_documents: allApproved,
-                                                            },
-                                                            {
-                                                                onSuccess: () => {
-                                                                    handleCloseReview();
-                                                                    setLoading(false);
-                                                                },
-                                                                onFinish: () => setLoading(false),
-                                                            }
+                                                    if (hasInvalid) {
+                                                        return (
+                                                            <Button
+                                                                onClick={() => {
+                                                                    if (!adminNotes.trim()) {
+                                                                        alert("Por favor escribe en las Notas del Administrador qué documentos son inválidos y por qué.");
+                                                                        return;
+                                                                    }
+                                                                    handleUpdateStatus('rejected');
+                                                                }}
+                                                                disabled={loading}
+                                                                className="bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
+                                                            >
+                                                                Solicitar Corrección ({invalidList.length})
+                                                            </Button>
                                                         );
-                                                    }, 100);
-                                                }
-                                            }}
-                                            variant="destructive"
-                                            disabled={loading}
-                                            className="w-full sm:w-auto"
-                                        >
-                                            Rechazar Definitivamente
-                                        </Button>
+                                                    } else {
+                                                        return (
+                                                            <Button
+                                                                onClick={() => {
+                                                                    setPendingStatusUpdate('processing');
+                                                                    setShowShowareReminder(true);
+                                                                }}
+                                                                disabled={loading || selectedRequest.status === 'processing'}
+                                                                className={`w-full sm:w-auto ${
+                                                                    selectedRequest.status === 'processing'
+                                                                        ? 'bg-gray-200 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                                }`}
+                                                            >
+                                                                {selectedRequest.status === 'processing' ? 'Ya en Contabilidad' : 'Enviar a Contabilidad'}
+                                                            </Button>
+                                                        );
+                                                    }
+                                                })()}
 
-                                        {(() => {
-                                            const hasProof = !!selectedRequest.proof_of_payment_path || !!proofFile;
-                                            const canApprove = !loading && getInvalidDocsList().length === 0 && hasProof;
+                                                <Button
+                                                    onClick={() => {
+                                                        if (!adminNotes.trim()) {
+                                                            alert("Por favor escribe en las Notas el motivo del rechazo definitivo.");
+                                                            return;
+                                                        }
+                                                        if (confirm("¿Estás seguro de rechazar definitivamente esta solicitud? El cliente no podrá corregir los documentos.")) {
+                                                            const allApproved: Record<string, boolean> = {};
+                                                            if (selectedRequest?.ine_path) allApproved.ine = true;
+                                                            if (selectedRequest?.proof_of_payment_path) allApproved.proof = true;
+                                                            if (selectedRequest?.tickets_path) {
+                                                                let parsed = null;
+                                                                try {
+                                                                    parsed = JSON.parse(selectedRequest.tickets_path);
+                                                                } catch (e) { }
+                                                                if (parsed && typeof parsed === 'object') {
+                                                                    Object.keys(parsed).forEach(subId => {
+                                                                        allApproved['ticket_' + subId] = true;
+                                                                    });
+                                                                } else {
+                                                                    allApproved.tickets = true;
+                                                                }
+                                                            }
+                                                            setValidatedDocs(allApproved);
+                                                            setTimeout(() => {
+                                                                setLoading(true);
+                                                                router.post(
+                                                                    route('admin.refunds.requests.status', { refundRequest: selectedRequest!.id }),
+                                                                    {
+                                                                        status: 'rejected',
+                                                                        admin_notes: adminNotes,
+                                                                        validated_documents: allApproved,
+                                                                    },
+                                                                    {
+                                                                        onSuccess: () => {
+                                                                            handleCloseReview();
+                                                                            setLoading(false);
+                                                                        },
+                                                                        onFinish: () => setLoading(false),
+                                                                    }
+                                                                );
+                                                            }, 100);
+                                                        }
+                                                    }}
+                                                    variant="destructive"
+                                                    disabled={loading}
+                                                    className="w-full sm:w-auto"
+                                                >
+                                                    Rechazar Definitivamente
+                                                </Button>
 
-                                            return (
-                                                <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-                                                    {!hasProof && (
-                                                        <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/60 dark:border-amber-900/50 flex items-center gap-1.5">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 text-amber-500 flex-shrink-0">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                                                            </svg>
-                                                            Adjunte comprobante de pago para aprobar
-                                                        </span>
-                                                    )}
-                                                    <Button
-                                                        onClick={() => {
-                                                            setPendingStatusUpdate('approved');
-                                                            setShowShowareReminder(true);
-                                                        }}
-                                                        disabled={!canApprove}
-                                                        className={`w-full sm:w-auto ${canApprove ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'}`}
-                                                    >
-                                                        Aprobar Reembolso
-                                                    </Button>
-                                                </div>
-                                            );
-                                        })()}
+                                                {(() => {
+                                                    const hasProof = !!selectedRequest.proof_of_payment_path || !!proofFile;
+                                                    const canApprove = !loading && getInvalidDocsList().length === 0 && hasProof;
+
+                                                    return (
+                                                        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+                                                            {!hasProof && (
+                                                                <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200/60 dark:border-amber-900/50 flex items-center gap-1.5">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5 text-amber-500 flex-shrink-0">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                                                    </svg>
+                                                                    Adjunte comprobante de pago para aprobar
+                                                                </span>
+                                                            )}
+                                                            <Button
+                                                                onClick={() => {
+                                                                    setPendingStatusUpdate('approved');
+                                                                    setShowShowareReminder(true);
+                                                                }}
+                                                                disabled={!canApprove}
+                                                                className={`w-full sm:w-auto ${canApprove ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'}`}
+                                                            >
+                                                                Aprobar Reembolso
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
