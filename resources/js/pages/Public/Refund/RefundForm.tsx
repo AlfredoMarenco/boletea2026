@@ -633,7 +633,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                 <form onSubmit={handleSubmitRefund} className="space-y-6">
                                     <div className="p-4 mt-2 mb-2 rounded-2xl bg-[#c90000]/5 text-sm dark:bg-[#c90000]/10 border border-[#c90000]/10">
                                         <p className="text-gray-700 dark:text-gray-300">
-                                            Orden: <strong>#{orderNumber}</strong> ({paymentMethod})
+                                            Orden: <strong>#{orderNumber}</strong> (Tarjeta de Crédito/Débito)
                                         </p>
                                         {buyerName && (
                                             <p className="text-xs text-gray-500 mt-1">
