@@ -709,7 +709,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                 Ingrese su nombre y apellidos tal como aparecen en su identificación oficial (INE / Pasaporte).
                                             </p>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                                                     Primer Nombre <span className="text-red-500 ml-0.5">*</span>
