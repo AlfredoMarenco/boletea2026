@@ -111,6 +111,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [proofFile, setProofFile] = useState<File | null>(null);
+    const [showShowareReminder, setShowShowareReminder] = useState(false);
+    const [pendingStatusUpdate, setPendingStatusUpdate] = useState<'processing' | 'approved' | null>(null);
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -189,6 +191,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         setPanOffset({ x: 0, y: 0 });
         setIsDragging(false);
         setProofFile(null);
+        setShowShowareReminder(false);
+        setPendingStatusUpdate(null);
     };
 
     const handleSaveName = () => {
@@ -1047,7 +1051,10 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             } else {
                                                 return (
                                                     <Button
-                                                        onClick={() => handleUpdateStatus('processing')}
+                                                        onClick={() => {
+                                                            setPendingStatusUpdate('processing');
+                                                            setShowShowareReminder(true);
+                                                        }}
                                                         disabled={loading}
                                                         className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto"
                                                     >
@@ -1123,7 +1130,10 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         </span>
                                                     )}
                                                     <Button
-                                                        onClick={() => handleUpdateStatus('approved')}
+                                                        onClick={() => {
+                                                            setPendingStatusUpdate('approved');
+                                                            setShowShowareReminder(true);
+                                                        }}
                                                         disabled={!canApprove}
                                                         className={`w-full sm:w-auto ${canApprove ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-300 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'}`}
                                                     >
@@ -1244,6 +1254,58 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     className="px-5 py-2.5 bg-[#c90000] hover:bg-[#a10000] text-white rounded-xl font-bold text-xs transition"
                                 >
                                     Cerrar Vista Previa
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                 {/* SHOWARE REMINDER MODAL */}
+                {showShowareReminder && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70] backdrop-blur-xs animate-in fade-in">
+                        <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-100 dark:border-neutral-800 shadow-2xl space-y-6">
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 animate-bounce">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                        Recordatorio de Cancelación
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Recuerde que debe <strong className="font-bold text-gray-800 dark:text-gray-200">cancelar esta orden</strong> en el sistema <strong className="font-bold text-[#c90000]">Showare de Total Access</strong>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium">
+                                Esta acción es necesaria para invalidar los accesos y asegurar que no existan duplicados o inconsistencias al procesar el reembolso en Boletea.
+                            </div>
+
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowShowareReminder(false);
+                                        setPendingStatusUpdate(null);
+                                    }}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-750 transition"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (pendingStatusUpdate) {
+                                            handleUpdateStatus(pendingStatusUpdate);
+                                        }
+                                        setShowShowareReminder(false);
+                                        setPendingStatusUpdate(null);
+                                    }}
+                                    className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/10 transition"
+                                >
+                                    Entendido, guardar
                                 </button>
                             </div>
                         </div>
