@@ -197,9 +197,9 @@ class AdminRefundController extends Controller
                 $cardLastFour = str_pad($rawCardLastFour, 4, '0', STR_PAD_LEFT);
             }
 
-            $buyerName = trim($company.' '.$lastName);
+            $buyerName = mb_strtoupper(trim($company.' '.$lastName));
             if (empty($buyerName)) {
-                $buyerName = 'Comprador Taquilla';
+                $buyerName = 'COMPRADOR TAQUILLA';
             }
 
             if (! isset($orders[$orderId])) {

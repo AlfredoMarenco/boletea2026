@@ -662,7 +662,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                             <input
                                                 type="text"
                                                 value={buyerName}
-                                                onChange={(e) => setBuyerName(e.target.value)}
+                                                onChange={(e) => setBuyerName(e.target.value.toUpperCase())}
                                                 required
                                                 placeholder="Ingrese el nombre completo como aparece en su identificación"
                                                 className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"

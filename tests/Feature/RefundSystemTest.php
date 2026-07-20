@@ -182,7 +182,7 @@ test('can submit cash refund request with tickets photo and validated tickets li
 
     $this->assertDatabaseHas('refund_requests', [
         'order_number' => '12345',
-        'buyer_name' => 'Cash Buyer Modified',
+        'buyer_name' => 'CASH BUYER MODIFIED',
         'clabe' => '012345678901234567',
         'bank_name' => 'BBVA',
     ]);

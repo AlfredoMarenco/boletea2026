@@ -466,7 +466,7 @@ class RefundController extends Controller
             'order_number' => $validated['order_number'],
             'tracking_id' => $trackingId,
             'email' => $validated['email'],
-            'buyer_name' => $validated['buyer_name'],
+            'buyer_name' => mb_strtoupper(trim($validated['buyer_name'])),
             'clabe' => $validated['clabe'],
             'bank_name' => $validated['bank_name'],
             'card_last_four' => $validated['card_last_four'] ?? ($purchase?->card_last_four ?? null),
