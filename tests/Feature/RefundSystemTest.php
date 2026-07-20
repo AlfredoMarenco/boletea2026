@@ -351,3 +351,22 @@ test('submitting refund request validates CLABE bank code', function () {
     ]);
     $responseInvalid->assertSessionHasErrors(['clabe']);
 });
+
+test('admin can access event orders report', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.refunds.events.orders', ['event' => $this->refundEvent->id]));
+    $response->assertStatus(200);
+});
+
+test('admin can export event orders report to csv', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $response = $this->get(route('admin.refunds.events.orders.export_csv', ['event' => $this->refundEvent->id]));
+    $response->assertStatus(200);
+    $response->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    expect($response->streamedContent())->toContain('ID ORDEN');
+    expect($response->streamedContent())->toContain('12345');
+});

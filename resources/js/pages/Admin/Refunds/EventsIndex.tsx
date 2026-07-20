@@ -213,6 +213,11 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
                                                             Ver Trámites
                                                         </Link>
                                                     </Button>
+                                                    <Button asChild variant="outline" size="sm" className="border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/20">
+                                                        <Link href={route('admin.refunds.events.orders', { event: ev.id })}>
+                                                            Ver Reporte
+                                                        </Link>
+                                                    </Button>
                                                     <Button 
                                                         onClick={() => handleDelete(ev.id)} 
                                                         variant="ghost" 

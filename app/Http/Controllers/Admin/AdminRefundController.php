@@ -532,8 +532,8 @@ class AdminRefundController extends Controller
                     $req->bank_name ?? 'NO ESPECIFICADO',                       // BANCO
                     $scCc,                                                      // SC/CC (SC = Sin Cargos, CC = Con Cargos)
                     $bltsCount,                                                 // Blts
-                    '$'.number_format($unitPrice, 2, '.', ''),                  // Precio
-                    '$'.number_format($montoRefund, 2, '.', ''),                // MONTO
+                    number_format($unitPrice, 2, '.', ''),                      // Precio
+                    number_format($montoRefund, 2, '.', ''),                    // MONTO
                     $req->email ?? '',                                          // Correo
                     auth()->user()?->name ?? 'ADMIN',                           // ATN
                     $req->created_at ? $req->created_at->format('d/m/Y') : '',  // Fec Solic
@@ -548,6 +548,388 @@ class AdminRefundController extends Controller
                     '',                                                         // AUDIENCIA
                     '',                                                         // OBSERVACION (X - para control interno)
                 ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Display a report of all purchases/orders loaded for a refund event.
+     */
+    public function eventOrdersReport(Request $request, RefundEvent $event)
+    {
+        $event->load('externalEvent');
+
+        $search = $request->input('search');
+        $filterType = $request->input('filter_type', 'all');
+
+        $requests = RefundRequest::where('refund_event_id', $event->id)
+            ->get()
+            ->keyBy('order_number');
+
+        $allPurchases = RefundPurchase::where('refund_event_id', $event->id)->get();
+
+        $mappedPurchases = $allPurchases->map(function ($purchase) use ($requests) {
+            $tickets = collect($purchase->tickets_details ?? []);
+            $isCancelled = $tickets->isNotEmpty() && $tickets->every(function ($t) {
+                $status = strtolower(trim($t['status'] ?? ''));
+
+                return $status === 'cancelado' || $status === 'cancelada';
+            });
+
+            $purchaseRequest = $requests->get($purchase->order_number);
+
+            $refundAmount = 0.0;
+            $includeCharges = false;
+            if ($purchaseRequest) {
+                $includeCharges = (bool) ($purchaseRequest->include_charges ?? false);
+                $validatedTickets = $purchaseRequest->validated_tickets ?? [];
+
+                $allTickets = $purchase->tickets_details ?? [];
+                $targetTickets = [];
+                if (! empty($validatedTickets)) {
+                    $targetTickets = array_filter($allTickets, function ($t) use ($validatedTickets) {
+                        return in_array($t['ticket_id'] ?? $t['barcode'] ?? '', $validatedTickets);
+                    });
+                }
+
+                if (empty($targetTickets)) {
+                    $targetTickets = $allTickets;
+                }
+
+                $priceTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+                $cxsTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxs'] ?? 0));
+                $tcTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['tc'] ?? 0));
+                $cxadmTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxadm'] ?? 0));
+                $chargesTotal = $cxsTotal + $tcTotal + $cxadmTotal;
+
+                $refundAmount = $includeCharges ? ($priceTotal + $chargesTotal) : $priceTotal;
+            } else {
+                $activeTickets = array_filter($purchase->tickets_details ?? [], function ($t) {
+                    $status = strtolower(trim($t['status'] ?? ''));
+
+                    return $status !== 'cancelado' && $status !== 'cancelada';
+                });
+
+                $refundAmount = collect($activeTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+            }
+
+            return [
+                'id' => $purchase->id,
+                'order_number' => $purchase->order_number,
+                'email' => $purchase->email,
+                'buyer_name' => $purchase->buyer_name,
+                'payment_method' => $purchase->payment_method,
+                'card_last_four' => $purchase->card_last_four,
+                'amount' => $purchase->amount,
+                'tickets_details' => $purchase->tickets_details,
+                'is_cancelled' => $isCancelled,
+                'request_status' => $purchaseRequest ? $purchaseRequest->status : null,
+                'request_id' => $purchaseRequest ? $purchaseRequest->id : null,
+                'refund_amount' => $refundAmount,
+                'include_charges' => $includeCharges,
+            ];
+        });
+
+        $totalOrdersCount = $mappedPurchases->count();
+        $cancelledOrdersCount = $mappedPurchases->where('is_cancelled', true)->count();
+        $validOrdersCount = $totalOrdersCount - $cancelledOrdersCount;
+
+        $approvedRequests = $mappedPurchases->where('request_status', 'approved');
+        $approvedRequestsCount = $approvedRequests->count();
+        $amountRefunded = (float) $approvedRequests->sum('refund_amount');
+
+        $pendingProcessingRequests = $mappedPurchases->whereIn('request_status', ['pending', 'processing']);
+        $pendingProcessingRequestsCount = $pendingProcessingRequests->count();
+        $amountPending = (float) $pendingProcessingRequests->sum('refund_amount');
+
+        $rejectedRequests = $mappedPurchases->where('request_status', 'rejected');
+        $rejectedRequestsCount = $rejectedRequests->count();
+        $amountRejected = (float) $rejectedRequests->sum('refund_amount');
+
+        $totalRequestsCount = $mappedPurchases->whereNotNull('request_status')->count();
+
+        $noRequestPurchases = $mappedPurchases->where('is_cancelled', false)->whereNull('request_status');
+        $pendingRegistrationCount = $noRequestPurchases->count();
+        $amountRemaining = (float) $noRequestPurchases->sum('refund_amount');
+
+        // Charges breakdown (approved and processing)
+        $requestsWithRequest = $mappedPurchases->whereNotNull('request_status')->where('request_status', '!=', 'rejected');
+        $requestsWithCharges = $requestsWithRequest->where('include_charges', true);
+        $requestsWithoutCharges = $requestsWithRequest->where('include_charges', false);
+
+        $countWithCharges = $requestsWithCharges->count();
+        $countWithoutCharges = $requestsWithoutCharges->count();
+
+        $amountWithCharges = (float) $requestsWithCharges->sum('refund_amount');
+        $amountWithoutCharges = (float) $requestsWithoutCharges->sum('refund_amount');
+
+        $filteredPurchases = $mappedPurchases;
+
+        if (! empty($search)) {
+            $searchLower = strtolower($search);
+            $filteredPurchases = $filteredPurchases->filter(function ($p) use ($searchLower) {
+                return str_contains(strtolower($p['order_number']), $searchLower) ||
+                       str_contains(strtolower($p['email'] ?? ''), $searchLower) ||
+                       str_contains(strtolower($p['buyer_name']), $searchLower);
+            });
+        }
+
+        if ($filterType === 'cancelled') {
+            $filteredPurchases = $filteredPurchases->where('is_cancelled', true);
+        } elseif ($filterType === 'valid') {
+            $filteredPurchases = $filteredPurchases->where('is_cancelled', false);
+        } elseif ($filterType === 'with_request') {
+            $filteredPurchases = $filteredPurchases->whereNotNull('request_status');
+        } elseif ($filterType === 'without_request') {
+            $filteredPurchases = $filteredPurchases->where('is_cancelled', false)->whereNull('request_status');
+        }
+
+        $perPage = 20;
+        $page = (int) $request->input('page', 1);
+        $total = $filteredPurchases->count();
+
+        $paginatedItems = $filteredPurchases->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginatedItems,
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return Inertia::render('Admin/Refunds/OrdersReport', [
+            'event' => $event,
+            'purchases' => $paginator,
+            'stats' => [
+                'total_orders' => $totalOrdersCount,
+                'cancelled_orders' => $cancelledOrdersCount,
+                'valid_orders' => $validOrdersCount,
+                'total_requests' => $totalRequestsCount,
+                'approved_requests' => $approvedRequestsCount,
+                'pending_processing_requests' => $pendingProcessingRequestsCount,
+                'rejected_requests' => $rejectedRequestsCount,
+                'pending_registration' => $pendingRegistrationCount,
+                'amount_refunded' => $amountRefunded,
+                'amount_pending' => $amountPending,
+                'amount_rejected' => $amountRejected,
+                'amount_remaining' => $amountRemaining,
+                'count_with_charges' => $countWithCharges,
+                'count_without_charges' => $countWithoutCharges,
+                'amount_with_charges' => $amountWithCharges,
+                'amount_without_charges' => $amountWithoutCharges,
+            ],
+            'filters' => [
+                'search' => $search,
+                'filter_type' => $filterType,
+            ],
+        ]);
+    }
+
+    /**
+     * Export all purchases/orders of a refund event to CSV for accounting.
+     */
+    public function exportEventOrdersCsv(RefundEvent $event, Request $request)
+    {
+        $event->load('externalEvent');
+
+        $search = $request->input('search');
+        $filterType = $request->input('filter_type', 'all');
+
+        $requests = RefundRequest::where('refund_event_id', $event->id)
+            ->get()
+            ->keyBy('order_number');
+
+        $allPurchases = RefundPurchase::where('refund_event_id', $event->id)->get();
+
+        $mappedPurchases = $allPurchases->map(function ($purchase) use ($requests) {
+            $tickets = collect($purchase->tickets_details ?? []);
+            $isCancelled = $tickets->isNotEmpty() && $tickets->every(function ($t) {
+                $status = strtolower(trim($t['status'] ?? ''));
+
+                return $status === 'cancelado' || $status === 'cancelada';
+            });
+
+            $purchaseRequest = $requests->get($purchase->order_number);
+
+            $refundAmount = 0.0;
+            $includeCharges = false;
+            if ($purchaseRequest) {
+                $includeCharges = (bool) ($purchaseRequest->include_charges ?? false);
+                $validatedTickets = $purchaseRequest->validated_tickets ?? [];
+
+                $allTickets = $purchase->tickets_details ?? [];
+                $targetTickets = [];
+                if (! empty($validatedTickets)) {
+                    $targetTickets = array_filter($allTickets, function ($t) use ($validatedTickets) {
+                        return in_array($t['ticket_id'] ?? $t['barcode'] ?? '', $validatedTickets);
+                    });
+                }
+
+                if (empty($targetTickets)) {
+                    $targetTickets = $allTickets;
+                }
+
+                $priceTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+                $cxsTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxs'] ?? 0));
+                $tcTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['tc'] ?? 0));
+                $cxadmTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxadm'] ?? 0));
+                $chargesTotal = $cxsTotal + $tcTotal + $cxadmTotal;
+
+                $refundAmount = $includeCharges ? ($priceTotal + $chargesTotal) : $priceTotal;
+            } else {
+                $activeTickets = array_filter($purchase->tickets_details ?? [], function ($t) {
+                    $status = strtolower(trim($t['status'] ?? ''));
+
+                    return $status !== 'cancelado' && $status !== 'cancelada';
+                });
+
+                $refundAmount = collect($activeTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+            }
+
+            return [
+                'purchase' => $purchase,
+                'is_cancelled' => $isCancelled,
+                'request' => $purchaseRequest,
+                'request_status' => $purchaseRequest ? $purchaseRequest->status : null,
+                'refund_amount' => $refundAmount,
+                'include_charges' => $includeCharges,
+            ];
+        });
+
+        $filtered = $mappedPurchases;
+
+        if (! empty($search)) {
+            $searchLower = strtolower($search);
+            $filtered = $filtered->filter(function ($p) use ($searchLower) {
+                return str_contains(strtolower($p['purchase']->order_number), $searchLower) ||
+                       str_contains(strtolower($p['purchase']->email ?? ''), $searchLower) ||
+                       str_contains(strtolower($p['purchase']->buyer_name), $searchLower);
+            });
+        }
+
+        if ($filterType === 'cancelled') {
+            $filtered = $filtered->where('is_cancelled', true);
+        } elseif ($filterType === 'valid') {
+            $filtered = $filtered->where('is_cancelled', false);
+        } elseif ($filterType === 'with_request') {
+            $filtered = $filtered->whereNotNull('request_status');
+        } elseif ($filterType === 'without_request') {
+            $filtered = $filtered->where('is_cancelled', false)->whereNull('request_status');
+        }
+
+        $eventTitle = str_replace(' ', '_', $event->externalEvent->title ?? 'evento');
+        $filename = "reporte_contable_reembolsos_{$eventTitle}_".date('Ymd_His').'.csv';
+
+        return response()->streamDownload(function () use ($filtered) {
+            $handle = fopen('php://output', 'w');
+
+            // UTF-8 BOM for Excel
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($handle, [
+                'ID ORDEN',
+                'TITULAR COMPRA',
+                'METODO PAGO',
+                'ULTIMOS 4',
+                'ESTADO COMPRA',
+                'ID BOLETO',
+                'CODIGO BARRAS',
+                'ZONA',
+                'ASIENTO',
+                'ESTADO BOLETO',
+                'PRECIO BASE',
+                'CARGO SERVICIO (CxS)',
+                'CARGO TARJETA (TC)',
+                'CARGO ADMIN (CxAdm)',
+                'TOTAL BOLETO',
+                'ESTATUS TRAMITE',
+                'MONTO REEMBOLSO CALCULADO',
+                'CARGOS INCLUIDOS',
+                'TITULAR CUENTA TRANSFERENCIA',
+                'BANCO',
+                'CLABE',
+                'FECHA SOLICITUD',
+                'FECHA APROBACION',
+            ]);
+
+            foreach ($filtered as $item) {
+                $p = $item['purchase'];
+                $req = $item['request'];
+                $statusLabel = $item['is_cancelled'] ? 'CANCELADA' : 'VALIDA';
+
+                $reqStatus = 'SIN SOLICITUD';
+                if ($item['request_status']) {
+                    $reqStatus = match ($item['request_status']) {
+                        'pending' => 'PENDIENTE',
+                        'processing' => 'EN TRAMITE',
+                        'approved' => 'APROBADO',
+                        'rejected' => 'RECHAZADO',
+                        default => strtoupper($item['request_status']),
+                    };
+                }
+
+                $tickets = $p->tickets_details ?? [];
+                if (empty($tickets)) {
+                    // Fallback row if no ticket details exist
+                    fputcsv($handle, [
+                        $p->order_number,
+                        $p->buyer_name,
+                        $p->payment_method,
+                        $p->card_last_four ?? '',
+                        $statusLabel,
+                        'N/A',
+                        'N/A',
+                        'N/A',
+                        'N/A',
+                        'N/A',
+                        '0.00',
+                        '0.00',
+                        '0.00',
+                        '0.00',
+                        number_format((float) $p->amount, 2, '.', ''),
+                        $reqStatus,
+                        number_format((float) $item['refund_amount'], 2, '.', ''),
+                        $item['include_charges'] ? 'SI' : 'NO',
+                        $req ? $req->buyer_name : '',
+                        $req ? ($req->bank_name ?? '') : '',
+                        $req ? ($req->clabe ?? $req->card_last_four ?? '') : '',
+                        $req && $req->created_at ? $req->created_at->format('d/m/Y') : '',
+                        $req && $req->status === 'approved' && $req->updated_at ? $req->updated_at->format('d/m/Y') : '',
+                    ]);
+                } else {
+                    foreach ($tickets as $t) {
+                        fputcsv($handle, [
+                            $p->order_number,
+                            $p->buyer_name,
+                            $p->payment_method,
+                            $p->card_last_four ?? '',
+                            $statusLabel,
+                            $t['ticket_id'] ?? 'N/A',
+                            $t['barcode'] ?? 'N/A',
+                            $t['area'] ?? 'N/A',
+                            $t['seat'] ?? 'N/A',
+                            strtoupper($t['status'] ?? 'PAGADO'),
+                            number_format((float) ($t['price'] ?? 0), 2, '.', ''),
+                            number_format((float) ($t['cxs'] ?? 0), 2, '.', ''),
+                            number_format((float) ($t['tc'] ?? 0), 2, '.', ''),
+                            number_format((float) ($t['cxadm'] ?? 0), 2, '.', ''),
+                            number_format((float) ($t['total'] ?? 0), 2, '.', ''),
+                            $reqStatus,
+                            number_format((float) $item['refund_amount'], 2, '.', ''),
+                            $item['include_charges'] ? 'SI' : 'NO',
+                            $req ? $req->buyer_name : '',
+                            $req ? ($req->bank_name ?? '') : '',
+                            $req ? ($req->clabe ?? $req->card_last_four ?? '') : '',
+                            $req && $req->created_at ? $req->created_at->format('d/m/Y') : '',
+                            $req && $req->status === 'approved' && $req->updated_at ? $req->updated_at->format('d/m/Y') : '',
+                        ]);
+                    }
+                }
             }
 
             fclose($handle);
