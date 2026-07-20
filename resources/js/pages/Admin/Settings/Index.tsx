@@ -40,15 +40,23 @@ interface PostbackUrl {
     is_active: boolean;
 }
 
+interface Bank {
+    id: number;
+    code: string;
+    name: string;
+    enabled: boolean;
+}
+
 interface Props {
     settings: Record<string, string>;
     events: ExternalEvent[];
     banners: WelcomeBanner[];
     postback_urls: PostbackUrl[];
+    banks: Bank[];
 }
 
-export default function Index({ settings, events, banners, postback_urls = [] }: Props) {
-    const [activeTab, setActiveTab] = useState<'general' | 'banners' | 'postbacks' | 'worldcup'>('general');
+export default function Index({ settings, events, banners, postback_urls = [], banks = [] }: Props) {
+    const [activeTab, setActiveTab] = useState<'general' | 'banners' | 'postbacks' | 'worldcup' | 'banks'>('general');
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     
     // Postback Dialog State
@@ -225,6 +233,12 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                         className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'worldcup' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
                     >
                         Ambiente Mundialista 🇲🇽
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('banks')}
+                        className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === 'banks' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+                    >
+                        Bancos de Reembolsos 🏦
                     </button>
                 </div>
 
@@ -726,6 +740,64 @@ export default function Index({ settings, events, banners, postback_urls = [] }:
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                )}
+
+                {/* TAB: Banks Settings */}
+                {activeTab === 'banks' && (
+                    <div className="animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-white dark:bg-card p-6 rounded-xl shadow-sm border border-gray-200 dark:border-border space-y-6">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                    Configuración de Bancos (Reembolsos)
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Habilite o deshabilite los prefijos de las CLABEs interbancarias de 3 dígitos oficiales. Los bancos deshabilitados no serán permitidos en el formulario de captura.
+                                </p>
+                            </div>
+
+                            <div className="border border-gray-200 dark:border-border rounded-lg overflow-hidden">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-border text-left text-sm text-gray-500 dark:text-gray-400">
+                                    <thead className="bg-gray-50 dark:bg-muted text-gray-700 dark:text-gray-300 font-semibold">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3">Código CLABE</th>
+                                            <th scope="col" className="px-6 py-3">Nombre del Banco</th>
+                                            <th scope="col" className="px-6 py-3 text-right">Estatus</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-border bg-white dark:bg-card">
+                                        {banks.map((bank) => (
+                                            <tr key={bank.id} className="hover:bg-gray-50 dark:hover:bg-muted/50 transition-colors">
+                                                <td className="px-6 py-4 font-mono font-bold text-gray-900 dark:text-white">
+                                                    {bank.code}
+                                                </td>
+                                                <td className="px-6 py-4 text-gray-900 dark:text-white">
+                                                    {bank.name}
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="inline-flex items-center">
+                                                        <Switch
+                                                            checked={bank.enabled}
+                                                            onCheckedChange={() => {
+                                                                router.post(
+                                                                    route('admin.settings.banks.toggle', bank.id),
+                                                                    {},
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                        onSuccess: () => toast.success(`Estatus de ${bank.name} actualizado.`),
+                                                                        onError: () => toast.error('Error al actualizar el estatus del banco.'),
+                                                                    }
+                                                                );
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

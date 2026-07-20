@@ -57,3 +57,26 @@ test('service converts upcoming match utc datetime to mexico city timezone', fun
         'value' => '2026-06-11T11:00:00',
     ]);
 });
+
+test('authenticated admin user can toggle bank status', function () {
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+
+    $bank = \App\Models\Bank::create([
+        'code' => '012',
+        'name' => 'BBVA',
+        'enabled' => true,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->post(route('admin.settings.banks.toggle', $bank));
+
+    $response->assertRedirect();
+    expect($bank->fresh()->enabled)->toBeFalse();
+
+    // Toggle again
+    $this->actingAs($user)
+        ->post(route('admin.settings.banks.toggle', $bank));
+    expect($bank->fresh()->enabled)->toBeTrue();
+});

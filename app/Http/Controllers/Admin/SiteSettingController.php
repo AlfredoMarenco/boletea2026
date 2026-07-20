@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Bank;
 use App\Models\ExternalEvent;
 use App\Models\SiteSetting;
 use App\Models\WelcomeBanner;
@@ -27,12 +28,14 @@ class SiteSettingController extends Controller
         $banners->each->append(['resolved_image', 'resolved_link', 'resolved_title']);
 
         $postback_urls = \App\Models\PostbackUrl::orderBy('name')->get();
+        $banks = Bank::orderBy('code')->get();
 
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
             'events' => $events,
             'banners' => $banners,
             'postback_urls' => $postback_urls,
+            'banks' => $banks,
         ]);
     }
 
@@ -203,5 +206,14 @@ class SiteSettingController extends Controller
         \Illuminate\Support\Facades\Cache::forget('world_cup_api_status');
 
         return redirect()->back()->with('success', 'Configuración actualizada correctamente.');
+    }
+
+    public function toggleBank(Bank $bank)
+    {
+        $bank->update([
+            'enabled' => ! $bank->enabled,
+        ]);
+
+        return redirect()->back()->with('success', 'Estatus del banco actualizado correctamente.');
     }
 }

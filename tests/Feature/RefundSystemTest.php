@@ -11,6 +11,10 @@ use Illuminate\Support\Facades\Storage;
 beforeEach(function () {
     Storage::fake('local');
 
+    // Seed test banks
+    \App\Models\Bank::create(['code' => '012', 'name' => 'BBVA', 'enabled' => true]);
+    \App\Models\Bank::create(['code' => '002', 'name' => 'BANAMEX', 'enabled' => false]);
+
     // Create an external event and link it to refunds
     $this->externalEvent = ExternalEvent::create([
         'external_id' => 'ext-12345',
@@ -303,4 +307,47 @@ test('admin can toggle include_charges and it reflects in csv export as CC or SC
     $csvResponse = $this->get(route('admin.refunds.requests.export_csv', ['status' => 'processing']));
     $csvResponse->assertStatus(200);
     expect($csvResponse->streamedContent())->toContain('CC');
+});
+
+test('submitting refund request validates CLABE bank code', function () {
+    $ine = UploadedFile::fake()->image('ine.jpg');
+
+    // Case 1: Valid and enabled bank (BBVA - 012)
+    $response = $this->post('/reembolsos/solicitar', [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '67890',
+        'buyer_name' => 'Card Buyer',
+        'email' => 'cardbuyer@example.com',
+        'clabe' => '012345678901234567', // Starts with 012
+        'bank_name' => 'BBVA',
+        'ine' => $ine,
+        'card_last_four' => '4321',
+    ]);
+    $response->assertRedirect(route('refund.success'));
+
+    // Case 2: Disabled bank (BANAMEX - 002)
+    $responseDisabled = $this->post('/reembolsos/solicitar', [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '67890',
+        'buyer_name' => 'Card Buyer',
+        'email' => 'cardbuyer@example.com',
+        'clabe' => '002345678901234567', // Starts with 002
+        'bank_name' => 'BANAMEX',
+        'ine' => $ine,
+        'card_last_four' => '4321',
+    ]);
+    $responseDisabled->assertSessionHasErrors(['clabe']);
+
+    // Case 3: Non-existent bank (999)
+    $responseInvalid = $this->post('/reembolsos/solicitar', [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '67890',
+        'buyer_name' => 'Card Buyer',
+        'email' => 'cardbuyer@example.com',
+        'clabe' => '999345678901234567', // Starts with 999
+        'bank_name' => 'DESCONOCIDO',
+        'ine' => $ine,
+        'card_last_four' => '4321',
+    ]);
+    $responseInvalid->assertSessionHasErrors(['clabe']);
 });

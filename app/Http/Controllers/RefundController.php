@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\RefundStatusMail;
+use App\Models\Bank;
 use App\Models\RefundEvent;
 use App\Models\RefundPurchase;
 use App\Models\RefundRequest;
@@ -31,10 +32,12 @@ class RefundController extends Controller
             });
 
         $ticketSampleImage = \App\Models\SiteSetting::where('key', 'refund_ticket_sample_image')->first()?->value;
+        $banks = Bank::orderBy('name')->get();
 
         return Inertia::render('Public/Refund/RefundForm', [
             'events' => $events,
             'ticketSampleImage' => $ticketSampleImage,
+            'banks' => $banks,
         ]);
     }
 
@@ -352,6 +355,20 @@ class RefundController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        // Validate CLABE prefix (first 3 digits)
+        $clabePrefix = substr($validated['clabe'], 0, 3);
+        $bank = Bank::where('code', $clabePrefix)->first();
+        if (! $bank) {
+            return back()->withErrors([
+                'clabe' => 'El código de banco de la CLABE ingresada no es válido o no está registrado.',
+            ])->withInput();
+        }
+        if (! $bank->enabled) {
+            return back()->withErrors([
+                'clabe' => "El banco {$bank->name} no está habilitado para recibir reembolsos.",
+            ])->withInput();
+        }
 
         // Verify card last four matches if required
         if ($isCard && $purchase && ! empty($purchase->card_last_four)) {

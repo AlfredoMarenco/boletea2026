@@ -69,12 +69,20 @@ interface RefundEvent {
     start_date: string | null;
 }
 
+interface Bank {
+    id: number;
+    code: string;
+    name: string;
+    enabled: boolean;
+}
+
 interface Props {
     events: RefundEvent[];
     ticketSampleImage?: string | null;
+    banks: Bank[];
 }
 
-export default function RefundForm({ events, ticketSampleImage }: Props) {
+export default function RefundForm({ events, ticketSampleImage, banks = [] }: Props) {
     const [step, setStep] = useState(1);
     const [eventId, setEventId] = useState('');
     const [orderNumber, setOrderNumber] = useState('');
@@ -84,6 +92,7 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
     const [clabe, setClabe] = useState('');
     const [bankName, setBankName] = useState('');
     const [cardLastFour, setCardLastFour] = useState('');
+    const [clabeError, setClabeError] = useState('');
 
     // Files state
     const [ineFile, setIneFile] = useState<File | null>(null);
@@ -314,8 +323,24 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
             return;
         }
 
+        if (clabeError) {
+            setErrorMessage(clabeError);
+            return;
+        }
+
         if (clabe.length !== 18 || !/^\d+$/.test(clabe)) {
             setErrorMessage('La CLABE interbancaria debe ser de exactamente 18 dígitos numéricos.');
+            return;
+        }
+
+        const prefix = clabe.substring(0, 3);
+        const matchedBank = banks.find(b => b.code === prefix);
+        if (!matchedBank) {
+            setErrorMessage('El prefijo de su CLABE no coincide con ningún banco registrado.');
+            return;
+        }
+        if (!matchedBank.enabled) {
+            setErrorMessage(`El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`);
             return;
         }
 
@@ -671,12 +696,37 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                                             <input
                                                 type="text"
                                                 value={clabe}
-                                                onChange={(e) => setClabe(e.target.value.replace(/\D/g, ''))}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    setClabe(val);
+                                                    if (val.length >= 3) {
+                                                        const prefix = val.substring(0, 3);
+                                                        const matchedBank = banks.find(b => b.code === prefix);
+                                                        if (matchedBank) {
+                                                            if (matchedBank.enabled) {
+                                                                setBankName(matchedBank.name);
+                                                                setClabeError('');
+                                                            } else {
+                                                                setBankName('');
+                                                                setClabeError(`El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`);
+                                                            }
+                                                        } else {
+                                                            setClabeError('Prefijo de CLABE no reconocido.');
+                                                        }
+                                                    } else {
+                                                        setClabeError('');
+                                                    }
+                                                }}
                                                 maxLength={18}
                                                 required
                                                 placeholder="012345678901234567"
                                                 className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
                                             />
+                                            {clabeError && (
+                                                <p className="text-red-500 text-xs mt-1.5 font-semibold">
+                                                    {clabeError}
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div>
@@ -684,16 +734,21 @@ export default function RefundForm({ events, ticketSampleImage }: Props) {
                                                 Nombre del Banco <span className="text-red-500 ml-1">*</span>
                                             </label>
                                             <p className="text-[11px] text-gray-400 mb-2">
-                                                Ingrese la institución financiera de su cuenta (ej: BBVA, Banamex, Banorte).
+                                                Seleccione la institución financiera de su cuenta.
                                             </p>
-                                            <input
-                                                type="text"
+                                            <select
                                                 value={bankName}
                                                 onChange={(e) => setBankName(e.target.value)}
                                                 required
-                                                placeholder="Ej: BBVA"
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
-                                            />
+                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition text-sm text-gray-900 dark:text-white"
+                                            >
+                                                <option value="">Seleccione un banco...</option>
+                                                {banks.filter(b => b.enabled).map(b => (
+                                                    <option key={b.code} value={b.name}>
+                                                        {b.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
 

@@ -47,6 +47,7 @@ Route::resource('local-events', LocalEventController::class)->parameters(['local
 
 Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
 Route::post('settings', [SiteSettingController::class, 'update'])->name('settings.update');
+Route::post('settings/banks/{bank}/toggle', [SiteSettingController::class, 'toggleBank'])->name('settings.banks.toggle');
 
 use App\Http\Controllers\Admin\WelcomeBannerController;
 

@@ -449,7 +449,7 @@ class AdminRefundController extends Controller
 
         $requests = $query->orderBy('created_at', 'asc')->get();
 
-        $filename = 'REEMBOLSOS_BLT_'.strtoupper($status).'_'.date('Ymd_His').'.csv';
+        $filename = 'ReportRefunds_'.date('Y-m-d_H-i-s').'.csv';
 
         return response()->streamDownload(function () use ($requests) {
             $handle = fopen('php://output', 'w');
