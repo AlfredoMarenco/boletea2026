@@ -90,10 +90,15 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
     const [refundEventId, setRefundEventId] = useState(filters?.refund_event_id || '');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(filters?.sort_direction || 'asc');
 
     // Modal/Review states
     const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
     const [adminNotes, setAdminNotes] = useState('');
+    const [editableBuyerName, setEditableBuyerName] = useState('');
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [savingName, setSavingName] = useState(false);
+    const [nameUpdateSuccess, setNameUpdateSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Document validation and preview states
@@ -119,31 +124,47 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         const hasChanged =
             search !== (filters?.search || '') ||
             status !== (filters?.status || '') ||
-            refundEventId !== (filters?.refund_event_id || '');
+            refundEventId !== (filters?.refund_event_id || '') ||
+            sortDirection !== (filters?.sort_direction || 'asc');
 
         if (!hasChanged) {
             return;
         }
 
-        const delayDebounceFn = setTimeout(() => {
+        const onlySortChanged =
+            search === (filters?.search || '') &&
+            status === (filters?.status || '') &&
+            refundEventId === (filters?.refund_event_id || '') &&
+            sortDirection !== (filters?.sort_direction || 'asc');
+
+        const fetchFiltered = () => {
             router.get(
                 route('admin.refunds.requests'),
                 {
                     search: search || undefined,
                     status: status || undefined,
                     refund_event_id: refundEventId || undefined,
+                    sort_direction: sortDirection,
                     page: undefined, // Reset to page 1 when filters change
                 },
                 { preserveState: true, preserveScroll: true, replace: true }
             );
-        }, 400);
+        };
+
+        if (onlySortChanged) {
+            fetchFiltered();
+            return;
+        }
+
+        const delayDebounceFn = setTimeout(fetchFiltered, 400);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [search, status, refundEventId, isMounted]);
+    }, [search, status, refundEventId, sortDirection, isMounted]);
 
     const handleOpenReview = (req: RefundRequest) => {
         setSelectedRequest(req);
         setAdminNotes(req.admin_notes || '');
+        setEditableBuyerName(req.buyer_name || '');
         setValidatedDocs(req.validated_documents || {});
         setIncludeCharges(!!req.include_charges);
         setProofFile(null);
@@ -151,11 +172,47 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
 
     const handleCloseReview = () => {
         setSelectedRequest(null);
+        setAdminNotes('');
+        setEditableBuyerName('');
+        setIsEditingName(false);
+        setSavingName(false);
+        setNameUpdateSuccess(false);
         setValidatedDocs({});
         setIncludeCharges(false);
         setPreviewUrl(null);
         setPreviewTitle('');
         setProofFile(null);
+    };
+
+    const handleSaveName = () => {
+        if (!selectedRequest) return;
+        setSavingName(true);
+        setNameUpdateSuccess(false);
+
+        router.post(
+            route('admin.refunds.requests.status', { refundRequest: selectedRequest.id }),
+            {
+                status: selectedRequest.status,
+                admin_notes: adminNotes,
+                validated_documents: validatedDocs,
+                include_charges: includeCharges,
+                proof_of_payment: undefined,
+                buyer_name: editableBuyerName,
+            },
+            {
+                onSuccess: () => {
+                    setSavingName(false);
+                    setIsEditingName(false);
+                    setNameUpdateSuccess(true);
+                    setSelectedRequest(prev => prev ? { ...prev, buyer_name: editableBuyerName } : null);
+                    setTimeout(() => setNameUpdateSuccess(false), 3000);
+                },
+                onError: () => setSavingName(false),
+                onFinish: () => setSavingName(false),
+                preserveScroll: true,
+                preserveState: true,
+            }
+        );
     };
 
     const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'approved' | 'rejected') => {
@@ -175,6 +232,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                 validated_documents: docsToSubmit,
                 include_charges: includeCharges,
                 proof_of_payment: proofFile || undefined,
+                buyer_name: editableBuyerName,
             },
             {
                 onSuccess: () => {
@@ -326,7 +384,18 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     <TableHead>Cliente (Solicitado)</TableHead>
                                     <TableHead>CLABE</TableHead>
                                     <TableHead className="text-center">Estado</TableHead>
-                                    <TableHead className="text-center">Fecha Envío</TableHead>
+                                    <TableHead className="text-center w-[180px]">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                            className="inline-flex items-center gap-1 hover:text-[#c90000] font-bold justify-center w-full focus:outline-none transition"
+                                        >
+                                            Fecha Envío
+                                            <span className="text-[10px] text-gray-400">
+                                                {sortDirection === 'asc' ? '▲' : '▼'}
+                                            </span>
+                                        </button>
+                                    </TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -393,6 +462,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     search: search || undefined,
                                                     status: status || undefined,
                                                     refund_event_id: refundEventId || undefined,
+                                                    sort_direction: sortDirection,
                                                     page: page || undefined
                                                 });
                                             }
@@ -516,9 +586,66 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             <h3 className="font-semibold text-sm text-green-800 dark:text-green-300">Información Capturada por el Cliente</h3>
                                         </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-xs mb-4">
-                                            <div>
-                                                <p className="text-gray-400 mb-0.5">Nombre del Titular</p>
-                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.buyer_name?.toUpperCase()}</p>
+                                            <div className="col-span-2 md:col-span-2">
+                                                <p className="text-gray-400 mb-1">Nombre del Titular</p>
+                                                {!isEditingName ? (
+                                                    <div className="flex items-center gap-1.5 min-h-[32px]">
+                                                        <span className="font-semibold text-gray-800 dark:text-gray-200 break-words whitespace-normal">
+                                                            {selectedRequest.buyer_name?.toUpperCase()}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setEditableBuyerName(selectedRequest.buyer_name || '');
+                                                                setIsEditingName(true);
+                                                                setNameUpdateSuccess(false);
+                                                            }}
+                                                            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+                                                            title="Editar nombre"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                            </svg>
+                                                        </button>
+                                                        {nameUpdateSuccess && (
+                                                            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded animate-pulse">
+                                                                ✓ ¡Actualizado!
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 min-h-[32px]">
+                                                        <input
+                                                            type="text"
+                                                            value={editableBuyerName}
+                                                            onChange={(e) => setEditableBuyerName(e.target.value.toUpperCase())}
+                                                            className="flex-grow px-2 py-1 bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-md font-semibold text-gray-800 dark:text-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-[#c90000] focus:border-[#c90000]"
+                                                            placeholder="NOMBRE"
+                                                            autoFocus
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={handleSaveName}
+                                                            disabled={savingName}
+                                                            className="p-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded transition disabled:opacity-50"
+                                                            title="Guardar cambios"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setIsEditingName(false)}
+                                                            className="p-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded dark:bg-neutral-800 dark:text-gray-300 transition"
+                                                            title="Cancelar"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-3.5 h-3.5">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div>
                                                 <p className="text-gray-400 mb-0.5">Banco</p>

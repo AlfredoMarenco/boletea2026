@@ -274,6 +274,11 @@ class AdminRefundController extends Controller
         $search = $request->input('search');
         $status = $request->input('status');
         $refundEventId = $request->input('refund_event_id');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        if (! in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
 
         $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
 
@@ -294,7 +299,7 @@ class AdminRefundController extends Controller
             $query->where('refund_event_id', $refundEventId);
         }
 
-        $requests = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        $requests = $query->orderBy('created_at', $sortDirection)->paginate(20)->withQueryString();
         $refundEvents = RefundEvent::with('externalEvent')->get();
 
         return Inertia::render('Admin/Refunds/RequestsIndex', [
@@ -304,6 +309,7 @@ class AdminRefundController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'refund_event_id' => $refundEventId,
+                'sort_direction' => $sortDirection,
             ],
         ]);
     }
@@ -319,7 +325,13 @@ class AdminRefundController extends Controller
             'validated_documents' => 'nullable|array',
             'include_charges' => 'nullable|boolean',
             'proof_of_payment' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:10240',
+            'buyer_name' => 'nullable|string|max:255',
         ]);
+
+        if ($request->has('buyer_name')) {
+            $refundRequest->buyer_name = mb_strtoupper(trim($request->input('buyer_name')));
+            $refundRequest->save();
+        }
 
         if ($request->hasFile('proof_of_payment')) {
             $path = $request->file('proof_of_payment')->store('refunds/proofs');

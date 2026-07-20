@@ -88,6 +88,10 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const [orderNumber, setOrderNumber] = useState('');
     const [email, setEmail] = useState('');
     const [buyerName, setBuyerName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [middleName, setMiddleName] = useState('');
+    const [lastNamePaternal, setLastNamePaternal] = useState('');
+    const [lastNameMaternal, setLastNameMaternal] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clabe, setClabe] = useState('');
     const [bankName, setBankName] = useState('');
@@ -114,6 +118,32 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     // Help and Legal states
     const [showSampleModal, setShowSampleModal] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+    const fillNameParts = (fullName: string) => {
+        if (!fullName) return;
+        const parts = fullName.trim().split(/\s+/);
+        if (parts.length === 1) {
+            setFirstName(parts[0]);
+            setMiddleName('');
+            setLastNamePaternal('');
+            setLastNameMaternal('');
+        } else if (parts.length === 2) {
+            setFirstName(parts[0]);
+            setMiddleName('');
+            setLastNamePaternal(parts[1]);
+            setLastNameMaternal('');
+        } else if (parts.length === 3) {
+            setFirstName(parts[0]);
+            setMiddleName('');
+            setLastNamePaternal(parts[1]);
+            setLastNameMaternal(parts[2]);
+        } else if (parts.length >= 4) {
+            setFirstName(parts[0]);
+            setMiddleName(parts[1]);
+            setLastNamePaternal(parts[2]);
+            setLastNameMaternal(parts.slice(3).join(' '));
+        }
+    };
 
     const handleVerifyOrder = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -157,6 +187,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 setRequiresCard(data.requires_card || false);
                 setRequiresTickets(data.requires_tickets || true);
                 setBuyerName(data.buyer_name || '');
+                fillNameParts(data.buyer_name || '');
                 setPaymentMethod(data.payment_method || 'Efectivo');
                 setStep(2);
             }
@@ -206,6 +237,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             }
 
             setBuyerName(data.buyer_name || '');
+            fillNameParts(data.buyer_name || '');
             setPaymentMethod(data.payment_method || 'Tarjeta');
             setStep(2);
         } catch (err) {
@@ -315,11 +347,16 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const handleSubmitRefund = (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Dynamic field requirement validation
-        const isCard = requiresCard; // If verified as card purchase
+        const constructedBuyerName = [firstName, middleName, lastNamePaternal, lastNameMaternal]
+            .map(s => s.trim())
+            .filter(Boolean)
+            .join(' ')
+            .toUpperCase();
+
+        const isCard = requiresCard;
         
-        if (!buyerName || !clabe || !bankName || !ineFile || !email) {
-            setErrorMessage('Por favor rellene todos los campos requeridos (incluyendo banco y correo) y suba la INE.');
+        if (!firstName || !lastNamePaternal || !lastNameMaternal || !clabe || !bankName || !ineFile || !email) {
+            setErrorMessage('Por favor rellene todos los campos requeridos (nombre, apellidos, banco, correo) y suba la INE.');
             return;
         }
 
@@ -368,7 +405,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         const formData = new FormData();
         formData.append('refund_event_id', eventId);
         formData.append('order_number', orderNumber);
-        formData.append('buyer_name', buyerName);
+        formData.append('buyer_name', constructedBuyerName);
         formData.append('clabe', clabe);
         formData.append('bank_name', bankName);
         formData.append('email', email);
@@ -651,23 +688,72 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                         </div>
                                     )}
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Información del Beneficiario Desglosada */}
+                                    <div className="p-5 rounded-2xl bg-gray-50/50 dark:bg-neutral-900/30 border border-gray-200 dark:border-neutral-800 space-y-4">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                                Nombre Completo del Beneficiario <span className="text-red-500 ml-1">*</span>
-                                            </label>
-                                            <p className="text-[11px] text-gray-400 mb-2">
-                                                Como aparece en el documento de identificación oficial.
+                                            <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                                Información del Beneficiario
+                                            </h4>
+                                            <p className="text-[11px] text-gray-400 mt-0.5">
+                                                Ingrese su nombre y apellidos tal como aparecen en su identificación oficial (INE / Pasaporte).
                                             </p>
-                                            <input
-                                                type="text"
-                                                value={buyerName}
-                                                onChange={(e) => setBuyerName(e.target.value.toUpperCase())}
-                                                required
-                                                placeholder="Ingrese el nombre completo como aparece en su identificación"
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
-                                            />
                                         </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                    Primer Nombre <span className="text-red-500 ml-0.5">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={firstName}
+                                                    onChange={(e) => setFirstName(e.target.value.toUpperCase())}
+                                                    required
+                                                    placeholder="Ej: JUAN"
+                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                    Segundo Nombre <span className="text-gray-400 font-normal">(Opcional)</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={middleName}
+                                                    onChange={(e) => setMiddleName(e.target.value.toUpperCase())}
+                                                    placeholder="Ej: CARLOS"
+                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                    Apellido Paterno <span className="text-red-500 ml-0.5">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={lastNamePaternal}
+                                                    onChange={(e) => setLastNamePaternal(e.target.value.toUpperCase())}
+                                                    required
+                                                    placeholder="Ej: PEREZ"
+                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-955 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                    Apellido Materno <span className="text-red-500 ml-0.5">*</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={lastNameMaternal}
+                                                    onChange={(e) => setLastNameMaternal(e.target.value.toUpperCase())}
+                                                    required
+                                                    placeholder="Ej: GOMEZ"
+                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-955 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                                         <div>
                                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">

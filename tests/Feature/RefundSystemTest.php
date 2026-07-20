@@ -370,3 +370,74 @@ test('admin can export event orders report to csv', function () {
     expect($response->streamedContent())->toContain('ID ORDEN');
     expect($response->streamedContent())->toContain('12345');
 });
+
+test('requests are ordered by oldest first by default', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    // Create requests with different created_at using manual assignment
+    $req1 = new RefundRequest([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'ORD001',
+        'buyer_name' => 'BUYER ONE',
+        'email' => 'buyer1@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+    $req1->created_at = now()->subDays(2);
+    $req1->save();
+
+    $req2 = new RefundRequest([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'ORD002',
+        'buyer_name' => 'BUYER TWO',
+        'email' => 'buyer2@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+    $req2->created_at = now()->subDay();
+    $req2->save();
+
+    // Default sorting is asc (oldest first)
+    $response = $this->get(route('admin.refunds.requests'));
+    $response->assertStatus(200);
+
+    $inertiaData = $response->original->getData()['page']['props']['requests']['data'];
+
+    // First should be the oldest (req1)
+    expect($inertiaData[0]['order_number'])->toBe('ORD001');
+
+    // If direction desc is specified, first should be newest (req2)
+    $responseDesc = $this->get(route('admin.refunds.requests', ['sort_direction' => 'desc']));
+    $responseDesc->assertStatus(200);
+    $inertiaDataDesc = $responseDesc->original->getData()['page']['props']['requests']['data'];
+    expect($inertiaDataDesc[0]['order_number'])->toBe('ORD002');
+});
+
+test('admin can update request status and modify buyer_name', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $request = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'ORD999',
+        'buyer_name' => 'OLD NAME',
+        'email' => 'old@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $request->id]), [
+        'status' => 'processing',
+        'buyer_name' => 'NEW MODIFIED NAME',
+        'validated_documents' => [],
+    ]);
+
+    $response->assertStatus(302);
+    $request->refresh();
+    expect($request->buyer_name)->toBe('NEW MODIFIED NAME');
+    expect($request->status)->toBe('processing');
+});
