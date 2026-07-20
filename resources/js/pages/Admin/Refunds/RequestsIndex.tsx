@@ -106,6 +106,10 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [includeCharges, setIncludeCharges] = useState<boolean>(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewTitle, setPreviewTitle] = useState<string>('');
+    const [previewZoom, setPreviewZoom] = useState(1);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const [proofFile, setProofFile] = useState<File | null>(null);
 
     const [isMounted, setIsMounted] = useState(false);
@@ -181,6 +185,9 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         setIncludeCharges(false);
         setPreviewUrl(null);
         setPreviewTitle('');
+        setPreviewZoom(1);
+        setPanOffset({ x: 0, y: 0 });
+        setIsDragging(false);
         setProofFile(null);
     };
 
@@ -258,7 +265,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
             let parsed = null;
             try {
                 parsed = JSON.parse(selectedRequest.tickets_path);
-            } catch (e) {}
+            } catch (e) { }
             if (parsed && typeof parsed === 'object') {
                 Object.keys(parsed).forEach(subId => {
                     if (!validatedDocs['ticket_' + subId]) {
@@ -836,7 +843,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                 if (typeof parsed === 'object' && parsed !== null) {
                                                     parsedTickets = parsed;
                                                 }
-                                            } catch (e) {}
+                                            } catch (e) { }
 
                                             if (parsedTickets && typeof parsedTickets === 'object') {
                                                 return Object.keys(parsedTickets).map(subId => {
@@ -1053,7 +1060,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         let parsed = null;
                                                         try {
                                                             parsed = JSON.parse(selectedRequest.tickets_path);
-                                                        } catch (e) {}
+                                                        } catch (e) { }
                                                         if (parsed && typeof parsed === 'object') {
                                                             Object.keys(parsed).forEach(subId => {
                                                                 allApproved['ticket_' + subId] = true;
@@ -1124,12 +1131,46 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
 
                 {/* LIGHTBOX OVERLAY FOR DOCUMENT PREVIEW */}
                 {previewUrl && (
-                    <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center p-4 z-[60] backdrop-blur-md transition-all duration-305 animate-in fade-in zoom-in-95">
+                    <div className="fixed inset-0 bg-black/85 flex flex-col items-center justify-center p-4 z-[60] backdrop-blur-md transition-all duration-300 animate-in fade-in zoom-in-95">
                         <div className="w-full max-w-4xl bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl flex flex-col max-h-[85vh]">
-                            <div className="p-4 bg-neutral-950/80 border-b border-neutral-800 flex justify-between items-center text-white">
+                            <div className="p-4 bg-neutral-950 border-b border-neutral-800 flex justify-between items-center text-white flex-wrap gap-4">
                                 <span className="font-bold text-sm tracking-wide uppercase text-gray-300">{previewTitle}</span>
+
+                                {/* Zoom controls */}
+                                <div className="flex items-center gap-3 bg-red-700 px-3 py-1.5 rounded-xl border border-neutral-800">
+                                    <span className="text-[10px] text-gray-355 font-bold uppercase tracking-wider select-none">Zoom:</span>
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="3"
+                                        step="0.05"
+                                        value={previewZoom}
+                                        onChange={(e) => {
+                                            const z = parseFloat(e.target.value);
+                                            setPreviewZoom(z);
+                                            if (z === 1) {
+                                                setPanOffset({ x: 0, y: 0 });
+                                            }
+                                        }}
+                                        className="w-24 md:w-36 h-1 bg-white/40 rounded-lg appearance-none cursor-pointer"
+                                        style={{ accentColor: '#c90000' }}
+                                    />
+                                    <span className="text-[11px] font-mono text-gray-100 w-12 text-center select-none font-bold">
+                                        {Math.round(previewZoom * 100)}%
+                                    </span>
+                                    <div className="w-[1px] h-4 bg-neutral-800 mx-1"></div>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setPreviewZoom(1); setPanOffset({ x: 0, y: 0 }); }}
+                                        className="px-2 py-0.5 bg-red-700 hover:bg-neutral-750 text-gray-300 hover:text-white rounded-md text-[10px] font-bold transition focus:outline-none"
+                                        title="Restablecer a tamaño original"
+                                    >
+                                        100%
+                                    </button>
+                                </div>
+
                                 <button
-                                    onClick={() => setPreviewUrl(null)}
+                                    onClick={() => { setPreviewUrl(null); setPreviewZoom(1); setPanOffset({ x: 0, y: 0 }); setIsDragging(false); }}
                                     className="p-1.5 rounded-full hover:bg-neutral-800 text-gray-400 hover:text-white transition"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5">
@@ -1137,11 +1178,28 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     </svg>
                                 </button>
                             </div>
-                            <div className="flex-grow overflow-auto p-6 flex items-center justify-center bg-neutral-950">
+                            <div className="flex-grow overflow-auto p-8 flex items-center justify-center bg-neutral-950 select-none relative min-h-[40vh]">
                                 <img
                                     src={previewUrl}
                                     alt={previewTitle}
-                                    className="max-w-full max-h-[60vh] object-contain rounded-lg border border-neutral-800 shadow-lg"
+                                    className="max-w-full max-h-[55vh] object-contain rounded-lg border border-neutral-800 shadow-lg origin-center"
+                                    onMouseDown={(e) => {
+                                        if (previewZoom <= 1) return;
+                                        e.preventDefault();
+                                        setIsDragging(true);
+                                        setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+                                    }}
+                                    onMouseMove={(e) => {
+                                        if (!isDragging) return;
+                                        setPanOffset({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+                                    }}
+                                    onMouseUp={() => setIsDragging(false)}
+                                    onMouseLeave={() => setIsDragging(false)}
+                                    style={{
+                                        transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${previewZoom})`,
+                                        transition: isDragging ? 'none' : 'transform 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
+                                        cursor: previewZoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+                                    }}
                                     onError={(e) => {
                                         (e.target as HTMLElement).style.display = 'none';
                                         const parent = (e.target as HTMLElement).parentElement;
@@ -1162,7 +1220,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     }}
                                 />
                             </div>
-                            <div className="p-4 bg-neutral-950/80 border-t border-neutral-800 flex justify-end gap-3">
+                            <div className="p-4 bg-neutral-950 border-t border-neutral-800 flex justify-end gap-3">
                                 <a
                                     href={previewUrl}
                                     download
@@ -1171,7 +1229,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                     Descargar Archivo
                                 </a>
                                 <button
-                                    onClick={() => setPreviewUrl(null)}
+                                    onClick={() => { setPreviewUrl(null); setPreviewZoom(1); setPanOffset({ x: 0, y: 0 }); setIsDragging(false); }}
                                     className="px-5 py-2.5 bg-[#c90000] hover:bg-[#a10000] text-white rounded-xl font-bold text-xs transition"
                                 >
                                     Cerrar Vista Previa
