@@ -346,7 +346,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             </TableCell>
                                             <TableCell>
                                                 <div className="font-medium text-gray-900 dark:text-white">
-                                                    {req.buyer_name}
+                                                    {req.buyer_name?.toUpperCase()}
                                                 </div>
                                                 {req.email && (
                                                     <div className="text-xs text-gray-400">
@@ -448,7 +448,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3 text-xs mb-3">
                                                     <div>
                                                         <p className="text-gray-400 mb-0.5">Titular de Compra</p>
-                                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.buyer_name}</p>
+                                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.buyer_name?.toUpperCase()}</p>
                                                     </div>
                                                     <div>
                                                         <p className="text-gray-400 mb-0.5">Método de Pago</p>
@@ -518,7 +518,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-3 text-xs mb-4">
                                             <div>
                                                 <p className="text-gray-400 mb-0.5">Nombre del Titular</p>
-                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.buyer_name}</p>
+                                                <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.buyer_name?.toUpperCase()}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-400 mb-0.5">Banco</p>
