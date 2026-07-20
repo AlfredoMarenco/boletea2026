@@ -528,9 +528,20 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.buyer_name?.toUpperCase()}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-gray-400 mb-0.5">Método de Pago</p>
-                                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{selectedRequest.refund_purchase.payment_method}</p>
-                                                    </div>
+                                                         <p className="text-gray-400 mb-0.5">Método de Pago</p>
+                                                         <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                                             {(() => {
+                                                                 const method = String(selectedRequest.refund_purchase.payment_method || '').toLowerCase();
+                                                                 if (method === 'creditcard') {
+                                                                     return 'Tarjeta de Crédito/Débito';
+                                                                 }
+                                                                 if (method === 'box office payment') {
+                                                                     return selectedRequest.card_last_four ? 'Tarjeta de Crédito/Débito' : 'Efectivo';
+                                                                 }
+                                                                 return selectedRequest.refund_purchase.payment_method;
+                                                             })()}
+                                                         </p>
+                                                     </div>
                                                     <div>
                                                         <p className="text-gray-400 mb-0.5">Monto Total Orden (CSV)</p>
                                                         <p className="font-bold text-base text-gray-900 dark:text-white">${parseFloat(selectedRequest.refund_purchase.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} MXN</p>
