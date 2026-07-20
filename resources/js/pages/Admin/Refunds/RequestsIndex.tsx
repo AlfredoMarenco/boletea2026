@@ -103,8 +103,28 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [previewTitle, setPreviewTitle] = useState<string>('');
     const [proofFile, setProofFile] = useState<File | null>(null);
 
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // Apply filtering
     useEffect(() => {
+        if (!isMounted) {
+            return;
+        }
+
+        // Check if the state actually differs from the filters in props to prevent resetting pagination on mount
+        const hasChanged =
+            search !== (filters?.search || '') ||
+            status !== (filters?.status || '') ||
+            refundEventId !== (filters?.refund_event_id || '');
+
+        if (!hasChanged) {
+            return;
+        }
+
         const delayDebounceFn = setTimeout(() => {
             router.get(
                 route('admin.refunds.requests'),
@@ -112,13 +132,14 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                     search: search || undefined,
                     status: status || undefined,
                     refund_event_id: refundEventId || undefined,
+                    page: undefined, // Reset to page 1 when filters change
                 },
                 { preserveState: true, preserveScroll: true, replace: true }
             );
         }, 400);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [search, status, refundEventId]);
+    }, [search, status, refundEventId, isMounted]);
 
     const handleOpenReview = (req: RefundRequest) => {
         setSelectedRequest(req);
