@@ -62,6 +62,11 @@ class RefundStatusMail extends Mailable
         $invalidDocs = [];
         $validated = $this->request->validated_documents ?? [];
 
+        // CLABE check
+        if (! empty($this->request->clabe) && empty($validated['clabe'])) {
+            $invalidDocs[] = 'Cuenta CLABE Interbancaria';
+        }
+
         // INE check
         if (! empty($this->request->ine_path) && empty($validated['ine'])) {
             $invalidDocs[] = 'Identificación Oficial (INE / Pasaporte)';
@@ -98,7 +103,7 @@ class RefundStatusMail extends Mailable
             'processing' => 'Su solicitud ha sido revisada y ahora se encuentra **en trámite**. Estamos procesando la verificación bancaria correspondiente.',
             'approved' => '¡Buenas noticias! Su reembolso ha sido **Aprobado**. Se ha procedido a realizar la transferencia interbancaria a la cuenta CLABE registrada a nombre de: **'.$this->request->buyer_name.'**.',
             'rejected' => ! empty($invalidDocs)
-                ? 'Le informamos que su solicitud ha sido **Rechazada** debido a inconsistencias o archivos ilegibles en sus documentos adjuntos. Es necesario que corrija los archivos listados abajo para poder continuar.'
+                ? 'Le informamos que su solicitud requiere corrección debido a inconsistencias o archivos ilegibles en su información o documentos adjuntos. Es necesario que corrija los puntos listados abajo para poder continuar.'
                 : 'Lamentamos informarle que su solicitud ha sido **Rechazada** tras la revisión de nuestros administradores.',
         };
 
@@ -120,17 +125,22 @@ class RefundStatusMail extends Mailable
                 <div style=\"background-color: #f9fafb; border: 1px solid #f3f4f6; padding: 20px; border-radius: 12px; margin-bottom: 28px;\">
                     <table style=\"width: 100%; border-collapse: collapse;\">
                         <tr>
-                            <td style=\"font-size: 13px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-bottom: 6px;\">Evento</td>
-                            <td style=\"font-size: 13px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-bottom: 6px; text-align: right;\">Orden de Compra</td>
+                            <td style=\"font-size: 12px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-bottom: 4px;\">Evento</td>
+                            <td style=\"font-size: 12px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-bottom: 4px; text-align: right;\">Orden de Compra</td>
                         </tr>
                         <tr>
                             <td style=\"font-size: 15px; font-weight: bold; color: #111827;\">{$eventName}</td>
                             <td style=\"font-size: 15px; font-weight: bold; color: #111827; text-align: right;\">#{$this->request->order_number}</td>
                         </tr>
                         <tr>
-                            <td colspan=\"2\" style=\"padding-top: 16px;\">
-                                <div style=\"display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {$statusColor}20; color: {$statusColor}; font-size: 13px; font-weight: bold;\">
-                                    ● Estatus: {$statusLabel}
+                            <td style=\"font-size: 12px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-top: 14px; padding-bottom: 4px;\">Referencia de Seguimiento</td>
+                            <td style=\"font-size: 12px; color: #9ca3af; text-transform: uppercase; font-weight: bold; padding-top: 14px; padding-bottom: 4px; text-align: right;\">Estatus</td>
+                        </tr>
+                        <tr>
+                            <td style=\"font-size: 14px; font-weight: bold; color: #374151; font-family: monospace;\">{$this->request->tracking_id}</td>
+                            <td style=\"text-align: right;\">
+                                <div style=\"display: inline-block; padding: 4px 12px; border-radius: 50px; background-color: {$statusColor}20; color: {$statusColor}; font-size: 12px; font-weight: bold;\">
+                                    ● {$statusLabel}
                                 </div>
                             </td>
                         </tr>
@@ -153,7 +163,7 @@ class RefundStatusMail extends Mailable
                 $html .= '
                     <!-- Correction Docs -->
                     <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 18px; border-radius: 12px; margin-bottom: 28px;">
-                        <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #b91c1c;">Documentos requeridos para corregir:</p>
+                        <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #b91c1c;">Información / Documentos requeridos para corregir:</p>
                         <ul style="margin: 0 0 12px 0; padding-left: 20px; font-size: 14px; color: #991b1b;">
                 ';
                 foreach ($invalidDocs as $docName) {
@@ -172,7 +182,7 @@ class RefundStatusMail extends Mailable
                     </div>
                     <div style=\"text-align: center; margin-top: 32px; margin-bottom: 32px;\">
                         <a href=\"{$updateUrl}\" style=\"background-color: #c90000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);\">
-                            Corregir Documentos Aquí
+                            Corregir Información / Documentos Aquí
                         </a>
                         <p style=\"font-size: 11px; color: #9ca3af; margin-top: 8px; margin-bottom: 0;\">Este enlace es seguro y expirará en 48 horas.</p>
                     </div>
@@ -197,6 +207,9 @@ class RefundStatusMail extends Mailable
 
         $html .= "
                 <div style=\"text-align: center; margin-top: 32px; margin-bottom: 16px;\">
+                    <p style=\"font-size: 12px; color: #6b7280; margin-bottom: 10px;\">
+                        Si accede directamente a nuestro portal, utilice su código de referencia: <strong style=\"color: #111827; font-family: monospace; font-size: 13px;\">{$this->request->tracking_id}</strong>
+                    </p>
                     <a href=\"{$trackingUrl}\" style=\"background-color: #111827; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);\">
                         Consultar Estatus en Línea
                     </a>

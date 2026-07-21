@@ -259,6 +259,9 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const getInvalidDocsList = () => {
         if (!selectedRequest) return [];
         const invalid: string[] = [];
+        if (selectedRequest.clabe && !validatedDocs['clabe']) {
+            invalid.push('Cuenta CLABE Interbancaria');
+        }
         if (selectedRequest.ine_path && !validatedDocs['ine']) {
             invalid.push('INE / Pasaporte');
         }
@@ -312,9 +315,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Solicitudes de Reembolso', href: route('admin.refunds.requests') }]}>
-            <Head title="Solicitudes de Reembolso" />
-
             <div className="p-6">
+                <Head title="Solicitudes de Reembolso" />
                 {/* Header */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
                     <div>
@@ -675,7 +677,19 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             </div>
                                             <div className="col-span-2 sm:col-span-1 md:col-span-2">
                                                 <p className="text-gray-400 mb-0.5">CLABE Interbancaria</p>
-                                                <p className="font-bold text-base font-mono tracking-wide text-[#c90000]">{selectedRequest.clabe}</p>
+                                                <div className="flex items-center gap-2.5 flex-wrap">
+                                                    <p className="font-bold text-base font-mono tracking-wide text-[#c90000]">{selectedRequest.clabe}</p>
+                                                    <label className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1 rounded-lg text-xs font-semibold border transition ${validatedDocs['clabe'] ? 'bg-green-50 border-green-300 text-green-800 dark:bg-green-950/40 dark:border-green-800 dark:text-green-300' : 'bg-white dark:bg-neutral-900 border-gray-300 dark:border-neutral-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!validatedDocs['clabe']}
+                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, clabe: e.target.checked })}
+                                                            disabled={selectedRequest.status === 'approved'}
+                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50"
+                                                        />
+                                                        <span>¿CLABE Válida?</span>
+                                                    </label>
+                                                </div>
                                             </div>
                                             <div>
                                                 <p className="text-gray-400 mb-0.5">Correo Electrónico</p>
@@ -790,87 +804,120 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             );
                                         })()}
                                     </div>
-                                </div>
 
-                                {/* Validated Ticket IDs (Taquilla only) */}
-                                {selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0 && (
-                                    <div className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 p-4">
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">IDs de Boletos Validados ({selectedRequest.validated_tickets.length})</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {selectedRequest.validated_tickets.map((t, idx) => (
-                                                <span key={idx} className="px-2 py-0.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-xs font-mono text-gray-700 dark:text-gray-300">{t}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                                <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Documentos Adjuntos por el Cliente</p>
-                                        <span className="text-[11px] text-gray-400">Verifique la validez de cada archivo</span>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                        {/* INE / Pasaporte Card */}
-                                        <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['ine'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' }));
-                                                    setPreviewTitle('INE / Pasaporte');
-                                                }}
-                                                className="w-full flex flex-col items-center group mb-2"
-                                            >
-                                                <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                    </svg>
+                                        {/* Validated Ticket IDs (Taquilla only) */}
+                                        {selectedRequest.validated_tickets && selectedRequest.validated_tickets.length > 0 && (
+                                            <div className="rounded-xl border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950 p-4">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">IDs de Boletos Validados ({selectedRequest.validated_tickets.length})</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {selectedRequest.validated_tickets.map((t, idx) => (
+                                                        <span key={idx} className="px-2 py-0.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded text-xs font-mono text-gray-700 dark:text-gray-300">{t}</span>
+                                                    ))}
                                                 </div>
-                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">INE / Pasaporte</span>
-                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Documento ↗</span>
-                                            </button>
-                                            <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={!!validatedDocs['ine']}
-                                                    onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
-                                                    disabled={selectedRequest.status === 'approved'}
-                                                    className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                />
-                                                ¿INE Válido?
-                                            </label>
-                                        </div>
+                                            </div>
+                                        )}
 
-                                        {/* Tickets Cards */}
-                                        {(() => {
-                                            if (!selectedRequest.tickets_path) {
-                                                return (
-                                                    <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-950/40 opacity-50 flex flex-col items-center justify-center text-center">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7 text-gray-400 mb-1">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <span className="text-xs text-gray-400 font-medium">Sin Boletos Físicos</span>
-                                                    </div>
-                                                );
-                                            }
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Documentos Adjuntos por el Cliente</p>
+                                                <span className="text-[11px] text-gray-400">Verifique la validez de cada archivo</span>
+                                            </div>
 
-                                            let parsedTickets = null;
-                                            try {
-                                                const parsed = JSON.parse(selectedRequest.tickets_path);
-                                                if (typeof parsed === 'object' && parsed !== null) {
-                                                    parsedTickets = parsed;
-                                                }
-                                            } catch (e) { }
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                                {/* INE / Pasaporte Card */}
+                                                <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['ine'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'ine' }));
+                                                            setPreviewTitle('INE / Pasaporte');
+                                                        }}
+                                                        className="w-full flex flex-col items-center group mb-2"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                                            </svg>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">INE / Pasaporte</span>
+                                                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Documento ↗</span>
+                                                    </button>
+                                                    <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!validatedDocs['ine']}
+                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
+                                                            disabled={selectedRequest.status === 'approved'}
+                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        />
+                                                        ¿INE Válido?
+                                                    </label>
+                                                </div>
 
-                                            if (parsedTickets && typeof parsedTickets === 'object') {
-                                                return Object.keys(parsedTickets).map(subId => {
-                                                    const key = `ticket_${subId}`;
+                                                {/* Tickets Cards */}
+                                                {(() => {
+                                                    if (!selectedRequest.tickets_path) {
+                                                        return (
+                                                            <div className="p-4 rounded-xl border border-dashed border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-950/40 opacity-50 flex flex-col items-center justify-center text-center">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-7 h-7 text-gray-400 mb-1">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                </svg>
+                                                                <span className="text-xs text-gray-400 font-medium">Sin Boletos Físicos</span>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    let parsedTickets = null;
+                                                    try {
+                                                        const parsed = JSON.parse(selectedRequest.tickets_path);
+                                                        if (typeof parsed === 'object' && parsed !== null) {
+                                                            parsedTickets = parsed;
+                                                        }
+                                                    } catch (e) { }
+
+                                                    if (parsedTickets && typeof parsedTickets === 'object') {
+                                                        return Object.keys(parsedTickets).map(subId => {
+                                                            const key = `ticket_${subId}`;
+                                                            return (
+                                                                <div key={subId} className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs[key] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId }));
+                                                                            setPreviewTitle(`Boleto ${subId}`);
+                                                                        }}
+                                                                        className="w-full flex flex-col items-center group mb-2"
+                                                                    >
+                                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                                                                            </svg>
+                                                                        </div>
+                                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boleto {subId}</span>
+                                                                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boleto ↗</span>
+                                                                    </button>
+                                                                    <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={!!validatedDocs[key]}
+                                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
+                                                                            disabled={selectedRequest.status === 'approved'}
+                                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                        />
+                                                                        ¿Boleto Válido?
+                                                                    </label>
+                                                                </div>
+                                                            );
+                                                        });
+                                                    }
+
                                                     return (
-                                                        <div key={subId} className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs[key] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
+                                                        <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['tickets'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets', subId: subId }));
-                                                                    setPreviewTitle(`Boleto ${subId}`);
+                                                                    setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' }));
+                                                                    setPreviewTitle('Boletos Físicos');
                                                                 }}
                                                                 className="w-full flex flex-col items-center group mb-2"
                                                             >
@@ -879,55 +926,22 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
                                                                     </svg>
                                                                 </div>
-                                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boleto {subId}</span>
-                                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boleto ↗</span>
+                                                                <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boletos Físicos</span>
+                                                                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boletos ↗</span>
                                                             </button>
                                                             <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
                                                                 <input
                                                                     type="checkbox"
-                                                                    checked={!!validatedDocs[key]}
-                                                                    onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
+                                                                    checked={!!validatedDocs['tickets']}
+                                                                    onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
                                                                     disabled={selectedRequest.status === 'approved'}
                                                                     className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 />
-                                                                ¿Boleto Válido?
+                                                                ¿Boletos Válidos?
                                                             </label>
                                                         </div>
                                                     );
-                                                });
-                                            }
-
-                                            return (
-                                                <div className={`p-4 rounded-xl border transition flex flex-col justify-between items-center text-center ${validatedDocs['tickets'] ? 'border-green-500 bg-green-50/20 dark:border-green-600' : 'border-gray-200 dark:border-neutral-800 bg-gray-50/80 dark:bg-neutral-950 hover:bg-gray-100'}`}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setPreviewUrl(route('admin.refunds.requests.file', { refundRequest: selectedRequest.id, type: 'tickets' }));
-                                                            setPreviewTitle('Boletos Físicos');
-                                                        }}
-                                                        className="w-full flex flex-col items-center group mb-2"
-                                                    >
-                                                        <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-neutral-800 flex items-center justify-center mb-2 group-hover:bg-[#c90000]/10 transition">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6 text-gray-500 group-hover:text-[#c90000] transition">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-                                                            </svg>
-                                                        </div>
-                                                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Boletos Físicos</span>
-                                                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">Ver Boletos ↗</span>
-                                                    </button>
-                                                    <label className="flex items-center gap-2 cursor-pointer pt-2 border-t border-gray-200/60 dark:border-neutral-800 w-full justify-center text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={!!validatedDocs['tickets']}
-                                                            onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
-                                                            disabled={selectedRequest.status === 'approved'}
-                                                            className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        />
-                                                        ¿Boletos Válidos?
-                                                    </label>
-                                                </div>
-                                            );
-                                        })()}
+                                                })()}
                                     </div>
                                 </div>
 
@@ -1093,6 +1107,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         }
                                                         if (confirm("¿Estás seguro de rechazar definitivamente esta solicitud? El cliente no podrá corregir los documentos.")) {
                                                             const allApproved: Record<string, boolean> = {};
+                                                            if (selectedRequest?.clabe) allApproved.clabe = true;
                                                             if (selectedRequest?.ine_path) allApproved.ine = true;
                                                             if (selectedRequest?.proof_of_payment_path) allApproved.proof = true;
                                                             if (selectedRequest?.tickets_path) {
@@ -1167,11 +1182,11 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         )}
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
                 {/* LIGHTBOX OVERLAY FOR DOCUMENT PREVIEW */}
                 {previewUrl && (

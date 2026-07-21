@@ -108,6 +108,14 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const [requiresCard, setRequiresCard] = useState(false);
     const [requiresTickets, setRequiresTickets] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [autoRefundNotice, setAutoRefundNotice] = useState<{
+        orderNumber: string;
+        message: string;
+    } | null>(null);
+    const [existingRequestNotice, setExistingRequestNotice] = useState<{
+        orderNumber: string;
+        message: string;
+    } | null>(null);
 
     // Cash Ticket verification states
     const [barcodeInput, setBarcodeInput] = useState('');
@@ -172,6 +180,22 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             const data = await response.json();
 
             if (!response.ok) {
+                if (data.status === 'web_auto_refund') {
+                    setAutoRefundNotice({
+                        orderNumber: orderNumber,
+                        message: data.message,
+                    });
+                    setLoading(false);
+                    return;
+                }
+                if (data.status === 'already_requested') {
+                    setExistingRequestNotice({
+                        orderNumber: orderNumber,
+                        message: data.message,
+                    });
+                    setLoading(false);
+                    return;
+                }
                 setErrorMessage(data.message || 'Error al validar la orden.');
                 setLoading(false);
                 return;
@@ -231,6 +255,22 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             const data = await response.json();
 
             if (!response.ok) {
+                if (data.status === 'web_auto_refund') {
+                    setAutoRefundNotice({
+                        orderNumber: orderNumber,
+                        message: data.message,
+                    });
+                    setLoading(false);
+                    return;
+                }
+                if (data.status === 'already_requested') {
+                    setExistingRequestNotice({
+                        orderNumber: orderNumber,
+                        message: data.message,
+                    });
+                    setLoading(false);
+                    return;
+                }
                 setErrorMessage(data.message || 'La información ingresada no coincide.');
                 setLoading(false);
                 return;
@@ -493,7 +533,147 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                             {/* STEP 1: VERIFY ORDER & EMAIL / CARD */}
                             {step === 1 && (
                                 <div>
-                                    {!events || events.length === 0 ? (
+                                    {autoRefundNotice ? (
+                                        <div className="py-8 px-6 md:px-8 text-center rounded-3xl bg-gradient-to-b from-emerald-50/90 to-emerald-100/40 dark:from-emerald-950/40 dark:to-emerald-900/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-6 shadow-xl shadow-emerald-500/5 transition animate-in fade-in zoom-in-95">
+                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60 flex items-center justify-center text-emerald-600 dark:text-emerald-300 shadow-md shadow-emerald-600/10">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" className="w-10 h-10">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" />
+                                                </svg>
+                                            </div>
+
+                                            <div className="max-w-lg mx-auto space-y-3">
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs">
+                                                    <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                                    Trámite Automático Activo
+                                                </div>
+
+                                                <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
+                                                    Su compra web ya está en trámite automático de reembolso
+                                                </h3>
+
+                                                <div className="inline-block px-3.5 py-1 bg-white dark:bg-neutral-900 border border-emerald-200 dark:border-emerald-800 rounded-xl font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-xs">
+                                                    Orden #{autoRefundNotice.orderNumber}
+                                                </div>
+
+                                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium pt-1">
+                                                    No es necesario realizar ningún trámite adicional ni subir documentos (INE, boletos o estado de cuenta). El reembolso se acreditará automáticamente en la misma cuenta o tarjeta con la que realizó su compra.
+                                                </p>
+
+                                                <div className="p-4 rounded-2xl bg-white/90 dark:bg-neutral-900/90 border border-emerald-200/80 dark:border-emerald-800/60 text-left space-y-2.5 shadow-xs">
+                                                    <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-900 dark:text-emerald-300">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-emerald-600 dark:text-emerald-400">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span>Tiempo Estimado de Acreditación</span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-6">
+                                                        De <strong className="font-bold text-gray-900 dark:text-white">5 a 10 días hábiles</strong>, dependiendo del tiempo de procesamiento de su banco.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                                <a
+                                                    href={`https://wa.me/528711024187?text=${encodeURIComponent(`Hola, tengo una duda sobre mi reembolso automático de la orden #${autoRefundNotice.orderNumber}`)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    </svg>
+                                                    Contactar Soporte en WhatsApp
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAutoRefundNotice(null);
+                                                        setOrderNumber('');
+                                                        setErrorMessage('');
+                                                        setRequiresEmail(false);
+                                                        setRequiresCard(false);
+                                                    }}
+                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300 font-bold text-xs transition shadow-xs"
+                                                >
+                                                    Verificar Otra Orden
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : existingRequestNotice ? (
+                                        <div className="py-8 px-6 md:px-8 text-center rounded-3xl bg-gradient-to-b from-blue-50/90 to-indigo-100/40 dark:from-blue-950/40 dark:to-indigo-900/20 border border-blue-200/80 dark:border-blue-800/50 space-y-6 shadow-xl shadow-blue-500/5 transition animate-in fade-in zoom-in-95">
+                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-blue-100 dark:bg-blue-900/60 border border-blue-300/80 dark:border-blue-700/60 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-md shadow-blue-600/10">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" className="w-10 h-10">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                                </svg>
+                                            </div>
+
+                                            <div className="max-w-lg mx-auto space-y-3">
+                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs">
+                                                    Solicitud Registrada en Proceso
+                                                </div>
+
+                                                <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
+                                                    Esta orden ya cuenta con una solicitud de reembolso
+                                                </h3>
+
+                                                <div className="inline-block px-3.5 py-1 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-800 rounded-xl font-mono text-xs font-bold text-blue-800 dark:text-blue-300 shadow-xs">
+                                                    Orden #{existingRequestNotice.orderNumber}
+                                                </div>
+
+                                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium pt-1">
+                                                    {existingRequestNotice.message}
+                                                </p>
+
+                                                <div className="p-4 rounded-2xl bg-white/90 dark:bg-neutral-900/90 border border-blue-200/80 dark:border-blue-800/60 text-left space-y-2.5 shadow-xs">
+                                                    <div className="flex items-center gap-2.5 text-xs font-bold text-blue-900 dark:text-blue-300">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-blue-600 dark:text-blue-400">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                                        </svg>
+                                                        <span>¿Deseas consultar el estado de tu trámite?</span>
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-6">
+                                                        Puedes dar seguimiento con el código de trámite generado al momento de tu registro o enviado a tu correo electrónico.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                                <Link
+                                                    href={route('refund.track_form')}
+                                                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                                    </svg>
+                                                    Consultar Estatus de Mi Trámite
+                                                </Link>
+                                                <a
+                                                    href={`https://wa.me/528711024187?text=${encodeURIComponent(`Hola, tengo una duda sobre el estatus de mi solicitud existente para la orden #${existingRequestNotice.orderNumber}`)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                >
+                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    </svg>
+                                                    WhatsApp Soporte
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setExistingRequestNotice(null);
+                                                        setOrderNumber('');
+                                                        setErrorMessage('');
+                                                        setRequiresEmail(false);
+                                                        setRequiresCard(false);
+                                                    }}
+                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300 font-bold text-xs transition shadow-xs"
+                                                >
+                                                    Verificar Otra Orden
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : !events || events.length === 0 ? (
                                         <div className="py-10 px-6 text-center rounded-3xl bg-gray-50/80 dark:bg-neutral-900/50 border border-gray-200/80 dark:border-neutral-800 space-y-6">
                                             <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-xs">
                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">

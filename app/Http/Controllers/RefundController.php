@@ -90,10 +90,11 @@ class RefundController extends Controller
 
         if ($allCanceled) {
             $msg = (! $isTaquilla && $isCard)
-                ? 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.'
-                : 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.';
+                ? 'Su compra web ya está en trámite automático de reembolso. No es necesario realizar ningún trámite adicional ni subir documentos, el reembolso se verá reflejado automáticamente en la misma cuenta con la que realizó la compra en un lapso de entre 5 y 10 días hábiles, dependiendo de su banco. Para cualquier aclaración, contáctenos vía WhatsApp al 871 102 4187.'
+                : 'Su compra web ya está en trámite automático de reembolso. No es necesario realizar ningún trámite adicional ni subir documentos, el reembolso se verá reflejado automáticamente en la misma cuenta con la que realizó la compra en un lapso de entre 5 y 10 días hábiles, dependiendo de su banco. Para cualquier aclaración, contáctenos vía WhatsApp al 871 102 4187.';
 
             return response()->json([
+                'status' => 'web_auto_refund',
                 'message' => $msg,
             ], 422);
         }
@@ -103,7 +104,7 @@ class RefundController extends Controller
                 // Web Card orders represent the whole purchase, so one active request blocks the entire order.
                 return response()->json([
                     'status' => 'already_requested',
-                    'message' => 'Su compra web ya está en trámite de reembolso o no es elegible. No es necesario realizar alguna acción, el reembolso se verá reflejado en la misma cuenta de compra en un lapso de entre 5 y 10 días, dependiendo de su banco. Para aclaraciones, WhatsApp al 871 102 4187.',
+                    'message' => 'Esta orden ya cuenta con una solicitud de reembolso registrada y en proceso. Puede consultar su estatus en el apartado de seguimiento con su código de trámite. Para cualquier aclaración, contáctenos vía WhatsApp al 871 102 4187.',
                 ], 422);
             } else {
                 // For Taquilla orders (Cash or Card), check if all tickets in the purchase are already requested
@@ -126,7 +127,7 @@ class RefundController extends Controller
                 if (count($allPurchaseTickets) > 0 && count(array_intersect($allPurchaseTickets, $requestedTickets)) >= count($allPurchaseTickets)) {
                     return response()->json([
                         'status' => 'already_requested',
-                        'message' => 'Su solicitud de reembolso ya está en trámite o no es elegible. No es necesario realizar alguna acción. Para aclaraciones, WhatsApp al 871 102 4187.',
+                        'message' => 'Todos los boletos de esta orden ya cuentan con una solicitud de reembolso registrada en proceso. Puede consultar su estatus en el apartado de seguimiento. Para cualquier aclaración, contáctenos vía WhatsApp al 871 102 4187.',
                     ], 422);
                 }
             }
@@ -559,6 +560,9 @@ class RefundController extends Controller
     /**
      * Show the public form to update invalid documents.
      */
+    /**
+     * Show the public form to update invalid documents.
+     */
     public function showUpdateDocumentsForm(Request $request, RefundRequest $refundRequest): InertiaResponse
     {
         if ($refundRequest->status !== 'rejected') {
@@ -566,16 +570,21 @@ class RefundController extends Controller
         }
 
         $invalidDocs = $this->getInvalidDocuments($refundRequest);
+        $banks = Bank::orderBy('name')->get();
 
         return Inertia::render('Public/Refund/UpdateDocuments', [
             'refundRequest' => [
                 'id' => $refundRequest->id,
                 'order_number' => $refundRequest->order_number,
                 'buyer_name' => $refundRequest->buyer_name,
+                'clabe' => $refundRequest->clabe,
+                'bank_name' => $refundRequest->bank_name,
                 'admin_notes' => $refundRequest->admin_notes,
                 'tracking_id' => $refundRequest->tracking_id,
                 'invalid_documents' => $invalidDocs,
+                'requires_card_confirmation' => ! empty($refundRequest->card_last_four),
             ],
+            'banks' => $banks,
         ]);
     }
 
@@ -590,6 +599,15 @@ class RefundController extends Controller
 
         $invalidDocs = $this->getInvalidDocuments($refundRequest);
         $rules = [];
+
+        if (! empty($refundRequest->card_last_four)) {
+            $rules['card_last_four'] = 'required|string|size:4';
+        }
+
+        if (in_array('clabe', $invalidDocs)) {
+            $rules['clabe'] = 'required|string|size:18';
+            $rules['bank_name'] = 'required|string|max:255';
+        }
 
         if (in_array('ine', $invalidDocs)) {
             $rules['ine'] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
@@ -613,8 +631,43 @@ class RefundController extends Controller
 
         $validated = $request->validate($rules);
 
+        // Security check: Verify card last 4 digits if required
+        if (! empty($refundRequest->card_last_four)) {
+            $inputCard = str_pad(trim($validated['card_last_four'] ?? ''), 4, '0', STR_PAD_LEFT);
+            if ($inputCard !== $refundRequest->card_last_four) {
+                return back()->withErrors([
+                    'card_last_four' => 'Los últimos 4 dígitos de la tarjeta no coinciden con los registrados para esta solicitud de reembolso.',
+                ])->withInput();
+            }
+        }
+
         $updates = [];
         $validatedDocs = $refundRequest->validated_documents ?? [];
+
+        if (in_array('clabe', $invalidDocs)) {
+            if ($validated['clabe'] === $refundRequest->clabe) {
+                return back()->withErrors([
+                    'clabe' => 'La nueva CLABE Interbancaria debe ser diferente a la CLABE rechazada.',
+                ])->withInput();
+            }
+
+            $clabePrefix = substr($validated['clabe'], 0, 3);
+            $bank = Bank::where('code', $clabePrefix)->first();
+            if (! $bank) {
+                return back()->withErrors([
+                    'clabe' => 'El código de banco de la CLABE ingresada no es válido o no está registrado.',
+                ])->withInput();
+            }
+            if (! $bank->enabled) {
+                return back()->withErrors([
+                    'clabe' => "El banco {$bank->name} no está habilitado para recibir reembolsos.",
+                ])->withInput();
+            }
+
+            $updates['clabe'] = $validated['clabe'];
+            $updates['bank_name'] = $validated['bank_name'];
+            $validatedDocs['clabe'] = false;
+        }
 
         if (in_array('ine', $invalidDocs) && $request->hasFile('ine')) {
             $updates['ine_path'] = $request->file('ine')->store('refunds/ine');
@@ -665,6 +718,11 @@ class RefundController extends Controller
     {
         $invalid = [];
         $validated = $refundRequest->validated_documents ?? [];
+
+        // CLABE check
+        if (! empty($refundRequest->clabe) && empty($validated['clabe'])) {
+            $invalid[] = 'clabe';
+        }
 
         // INE check
         if (! empty($refundRequest->ine_path) && empty($validated['ine'])) {

@@ -353,6 +353,9 @@ class AdminRefundController extends Controller
 
         if (in_array($newStatus, ['processing', 'approved'])) {
             $invalidDocs = [];
+            if (! empty($refundRequest->clabe) && empty($validatedDocs['clabe'])) {
+                $invalidDocs[] = 'Cuenta CLABE Interbancaria';
+            }
             if (! empty($refundRequest->ine_path) && empty($validatedDocs['ine'])) {
                 $invalidDocs[] = 'INE / Pasaporte';
             }
@@ -381,7 +384,7 @@ class AdminRefundController extends Controller
 
             if (! empty($invalidDocs)) {
                 return back()->withErrors([
-                    'status' => 'No es posible pasar a este estado hasta que todos los documentos sean marcados como válidos. Pendientes: '.implode(', ', $invalidDocs),
+                    'status' => 'No es posible pasar a este estado hasta que todos los datos y documentos sean marcados como válidos. Pendientes: '.implode(', ', $invalidDocs),
                 ]);
             }
         }

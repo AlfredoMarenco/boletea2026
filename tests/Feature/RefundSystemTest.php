@@ -238,7 +238,7 @@ test('admin can change request status and download files', function () {
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
         'status' => 'processing',
         'admin_notes' => 'Checking with bank.',
-        'validated_documents' => ['ine' => true],
+        'validated_documents' => ['clabe' => true, 'ine' => true],
     ]);
 
     $response->assertStatus(302);
@@ -249,7 +249,7 @@ test('admin can change request status and download files', function () {
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
         'status' => 'approved',
         'admin_notes' => 'CLABE and INE verified.',
-        'validated_documents' => ['ine' => true, 'proof' => true],
+        'validated_documents' => ['clabe' => true, 'ine' => true, 'proof' => true],
         'proof_of_payment' => $proof,
     ]);
 
@@ -298,7 +298,7 @@ test('admin can toggle include_charges and it reflects in csv export as CC or SC
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $refundRequest->id]), [
         'status' => 'processing',
         'include_charges' => true,
-        'validated_documents' => ['ine' => true],
+        'validated_documents' => ['clabe' => true, 'ine' => true],
     ]);
 
     $response->assertStatus(302);
@@ -433,11 +433,153 @@ test('admin can update request status and modify buyer_name', function () {
     $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $request->id]), [
         'status' => 'processing',
         'buyer_name' => 'NEW MODIFIED NAME',
-        'validated_documents' => [],
+        'validated_documents' => ['clabe' => true],
     ]);
 
     $response->assertStatus(302);
     $request->refresh();
     expect($request->buyer_name)->toBe('NEW MODIFIED NAME');
     expect($request->status)->toBe('processing');
+});
+
+test('admin cannot transition to processing or approved without validating clabe', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $request = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'ORD888',
+        'buyer_name' => 'TEST USER',
+        'email' => 'test@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    // Attempting processing without clabe in validated_documents fails
+    $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $request->id]), [
+        'status' => 'processing',
+        'validated_documents' => [],
+    ]);
+
+    $response->assertSessionHasErrors(['status']);
+    expect($request->fresh()->status)->toBe('pending');
+});
+
+test('customer must confirm card last four digits and can update rejected clabe', function () {
+    $ine = UploadedFile::fake()->image('ine.jpg');
+
+    $request = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '67890',
+        'tracking_id' => 'REF-SEC12345',
+        'buyer_name' => 'Card Buyer',
+        'email' => 'cardbuyer@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'card_last_four' => '4321',
+        'ine_path' => $ine->store('refunds/ine'),
+        'status' => 'rejected',
+        'validated_documents' => ['ine' => true], // clabe is false / unvalidated
+        'admin_notes' => 'CLABE incorrecta',
+    ]);
+
+    $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'refund.update_documents',
+        now()->addHours(48),
+        ['refundRequest' => $request->id]
+    );
+
+    // Case 1: Wrong card digits fails validation
+    $responseWrongCard = $this->post($signedUrl, [
+        'card_last_four' => '9999',
+        'clabe' => '012999999999999999',
+        'bank_name' => 'BBVA',
+    ]);
+    $responseWrongCard->assertSessionHasErrors(['card_last_four']);
+
+    // Case 2: Submitting same rejected CLABE fails validation
+    $responseSameClabe = $this->post($signedUrl, [
+        'card_last_four' => '4321',
+        'clabe' => '012345678901234567', // Same as $request->clabe
+        'bank_name' => 'BBVA',
+    ]);
+    $responseSameClabe->assertSessionHasErrors(['clabe']);
+
+    // Case 3: Correct card digits and new CLABE updates successfully
+    $responseSuccess = $this->post($signedUrl, [
+        'card_last_four' => '4321',
+        'clabe' => '012999999999999999',
+        'bank_name' => 'BBVA',
+    ]);
+
+    $responseSuccess->assertRedirect(route('refund.success'));
+    $request->refresh();
+    expect($request->clabe)->toBe('012999999999999999');
+    expect($request->status)->toBe('pending');
+    expect($request->admin_notes)->toBeNull();
+});
+
+test('canceled web purchases in CSV return web_auto_refund status and automatic refund message', function () {
+    $purchase = \App\Models\RefundPurchase::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'AUTO999',
+        'buyer_name' => 'Web Customer',
+        'email' => 'webcustomer@example.com',
+        'payment_method' => 'Tarjeta Web',
+        'card_last_four' => '9999',
+        'amount' => 1500.00,
+        'tickets_details' => [
+            ['ticket_id' => 'TK1', 'status' => 'cancelado', 'barcode' => 'BAR1'],
+        ],
+    ]);
+
+    $response = $this->post(route('refund.validate_order'), [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'AUTO999',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'status' => 'web_auto_refund',
+        ]);
+
+    expect($response->json('message'))->toContain('Su compra web ya está en trámite automático de reembolso');
+});
+
+test('existing requests in database return already_requested status with explicit existing request message', function () {
+    $purchase = \App\Models\RefundPurchase::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'EXISTING123',
+        'buyer_name' => 'Existing Customer',
+        'email' => 'existing@example.com',
+        'payment_method' => 'Tarjeta Web',
+        'card_last_four' => '1234',
+        'amount' => 2000.00,
+        'tickets_details' => [
+            ['ticket_id' => 'TK2', 'status' => 'activo', 'barcode' => 'BAR2'],
+        ],
+    ]);
+
+    \App\Models\RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'EXISTING123',
+        'buyer_name' => 'Existing Customer',
+        'email' => 'existing@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->post(route('refund.validate_order'), [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'EXISTING123',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'status' => 'already_requested',
+        ]);
+
+    expect($response->json('message'))->toContain('Esta orden ya cuenta con una solicitud de reembolso registrada');
 });
