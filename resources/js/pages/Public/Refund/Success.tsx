@@ -1,5 +1,6 @@
 import PublicHeader from '@/components/public-header';
 import PublicFooter from '@/components/public-footer';
+import RefundFaqSection from '@/components/RefundFaqSection';
 import { GeolocationProvider } from '@/contexts/GeolocationProvider';
 import { Head, Link } from '@inertiajs/react';
 import React from 'react';
@@ -17,8 +18,8 @@ export default function Success({ order_number, tracking_id }: Props) {
                 <PublicHeader />
 
                 <main className="pt-28 pb-20 flex-grow flex items-center justify-center">
-                    <div className="container mx-auto px-4 max-w-lg text-center">
-                        <div className="bg-white dark:bg-[#1e1e1e] p-8 md:p-12 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-800 backdrop-blur-sm">
+                    <div className="container mx-auto px-4 max-w-3xl text-center space-y-12">
+                        <div className="bg-white dark:bg-[#1e1e1e] p-8 md:p-12 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-800 backdrop-blur-sm max-w-lg mx-auto">
                             
                             {/* Checkmark Circle */}
                             <div className="w-20 h-20 bg-green-50 dark:bg-green-950/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-green-100 dark:border-green-900/50">
@@ -53,20 +54,42 @@ export default function Success({ order_number, tracking_id }: Props) {
                                 </div>
                             )}
 
-                            <div className="p-4 bg-gray-50 dark:bg-neutral-900 rounded-2xl text-left text-xs text-gray-600 dark:text-gray-400 space-y-2 border border-gray-100 dark:border-neutral-800 mb-8">
-                                <p className="font-bold text-gray-800 dark:text-gray-200 mb-1">Próximos Pasos:</p>
-                                <p>• Para hacer válido el reembolso, la información solicitada debe ser precisa.</p>
-                                <p>• Boletea Tickets puede hacer contacto vía correo en caso de que exista una aclaración con los datos proporcionados.</p>
-                                <p>• Los tiempos de devolución pueden tomar entre 15 y 30 días hábiles una vez teniendo la información necesaria.</p>
+                            <div className="p-4 bg-amber-50/80 dark:bg-amber-950/20 rounded-2xl text-left text-xs text-amber-900 dark:text-amber-300 space-y-2 border border-amber-200/80 dark:border-amber-900/50 mb-8">
+                                <div className="flex items-center gap-2 font-bold text-amber-950 dark:text-amber-200 mb-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-amber-600">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                    </svg>
+                                    <span>Recomendaciones Importantes:</span>
+                                </div>
+                                <p>• <strong>Manténgase al pendiente de su correo electrónico:</strong> Si algún documento o dato requiere corrección, le enviaremos un enlace seguro a su correo.</p>
+                                <p>• <strong>Revise su carpeta de Spam / No deseados:</strong> Asegúrese de que nuestras notificaciones no sean desviadas.</p>
+                                <p>• <strong>No genere solicitudes duplicadas:</strong> En caso de correcciones, utilice únicamente el enlace recibido por correo.</p>
                             </div>
 
-                            <Link
-                                href="/"
-                                className="inline-block w-full p-4 bg-gray-900 hover:bg-black text-white dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 rounded-2xl font-bold transition shadow-md"
-                            >
-                                Volver al Inicio
-                            </Link>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                {tracking_id && (
+                                    <Link
+                                        href={`/reembolsos/estatus?code=${tracking_id}`}
+                                        className="w-full p-3.5 bg-[#c90000] hover:bg-[#a00000] text-white rounded-2xl font-bold text-xs transition shadow-md flex items-center justify-center gap-2"
+                                    >
+                                        <span>Consultar Estatus en Línea</span>
+                                    </Link>
+                                )}
+                                <Link
+                                    href="/"
+                                    className="w-full p-3.5 bg-gray-900 hover:bg-black text-white dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 rounded-2xl font-bold text-xs transition shadow-md flex items-center justify-center gap-2"
+                                >
+                                    <span>Volver al Inicio</span>
+                                </Link>
+                            </div>
                         </div>
+
+                        {/* FAQs component for post-submission guidance */}
+                        <RefundFaqSection
+                            title="¿Qué sucede ahora? - Preguntas Frecuentes"
+                            subtitle="Resolución de dudas sobre los siguientes pasos de su trámite, revisiones y depósitos."
+                            className="text-left"
+                        />
                     </div>
                 </main>
 

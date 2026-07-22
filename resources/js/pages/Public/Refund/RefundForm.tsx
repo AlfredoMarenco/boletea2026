@@ -1,5 +1,6 @@
 import PublicHeader from '@/components/public-header';
 import PublicFooter from '@/components/public-footer';
+import RefundFaqSection from '@/components/RefundFaqSection';
 import { GeolocationProvider } from '@/contexts/GeolocationProvider';
 import { Head, Link, router } from '@inertiajs/react';
 import React, { useState } from 'react';
@@ -1183,6 +1184,9 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                 </form>
                             )}
                         </div>
+
+                        {/* Public Refund FAQs Section */}
+                        <RefundFaqSection className="mt-12 md:mt-16" />
                     </div>
                 </main>
 
