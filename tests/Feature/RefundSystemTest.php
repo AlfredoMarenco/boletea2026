@@ -583,3 +583,78 @@ test('existing requests in database return already_requested status with explici
 
     expect($response->json('message'))->toContain('Esta orden ya cuenta con una solicitud de reembolso registrada');
 });
+
+test('rejected request with pending document corrections blocks new request for same order', function () {
+    $purchase = \App\Models\RefundPurchase::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'REJCORR123',
+        'buyer_name' => 'Rejected Customer',
+        'email' => 'rejected@example.com',
+        'payment_method' => 'Tarjeta Web',
+        'card_last_four' => '5555',
+        'amount' => 1000.00,
+        'tickets_details' => [
+            ['ticket_id' => 'TK3', 'status' => 'activo', 'barcode' => 'BAR3'],
+        ],
+    ]);
+
+    $req = \App\Models\RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'REJCORR123',
+        'buyer_name' => 'Rejected Customer',
+        'email' => 'rejected@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'rejected',
+        'validated_documents' => [], // CLABE unvalidated -> requires correction
+    ]);
+
+    expect($req->hasPendingCorrections())->toBeTrue();
+    expect($req->isActiveOrPendingCorrection())->toBeTrue();
+
+    $response = $this->post(route('refund.validate_order'), [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'REJCORR123',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJson([
+            'status' => 'already_requested',
+        ]);
+});
+
+test('rejected request with all documents validated (final rejection) allows re-submitting order', function () {
+    $purchase = \App\Models\RefundPurchase::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'FINALREJ456',
+        'buyer_name' => 'Final Rejected Customer',
+        'email' => 'finalrej@example.com',
+        'payment_method' => 'Tarjeta Web',
+        'card_last_four' => '7777',
+        'amount' => 1000.00,
+        'tickets_details' => [
+            ['ticket_id' => 'TK4', 'status' => 'activo', 'barcode' => 'BAR4'],
+        ],
+    ]);
+
+    $req = \App\Models\RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'FINALREJ456',
+        'buyer_name' => 'Final Rejected Customer',
+        'email' => 'finalrej@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'rejected',
+        'validated_documents' => ['clabe' => true], // All docs validated -> final rejection
+    ]);
+
+    expect($req->hasPendingCorrections())->toBeFalse();
+    expect($req->isActiveOrPendingCorrection())->toBeFalse();
+
+    $response = $this->post(route('refund.validate_order'), [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'FINALREJ456',
+    ]);
+
+    $response->assertStatus(200);
+});

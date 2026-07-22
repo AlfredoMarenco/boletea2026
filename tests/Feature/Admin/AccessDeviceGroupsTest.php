@@ -67,7 +67,7 @@ test('updating a group updates its details and propagates allowed sections to me
         ]);
 
     $response->assertRedirect();
-    
+
     // Check group was updated
     $group->refresh();
     expect($group->name)->toBe('VIP Scanners Updated');

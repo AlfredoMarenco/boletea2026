@@ -42,4 +42,62 @@ class RefundRequest extends Model
     {
         return $this->belongsTo(RefundPurchase::class);
     }
+
+    /**
+     * Check if a rejected request has unvalidated documents/data requiring correction.
+     */
+    public function hasPendingCorrections(): bool
+    {
+        if ($this->status !== 'rejected') {
+            return false;
+        }
+
+        $validated = $this->validated_documents ?? [];
+
+        if (! empty($this->clabe) && empty($validated['clabe'])) {
+            return true;
+        }
+
+        if (! empty($this->ine_path) && empty($validated['ine'])) {
+            return true;
+        }
+
+        if (! empty($this->proof_of_payment_path) && empty($validated['proof'])) {
+            return true;
+        }
+
+        if (! empty($this->tickets_path)) {
+            $parsed = null;
+            try {
+                $parsed = is_string($this->tickets_path) ? json_decode($this->tickets_path, true) : $this->tickets_path;
+            } catch (\Throwable $e) {
+            }
+
+            if (is_array($parsed)) {
+                foreach ($parsed as $subId => $path) {
+                    if (empty($validated['ticket_'.$subId])) {
+                        return true;
+                    }
+                }
+            } else {
+                if (empty($validated['tickets'])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if a refund request is active or pending correction.
+     */
+    public function isActiveOrPendingCorrection(): bool
+    {
+        if (in_array($this->status, ['pending', 'processing', 'approved'], true)) {
+            return true;
+        }
+
+        return $this->status === 'rejected' && $this->hasPendingCorrections();
+    }
 }

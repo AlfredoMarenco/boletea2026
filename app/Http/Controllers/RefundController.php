@@ -53,8 +53,11 @@ class RefundController extends Controller
 
         $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
-            ->whereIn('status', ['pending', 'processing', 'approved'])
-            ->get();
+            ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+            ->get()
+            ->filter(function (RefundRequest $req) {
+                return $req->isActiveOrPendingCorrection();
+            });
 
         $purchase = RefundPurchase::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
@@ -398,8 +401,11 @@ class RefundController extends Controller
             // Web Card orders
             $existingRequest = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
                 ->where('order_number', $validated['order_number'])
-                ->whereIn('status', ['pending', 'processing', 'approved'])
-                ->first();
+                ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+                ->get()
+                ->first(function (RefundRequest $req) {
+                    return $req->isActiveOrPendingCorrection();
+                });
 
             if ($existingRequest) {
                 return back()->withErrors(['order_number' => 'Ya existe un trámite activo para esta orden completa.']);
@@ -423,8 +429,11 @@ class RefundController extends Controller
             // For Taquilla orders, we allow multiple requests for the same order, but NOT the same tickets
             $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
                 ->where('order_number', $validated['order_number'])
-                ->whereIn('status', ['pending', 'processing', 'approved'])
-                ->get();
+                ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+                ->get()
+                ->filter(function (RefundRequest $req) {
+                    return $req->isActiveOrPendingCorrection();
+                });
 
             foreach ($existingRequests as $req) {
                 $alreadyValidated = is_string($req->validated_tickets) ? json_decode($req->validated_tickets, true) : $req->validated_tickets;
