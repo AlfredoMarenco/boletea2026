@@ -319,6 +319,12 @@ class AdminRefundController extends Controller
      */
     public function updateRequestStatus(Request $request, RefundRequest $refundRequest)
     {
+        if ($refundRequest->isTotallyRejected()) {
+            return back()->withErrors([
+                'status' => 'Esta solicitud de reembolso ha sido rechazada definitivamente y no se puede modificar.',
+            ]);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,processing,approved,rejected',
             'admin_notes' => 'nullable|string',

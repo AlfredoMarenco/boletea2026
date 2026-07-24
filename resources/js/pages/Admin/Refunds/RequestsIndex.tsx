@@ -288,8 +288,30 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         return invalid;
     };
 
-    const getStatusBadgeClass = (status: string) => {
-        switch (status) {
+    const isTotallyRejected = (req: RefundRequest | null) => {
+        if (!req || req.status !== 'rejected') return false;
+        const validated = req.validated_documents || {};
+        if (req.clabe && !validated['clabe']) return false;
+        if (req.ine_path && !validated['ine']) return false;
+        if (req.proof_of_payment_path && !validated['proof']) return false;
+        if (req.tickets_path) {
+            let parsed = null;
+            try {
+                parsed = JSON.parse(req.tickets_path);
+            } catch (e) { }
+            if (parsed && typeof parsed === 'object') {
+                for (const subId of Object.keys(parsed)) {
+                    if (!validated['ticket_' + subId]) return false;
+                }
+            } else {
+                if (!validated['tickets']) return false;
+            }
+        }
+        return true;
+    };
+
+    const getStatusBadgeClass = (req: RefundRequest) => {
+        switch (req.status) {
             case 'pending':
                 return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
             case 'processing':
@@ -297,21 +319,25 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
             case 'approved':
                 return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
             case 'rejected':
-                return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+                return isTotallyRejected(req)
+                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-neutral-800 dark:text-gray-400';
         }
     };
 
-    const getStatusLabel = (status: string) => {
-        switch (status) {
+    const getStatusLabel = (req: RefundRequest) => {
+        switch (req.status) {
             case 'pending': return 'Pendiente';
             case 'processing': return 'En Trámite';
             case 'approved': return 'Aprobado';
-            case 'rejected': return 'Rechazado';
-            default: return status;
+            case 'rejected': return isTotallyRejected(req) ? 'Rechazado Definitivo' : 'Rechazado (Docs Pendientes)';
+            default: return req.status;
         }
     };
+
+    const isSelectedTotallyRejected = isTotallyRejected(selectedRequest);
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Solicitudes de Reembolso', href: route('admin.refunds.requests') }]}>
@@ -438,8 +464,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             </TableCell>
                                             <TableCell className="font-mono text-xs">{req.clabe}</TableCell>
                                             <TableCell className="text-center">
-                                                <Badge className={`px-2 py-0.5 capitalize ${getStatusBadgeClass(req.status)}`}>
-                                                    {getStatusLabel(req.status)}
+                                                <Badge className={`px-2 py-0.5 capitalize ${getStatusBadgeClass(req)}`}>
+                                                    {getStatusLabel(req)}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-center text-xs text-gray-500">
@@ -617,20 +643,22 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                         <span className="font-semibold text-gray-800 dark:text-gray-200 break-words whitespace-normal">
                                                             {selectedRequest.buyer_name?.toUpperCase()}
                                                         </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setEditableBuyerName(selectedRequest.buyer_name || '');
-                                                                setIsEditingName(true);
-                                                                setNameUpdateSuccess(false);
-                                                            }}
-                                                            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
-                                                            title="Editar nombre"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                                                            </svg>
-                                                        </button>
+                                                        {selectedRequest.status !== 'approved' && !isSelectedTotallyRejected && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setEditableBuyerName(selectedRequest.buyer_name || '');
+                                                                    setIsEditingName(true);
+                                                                    setNameUpdateSuccess(false);
+                                                                }}
+                                                                className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+                                                                title="Editar nombre"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-3.5 h-3.5">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                                </svg>
+                                                            </button>
+                                                        )}
                                                         {nameUpdateSuccess && (
                                                             <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded animate-pulse">
                                                                 ✓ ¡Actualizado!
@@ -684,7 +712,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                             type="checkbox"
                                                             checked={!!validatedDocs['clabe']}
                                                             onChange={(e) => setValidatedDocs({ ...validatedDocs, clabe: e.target.checked })}
-                                                            disabled={selectedRequest.status === 'approved'}
+                                                            disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
                                                             className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50"
                                                         />
                                                         <span>¿CLABE Válida?</span>
@@ -739,7 +767,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                 type="checkbox"
                                                                 checked={includeCharges}
                                                                 onChange={(e) => setIncludeCharges(e.target.checked)}
-                                                                className="rounded border-gray-350 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                                                                disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
+                                                                className="rounded border-gray-350 text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer disabled:opacity-50"
                                                             />
                                                             <span>¿Incluir cargos por servicio y tarjeta en el reembolso?</span>
                                                         </label>
@@ -847,7 +876,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                             type="checkbox"
                                                             checked={!!validatedDocs['ine']}
                                                             onChange={(e) => setValidatedDocs({ ...validatedDocs, ine: e.target.checked })}
-                                                            disabled={selectedRequest.status === 'approved'}
+                                                            disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
                                                             className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                         />
                                                         ¿INE Válido?
@@ -901,7 +930,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                             type="checkbox"
                                                                             checked={!!validatedDocs[key]}
                                                                             onChange={(e) => setValidatedDocs({ ...validatedDocs, [key]: e.target.checked })}
-                                                                            disabled={selectedRequest.status === 'approved'}
+                                                                            disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
                                                                             className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                                         />
                                                                         ¿Boleto Válido?
@@ -934,7 +963,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                                     type="checkbox"
                                                                     checked={!!validatedDocs['tickets']}
                                                                     onChange={(e) => setValidatedDocs({ ...validatedDocs, tickets: e.target.checked })}
-                                                                    disabled={selectedRequest.status === 'approved'}
+                                                                    disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
                                                                     className="rounded border-gray-350 text-green-600 focus:ring-green-500 h-4 w-4 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 />
                                                                 ¿Boletos Válidos?
@@ -985,7 +1014,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     </svg>
                                                     Ver Comprobante
                                                 </button>
-                                                {selectedRequest.status !== 'approved' && (
+                                                {selectedRequest.status !== 'approved' && !isSelectedTotallyRejected && (
                                                     <label className="px-3 py-2 bg-white dark:bg-neutral-900 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-50 font-bold text-xs rounded-xl cursor-pointer transition">
                                                         Cambiar
                                                         <input
@@ -1002,7 +1031,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                     </label>
                                                 )}
                                             </div>
-                                        ) : selectedRequest.status !== 'approved' ? (
+                                        ) : selectedRequest.status !== 'approved' && !isSelectedTotallyRejected ? (
                                             <label className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl cursor-pointer transition shadow-md shadow-emerald-600/20 inline-flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -1038,14 +1067,14 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                         value={adminNotes}
                                         onChange={(e) => setAdminNotes(e.target.value)}
                                         rows={3}
-                                        placeholder={selectedRequest.status === 'approved' ? "Sin observaciones registradas." : "Motivo de rechazo, observaciones o comentarios internos..."}
-                                        disabled={selectedRequest.status === 'approved'}
+                                        placeholder={isSelectedTotallyRejected ? "Solicitud rechazada definitivamente." : (selectedRequest.status === 'approved' ? "Sin observaciones registradas." : "Motivo de rechazo, observaciones o comentarios internos...")}
+                                        disabled={selectedRequest.status === 'approved' || isSelectedTotallyRejected}
                                         className="w-full p-3 text-sm border border-gray-200 dark:border-neutral-800 rounded-xl bg-gray-50 dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-[#c90000] mb-4 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                                     />
 
                                     <div className="flex flex-wrap sm:justify-end gap-3 items-center">
                                         <Button onClick={handleCloseReview} variant="outline" disabled={loading} className="w-full sm:w-auto">
-                                            {selectedRequest.status === 'approved' ? 'Cerrar' : 'Cancelar'}
+                                            {selectedRequest.status === 'approved' || isSelectedTotallyRejected ? 'Cerrar' : 'Cancelar'}
                                         </Button>
 
                                         {selectedRequest.status === 'approved' && (
@@ -1057,7 +1086,16 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             </span>
                                         )}
 
-                                        {selectedRequest.status !== 'approved' && (
+                                        {isSelectedTotallyRejected && (
+                                            <span className="px-4 py-2.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/40 text-red-800 dark:text-red-300 font-bold text-xs rounded-xl flex items-center gap-1.5 select-none">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4 text-red-600 dark:text-red-500">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                Trámite Rechazado Definitivamente / Finalizado
+                                            </span>
+                                        )}
+
+                                        {selectedRequest.status !== 'approved' && !isSelectedTotallyRejected && (
                                             <>
                                                 {(() => {
                                                     const invalidList = getInvalidDocsList();

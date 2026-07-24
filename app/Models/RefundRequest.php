@@ -100,4 +100,12 @@ class RefundRequest extends Model
 
         return $this->status === 'rejected' && $this->hasPendingCorrections();
     }
+
+    /**
+     * Check if request is completely/totally rejected (no pending document corrections allowed).
+     */
+    public function isTotallyRejected(): bool
+    {
+        return $this->status === 'rejected' && ! $this->hasPendingCorrections();
+    }
 }

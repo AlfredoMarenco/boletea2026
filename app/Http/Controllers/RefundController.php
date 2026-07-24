@@ -574,8 +574,8 @@ class RefundController extends Controller
      */
     public function showUpdateDocumentsForm(Request $request, RefundRequest $refundRequest): InertiaResponse
     {
-        if ($refundRequest->status !== 'rejected') {
-            abort(403, 'Esta solicitud no requiere corrección de documentos en este momento.');
+        if ($refundRequest->status !== 'rejected' || $refundRequest->isTotallyRejected()) {
+            abort(403, 'Esta solicitud ha sido rechazada definitivamente y no permite corrección de documentos.');
         }
 
         $invalidDocs = $this->getInvalidDocuments($refundRequest);
@@ -602,8 +602,8 @@ class RefundController extends Controller
      */
     public function updateDocuments(Request $request, RefundRequest $refundRequest)
     {
-        if ($refundRequest->status !== 'rejected') {
-            abort(403, 'Esta solicitud no requiere corrección de documentos.');
+        if ($refundRequest->status !== 'rejected' || $refundRequest->isTotallyRejected()) {
+            abort(403, 'Esta solicitud ha sido rechazada definitivamente y no permite corrección de documentos.');
         }
 
         $invalidDocs = $this->getInvalidDocuments($refundRequest);

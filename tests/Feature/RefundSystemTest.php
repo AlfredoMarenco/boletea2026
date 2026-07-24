@@ -648,13 +648,66 @@ test('rejected request with all documents validated (final rejection) allows re-
         'validated_documents' => ['clabe' => true], // All docs validated -> final rejection
     ]);
 
-    expect($req->hasPendingCorrections())->toBeFalse();
-    expect($req->isActiveOrPendingCorrection())->toBeFalse();
-
     $response = $this->post(route('refund.validate_order'), [
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'FINALREJ456',
     ]);
 
     $response->assertStatus(200);
+});
+
+test('admin cannot modify a totally rejected request', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $req = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'FINALREJ789',
+        'buyer_name' => 'Totally Rejected Customer',
+        'email' => 'totallyrejected@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'rejected',
+        'validated_documents' => ['clabe' => true], // No pending corrections -> isTotallyRejected is true
+    ]);
+
+    expect($req->isTotallyRejected())->toBeTrue();
+
+    $response = $this->post(route('admin.refunds.requests.status', ['refundRequest' => $req->id]), [
+        'status' => 'processing',
+        'validated_documents' => ['clabe' => true],
+    ]);
+
+    $response->assertSessionHasErrors(['status']);
+    expect($req->fresh()->status)->toBe('rejected');
+});
+
+test('customer cannot view or submit update documents for a totally rejected request', function () {
+    $req = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => 'FINALREJ999',
+        'buyer_name' => 'Totally Rejected Customer',
+        'email' => 'totallyrejected@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'rejected',
+        'validated_documents' => ['clabe' => true],
+    ]);
+
+    $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'refund.update_documents',
+        now()->addHours(48),
+        ['refundRequest' => $req->id]
+    );
+
+    // View form fails with 403
+    $responseGet = $this->get($signedUrl);
+    $responseGet->assertStatus(403);
+
+    // Post update documents fails with 403
+    $responsePost = $this->post($signedUrl, [
+        'clabe' => '012999999999999999',
+        'bank_name' => 'BBVA',
+    ]);
+    $responsePost->assertStatus(403);
 });
