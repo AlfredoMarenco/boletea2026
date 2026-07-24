@@ -29,6 +29,7 @@ interface RefundRequest {
     validated_tickets: string[] | null;
     status: 'pending' | 'processing' | 'approved' | 'rejected';
     admin_notes: string | null;
+    correction_url: string;
     validated_documents?: Record<string, boolean> | null;
     include_charges?: boolean;
     created_at: string;
@@ -113,6 +114,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [proofFile, setProofFile] = useState<File | null>(null);
     const [showShowareReminder, setShowShowareReminder] = useState(false);
     const [pendingStatusUpdate, setPendingStatusUpdate] = useState<'processing' | 'approved' | null>(null);
+    const [copiedLink, setCopiedLink] = useState(false);
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -189,10 +191,10 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         setPreviewTitle('');
         setPreviewZoom(1);
         setPanOffset({ x: 0, y: 0 });
-        setIsDragging(false);
         setProofFile(null);
         setShowShowareReminder(false);
         setPendingStatusUpdate(null);
+        setCopiedLink(false);
     };
 
     const handleSaveName = () => {
@@ -731,6 +733,31 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                                 <div>
                                                     <p className="text-gray-400 mb-0.5">Últimos 4 dígitos tarjeta</p>
                                                     <p className="font-semibold text-gray-800 dark:text-gray-200">···· {selectedRequest.card_last_four}</p>
+                                                </div>
+                                            )}
+                                            {selectedRequest.correction_url && selectedRequest.status === 'rejected' && !isTotallyRejected(selectedRequest) && (
+                                                <div className="col-span-2 sm:col-span-3 md:col-span-4 mt-3 pt-3 border-t border-green-200/50 dark:border-green-900/30">
+                                                    <p className="text-gray-400 mb-1 font-semibold">Enlace de Corrección (WhatsApp o Manual)</p>
+                                                    <div className="flex gap-2 items-center">
+                                                        <input
+                                                            type="text"
+                                                            readOnly
+                                                            value={selectedRequest.correction_url}
+                                                            className="flex-grow p-2 text-xs font-mono bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg text-gray-600 dark:text-gray-300 select-all focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(selectedRequest.correction_url);
+                                                                setCopiedLink(true);
+                                                                setTimeout(() => setCopiedLink(false), 2000);
+                                                            }}
+                                                            className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${copiedLink ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-850 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-gray-200'}`}
+                                                        >
+                                                            {copiedLink ? "¡Copiado!" : "Copiar Enlace"}
+                                                        </button>
+                                                    </div>
+                                                    <p className="text-[10px] text-gray-400 mt-1">Este enlace está firmado digitalmente por seguridad y expira en 48 horas.</p>
                                                 </div>
                                             )}
                                         </div>

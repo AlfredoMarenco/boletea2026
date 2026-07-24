@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\URL;
 
 class RefundRequest extends Model
 {
@@ -32,6 +33,22 @@ class RefundRequest extends Model
         'validated_documents' => 'array',
         'include_charges' => 'boolean',
     ];
+
+    protected $appends = [
+        'correction_url',
+    ];
+
+    /**
+     * Get the temporary signed URL for document correction.
+     */
+    public function getCorrectionUrlAttribute(): string
+    {
+        return URL::temporarySignedRoute(
+            'refund.update_documents',
+            now()->addHours(48),
+            ['refundRequest' => $this->id]
+        );
+    }
 
     public function refundEvent(): BelongsTo
     {
