@@ -128,6 +128,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const [showSampleModal, setShowSampleModal] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+    // New states for tickets warning modal
+    const [orderTickets, setOrderTickets] = useState<any[]>([]);
+    const [requestedTickets, setRequestedTickets] = useState<string[]>([]);
+    const [showTicketsWarningModal, setShowTicketsWarningModal] = useState(false);
+    const [bypassTicketsWarning, setBypassTicketsWarning] = useState(false);
+    const [highlightTicketInput, setHighlightTicketInput] = useState(false);
+
     const fillNameParts = (fullName: string) => {
         if (!fullName) return;
         const parts = fullName.trim().split(/\s+/);
@@ -207,6 +214,12 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 setRequiresCard(data.requires_card || false);
                 setRequiresTickets(data.requires_tickets || false);
                 setPaymentMethod(data.payment_method);
+                if (data.tickets) {
+                    setOrderTickets(data.tickets);
+                }
+                if (data.requested_tickets) {
+                    setRequestedTickets(data.requested_tickets);
+                }
             } else {
                 // Cash / Taquilla
                 setRequiresCard(data.requires_card || false);
@@ -214,6 +227,12 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 setBuyerName(data.buyer_name || '');
                 fillNameParts(data.buyer_name || '');
                 setPaymentMethod(data.payment_method || 'Efectivo');
+                if (data.tickets) {
+                    setOrderTickets(data.tickets);
+                }
+                if (data.requested_tickets) {
+                    setRequestedTickets(data.requested_tickets);
+                }
                 setStep(2);
             }
         } catch (err) {
@@ -280,6 +299,12 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             setBuyerName(data.buyer_name || '');
             fillNameParts(data.buyer_name || '');
             setPaymentMethod(data.payment_method || 'Tarjeta');
+            if (data.tickets) {
+                setOrderTickets(data.tickets);
+            }
+            if (data.requested_tickets) {
+                setRequestedTickets(data.requested_tickets);
+            }
             setStep(2);
         } catch (err) {
             setErrorMessage('Error de red. Intenta nuevamente.');
@@ -385,6 +410,69 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         }
     };
 
+    const performSubmitRefund = (buyerNameValue: string, isCardValue: boolean) => {
+        setLoading(true);
+        setErrorMessage('');
+
+        const formData = new FormData();
+        formData.append('refund_event_id', eventId);
+        formData.append('order_number', orderNumber);
+        formData.append('buyer_name', buyerNameValue);
+        formData.append('clabe', clabe);
+        formData.append('bank_name', bankName);
+        formData.append('email', email);
+        formData.append('ine', ineFile!);
+
+        if (isCardValue) {
+            if (cardLastFour) {
+                formData.append('card_last_four', cardLastFour);
+            }
+        }
+        
+        if (requiresTickets) {
+            // Taquilla order (cash/card): send validated tickets barcodes and individual photos
+            validatedTicketsList.forEach((t) => {
+                const uniqueId = t.ticket_id || t.barcode; // Use ticket_id if available, fallback to barcode
+                formData.append('validated_tickets[]', uniqueId);
+                if (t.photoFile) {
+                    formData.append(`ticket_photos[${uniqueId}]`, t.photoFile);
+                }
+            });
+        }
+
+        router.post(route('refund.submit'), formData, {
+            forceFormData: true,
+            onFinish: () => setLoading(false),
+            onError: (errors) => {
+                const firstErr = Object.values(errors)[0];
+                setErrorMessage(firstErr || 'Error al enviar la solicitud.');
+            }
+        });
+    };
+
+    const handleAddMoreTickets = () => {
+        setShowTicketsWarningModal(false);
+        setHighlightTicketInput(true);
+        const element = document.getElementById('ticket-validation-container');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        setTimeout(() => {
+            setHighlightTicketInput(false);
+        }, 3000);
+    };
+
+    const handleConfirmOnlySubmit = () => {
+        setShowTicketsWarningModal(false);
+        setBypassTicketsWarning(true);
+        const constructedBuyerName = [firstName, middleName, lastNamePaternal, lastNameMaternal]
+            .map(s => s.trim())
+            .filter(Boolean)
+            .join(' ')
+            .toUpperCase();
+        performSubmitRefund(constructedBuyerName, requiresCard);
+    };
+
     const handleSubmitRefund = (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -438,45 +526,31 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 setErrorMessage('Debe adjuntar la foto para cada uno de los boletos físicos validados.');
                 return;
             }
-        }
 
-        setLoading(true);
-        setErrorMessage('');
+            // Check if there are other eligible tickets in the order that are not in validatedTicketsList and not already requested
+            if (!bypassTicketsWarning) {
+                const activeTickets = orderTickets.filter(t => {
+                    const status = (t.status || '').toLowerCase().trim();
+                    return status !== 'cancelado' && status !== 'cancelada';
+                });
+                const nonRequestedTickets = activeTickets.filter(t => {
+                    const ticketId = String(t.ticket_id || '').toLowerCase().trim();
+                    const barcode = String(t.barcode || '').toLowerCase().trim();
+                    const isAlreadyReq = requestedTickets.some(rt => {
+                        const cleanRt = String(rt).toLowerCase().trim();
+                        return cleanRt === ticketId || cleanRt === barcode;
+                    });
+                    return !isAlreadyReq;
+                });
 
-        const formData = new FormData();
-        formData.append('refund_event_id', eventId);
-        formData.append('order_number', orderNumber);
-        formData.append('buyer_name', constructedBuyerName);
-        formData.append('clabe', clabe);
-        formData.append('bank_name', bankName);
-        formData.append('email', email);
-        formData.append('ine', ineFile);
-
-        if (isCard) {
-            if (cardLastFour) {
-                formData.append('card_last_four', cardLastFour);
-            }
-        }
-        
-        if (requiresTickets) {
-            // Taquilla order (cash/card): send validated tickets barcodes and individual photos
-            validatedTicketsList.forEach((t) => {
-                const uniqueId = t.ticket_id || t.barcode; // Use ticket_id if available, fallback to barcode
-                formData.append('validated_tickets[]', uniqueId);
-                if (t.photoFile) {
-                    formData.append(`ticket_photos[${uniqueId}]`, t.photoFile);
+                if (nonRequestedTickets.length > validatedTicketsList.length) {
+                    setShowTicketsWarningModal(true);
+                    return;
                 }
-            });
+            }
         }
 
-        router.post(route('refund.submit'), formData, {
-            forceFormData: true,
-            onFinish: () => setLoading(false),
-            onError: (errors) => {
-                const firstErr = Object.values(errors)[0];
-                setErrorMessage(firstErr || 'Error al enviar la solicitud.');
-            }
-        });
+        performSubmitRefund(constructedBuyerName, isCard);
     };
 
     return (
@@ -1030,11 +1104,16 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                         </div>
                                     </div>
 
-
-
                                     {/* Cash tickets verification (Individual Ticket IDs) */}
                                     {!requiresEmail && (
-                                        <div className="p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-900/50 space-y-4">
+                                        <div 
+                                            id="ticket-validation-container"
+                                            className={`p-4 rounded-2xl border bg-gray-50/50 dark:bg-neutral-900/50 space-y-4 transition-all duration-500 ${
+                                                highlightTicketInput 
+                                                    ? 'border-red-500 dark:border-red-500 ring-4 ring-red-500/20 dark:ring-red-500/30 scale-[1.02] shadow-lg shadow-red-500/10' 
+                                                    : 'border-gray-200 dark:border-neutral-800'
+                                            }`}
+                                        >
                                             <div>
                                                 <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                                     Validación de Boletos Físicos
@@ -1219,6 +1298,55 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                             <p className="text-xs text-gray-500 text-center leading-relaxed">
                                 Utiliza el código numérico señalado en la imagen de muestra para validar tus boletos.
                             </p>
+                        </div>
+                    </div>
+                )}
+                {/* Tickets Warning/Confirmation Modal */}
+                {showTicketsWarningModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div 
+                            className="bg-white dark:bg-neutral-900 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-gray-100 dark:border-neutral-800 animate-in zoom-in-95 duration-200"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="text-center space-y-4">
+                                <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-md">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-8 h-8 animate-bounce">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                    </svg>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                                        ¿Tienes más boletos en esta orden?
+                                    </h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                                        Esta orden cuenta con <strong className="text-gray-950 dark:text-white font-bold">{orderTickets.filter(t => (t.status || '').toLowerCase().trim() !== 'cancelado' && (t.status || '').toLowerCase().trim() !== 'cancelada').length - requestedTickets.length}</strong> boletos disponibles para reembolso, pero solo has agregado <strong className="text-gray-950 dark:text-white font-bold">{validatedTicketsList.length}</strong>.
+                                    </p>
+                                    <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl text-xs text-amber-800 dark:text-amber-300 font-medium text-left leading-normal">
+                                        <strong>Nota importante:</strong> Te recomendamos agregar todos tus boletos en esta misma solicitud. Una vez que se complete el trámite de esta orden, el sistema ya no permitirá ingresar nuevas solicitudes de reembolso para ella.
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 flex flex-col gap-2.5">
+                                    <button
+                                        type="button"
+                                        onClick={handleAddMoreTickets}
+                                        className="w-full py-3.5 bg-gradient-to-r from-[#c90000] to-[#b30000] hover:from-[#e60000] hover:to-[#c90000] text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-[#c90000]/20 flex items-center justify-center gap-2 transform active:scale-95 cursor-pointer"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                        </svg>
+                                        Agregar el otro boleto
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmOnlySubmit}
+                                        className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold text-xs transition cursor-pointer"
+                                    >
+                                        Sí, continuar solo con {validatedTicketsList.length} {validatedTicketsList.length === 1 ? 'boleto' : 'boletos'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

@@ -102,6 +102,19 @@ class RefundController extends Controller
             ], 422);
         }
 
+        $requestedTickets = [];
+        if ($existingRequests->isNotEmpty()) {
+            foreach ($existingRequests as $req) {
+                $alreadyValidated = is_string($req->validated_tickets) ? json_decode($req->validated_tickets, true) : $req->validated_tickets;
+                if (is_array($alreadyValidated)) {
+                    foreach ($alreadyValidated as $rt) {
+                        $requestedTickets[] = strtolower(trim($rt));
+                    }
+                }
+            }
+            $requestedTickets = array_values(array_unique($requestedTickets));
+        }
+
         if ($existingRequests->isNotEmpty()) {
             if (! $isTaquilla && $isCard) {
                 // Web Card orders represent the whole purchase, so one active request blocks the entire order.
@@ -114,17 +127,6 @@ class RefundController extends Controller
                 $allPurchaseTickets = $ticketsDetails->map(function ($t) {
                     return strtolower(trim($t['ticket_id'] ?? $t['barcode'] ?? ''));
                 })->filter()->unique()->values()->toArray();
-
-                $requestedTickets = [];
-                foreach ($existingRequests as $req) {
-                    $alreadyValidated = is_string($req->validated_tickets) ? json_decode($req->validated_tickets, true) : $req->validated_tickets;
-                    if (is_array($alreadyValidated)) {
-                        foreach ($alreadyValidated as $rt) {
-                            $requestedTickets[] = strtolower(trim($rt));
-                        }
-                    }
-                }
-                $requestedTickets = array_unique($requestedTickets);
 
                 // If the number of uniquely requested tickets is >= the number of tickets in the purchase, block it.
                 if (count($allPurchaseTickets) > 0 && count(array_intersect($allPurchaseTickets, $requestedTickets)) >= count($allPurchaseTickets)) {
@@ -159,6 +161,7 @@ class RefundController extends Controller
                 'buyer_name' => $buyerName,
                 'payment_method' => $purchase->payment_method ?? 'Efectivo',
                 'tickets' => $activeTickets,
+                'requested_tickets' => $requestedTickets,
             ]);
         }
 
@@ -222,11 +225,32 @@ class RefundController extends Controller
             $buyerName = '';
         }
 
+        // Compute requested tickets
+        $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
+            ->where('order_number', $validated['order_number'])
+            ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+            ->get()
+            ->filter(function (RefundRequest $req) {
+                return $req->isActiveOrPendingCorrection();
+            });
+
+        $requestedTickets = [];
+        foreach ($existingRequests as $req) {
+            $alreadyValidated = is_string($req->validated_tickets) ? json_decode($req->validated_tickets, true) : $req->validated_tickets;
+            if (is_array($alreadyValidated)) {
+                foreach ($alreadyValidated as $rt) {
+                    $requestedTickets[] = strtolower(trim($rt));
+                }
+            }
+        }
+        $requestedTickets = array_values(array_unique($requestedTickets));
+
         return response()->json([
             'status' => 'matched',
             'buyer_name' => $buyerName,
             'payment_method' => $purchase->payment_method ?? 'Tarjeta',
             'tickets' => $purchase->tickets_details,
+            'requested_tickets' => $requestedTickets,
         ]);
     }
 
