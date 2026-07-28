@@ -949,7 +949,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                         <div className="bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-5">
                                             <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Validación de Boletos</h4>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                                                Por favor ingrese el código de barras (o el ID) de los boletos físicos de esta orden que desea reembolsar y adjunte la fotografía correspondiente de cada uno.
+                                                Por favor ingrese el IDE de los boletos físicos de esta orden que desea reembolsar y adjunte la fotografía correspondiente de cada uno.
                                             </p>
                                         </div>
                                     )}
@@ -1119,7 +1119,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                     Validación de Boletos Físicos
                                                 </h3>
                                                 <p className="text-[11px] text-gray-400 mt-1">
-                                                    Ingrese los códigos de barras (ID del boleto) uno por uno para certificar que pertenecen a esta orden.
+                                                    Ingrese el IDE de cada boleto uno por uno para certificar que pertenecen a esta orden.
                                                 </p>
                                                 {ticketSampleImage && (
                                                     <button
@@ -1130,7 +1130,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        ¿Dónde encuentro el ID de mi boleto?
+                                                        ¿Dónde encuentro el IDE de mi boleto?
                                                     </button>
                                                 )}
                                             </div>
@@ -1169,7 +1169,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                                 <div className="flex justify-between items-start">
                                                                     <div>
                                                                         <span className="font-semibold block">{t.area} - Asiento {t.seat}</span>
-                                                                        <span className="font-mono text-[10px] text-gray-400">ID/Barcode: {t.ticket_id || t.barcode}</span>
+                                                                        <span className="font-mono text-[10px] text-gray-400">IDE: {t.ticket_id || t.barcode}</span>
                                                                     </div>
                                                                     <button
                                                                         type="button"
@@ -1277,7 +1277,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ubicación del ID de Boleto</h3>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ubicación del IDE de Boleto</h3>
                                 <button
                                     type="button"
                                     onClick={() => setShowSampleModal(false)}
@@ -1291,12 +1291,12 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                             <div className="border rounded-2xl overflow-hidden bg-gray-50 dark:bg-neutral-950 flex justify-center items-center p-2 mb-4">
                                 <img
                                     src={ticketSampleImage}
-                                    alt="Guía de ubicación de ID"
+                                    alt="Guía de ubicación de IDE"
                                     className="max-h-[60vh] object-contain rounded-xl"
                                 />
                             </div>
                             <p className="text-xs text-gray-500 text-center leading-relaxed">
-                                Utiliza el código numérico señalado en la imagen de muestra para validar tus boletos.
+                                Utiliza el código numérico señalado como IDE en la imagen de muestra para validar tus boletos.
                             </p>
                         </div>
                     </div>
@@ -1320,7 +1320,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                         ¿Tienes más boletos en esta orden?
                                     </h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                                        Esta orden cuenta con <strong className="text-gray-950 dark:text-white font-bold">{orderTickets.filter(t => (t.status || '').toLowerCase().trim() !== 'cancelado' && (t.status || '').toLowerCase().trim() !== 'cancelada').length - requestedTickets.length}</strong> boletos disponibles para reembolso, pero solo has agregado <strong className="text-gray-950 dark:text-white font-bold">{validatedTicketsList.length}</strong>.
+                                        Quedan boletos disponibles para reembolso en esta orden que aún no has agregado a esta solicitud.
                                     </p>
                                     <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl text-xs text-amber-800 dark:text-amber-300 font-medium text-left leading-normal">
                                         <strong>Nota importante:</strong> Te recomendamos agregar todos tus boletos en esta misma solicitud. Una vez que se complete el trámite de esta orden, el sistema ya no permitirá ingresar nuevas solicitudes de reembolso para ella.
@@ -1343,7 +1343,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                         onClick={handleConfirmOnlySubmit}
                                         className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold text-xs transition cursor-pointer"
                                     >
-                                        Sí, continuar solo con {validatedTicketsList.length} {validatedTicketsList.length === 1 ? 'boleto' : 'boletos'}
+                                        Sí, continuar con la solicitud actual
                                     </button>
                                 </div>
                             </div>
