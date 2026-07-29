@@ -111,6 +111,7 @@ export default function OrdersReport({ event, purchases, stats, filters }: Props
     const [search, setSearch] = useState(filters?.search || '');
     const [filterType, setFilterType] = useState(filters?.filter_type || 'all');
     const [expandedOrder, setExpandedOrder] = useState<number | null>(null);
+    const [splitNames, setSplitNames] = useState(false);
 
     const handleFilterChange = (type: string) => {
         setFilterType(type);
@@ -445,21 +446,32 @@ export default function OrdersReport({ event, purchases, stats, filters }: Props
                             </Button>
                         </form>
 
-                        <a
-                            href={route('admin.refunds.events.orders.export_csv', {
-                                event: event.id,
-                                search: search || undefined,
-                                filter_type: filterType,
-                            })}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-xs"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                            </svg>
-                            Exportar CSV Contable
-                        </a>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={splitNames}
+                                    onChange={(e) => setSplitNames(e.target.checked)}
+                                    className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                                />
+                                <span>Separar nombres en columnas</span>
+                            </label>
+                            <a
+                                href={route('admin.refunds.events.orders.export_csv', {
+                                    event: event.id,
+                                    search: search || undefined,
+                                    filter_type: filterType,
+                                    split_names: splitNames ? '1' : undefined,
+                                })}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-xs"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Exportar CSV Contable
+                        </div>
                     </div>
 
                     <div className="rounded-md border border-gray-200 dark:border-border overflow-x-auto">

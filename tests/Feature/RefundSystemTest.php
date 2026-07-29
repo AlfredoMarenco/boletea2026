@@ -711,3 +711,73 @@ test('customer cannot view or submit update documents for a totally rejected req
     ]);
     $responsePost->assertStatus(403);
 });
+
+test('admin can export refund requests to CSV with and without split names', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '12345',
+        'buyer_name' => 'ALFREDO ANTONIO MARENCO CASTILLO',
+        'email' => 'alfredo@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'processing',
+    ]);
+
+    // Test default export (without split_names)
+    $responseDefault = $this->get(route('admin.refunds.requests.export_csv', [
+        'status' => 'processing',
+    ]));
+    $responseDefault->assertStatus(200);
+    $contentDefault = $responseDefault->streamedContent();
+    expect($contentDefault)->toContain('NOMBRE DEL TITULAR DE LA TARJETA');
+    expect($contentDefault)->not->toContain('PRIMER NOMBRE');
+    expect($contentDefault)->toContain('ALFREDO ANTONIO MARENCO CASTILLO');
+
+    // Test export with split_names
+    $responseSplit = $this->get(route('admin.refunds.requests.export_csv', [
+        'status' => 'processing',
+        'split_names' => '1',
+    ]));
+    $responseSplit->assertStatus(200);
+    $contentSplit = $responseSplit->streamedContent();
+    expect($contentSplit)->not->toContain('NOMBRE DEL TITULAR DE LA TARJETA');
+    expect($contentSplit)->toContain('PRIMER NOMBRE');
+    expect($contentSplit)->toContain('SEGUNDO NOMBRE');
+    expect($contentSplit)->toContain('APELLIDO PATERNO');
+    expect($contentSplit)->toContain('APELLIDO MATERNO');
+    expect($contentSplit)->toContain('ALFREDO');
+    expect($contentSplit)->toContain('ANTONIO');
+    expect($contentSplit)->toContain('MARENCO');
+    expect($contentSplit)->toContain('CASTILLO');
+});
+
+test('admin can export event orders report to CSV with and without split names', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    // Test default export (without split_names)
+    $responseDefault = $this->get(route('admin.refunds.events.orders.export_csv', [
+        'event' => $this->refundEvent->id,
+    ]));
+    $responseDefault->assertStatus(200);
+    $contentDefault = $responseDefault->streamedContent();
+    expect($contentDefault)->toContain('TITULAR COMPRA');
+    expect($contentDefault)->not->toContain('PRIMER NOMBRE COMPRA');
+
+    // Test export with split_names
+    $responseSplit = $this->get(route('admin.refunds.events.orders.export_csv', [
+        'event' => $this->refundEvent->id,
+        'split_names' => '1',
+    ]));
+    $responseSplit->assertStatus(200);
+    $contentSplit = $responseSplit->streamedContent();
+    expect($contentSplit)->not->toContain('TITULAR COMPRA');
+    expect($contentSplit)->toContain('PRIMER NOMBRE COMPRA');
+    expect($contentSplit)->toContain('SEGUNDO NOMBRE COMPRA');
+    expect($contentSplit)->toContain('APELLIDO PATERNO COMPRA');
+    expect($contentSplit)->toContain('APELLIDO MATERNO COMPRA');
+    expect($contentSplit)->toContain('PRIMER NOMBRE TRANSFERENCIA');
+});

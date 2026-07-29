@@ -92,6 +92,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [status, setStatus] = useState(filters?.status || '');
     const [refundEventId, setRefundEventId] = useState(filters?.refund_event_id || '');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(filters?.sort_direction || 'asc');
+    const [splitNames, setSplitNames] = useState(false);
 
     // Modal/Review states
     const [selectedRequest, setSelectedRequest] = useState<RefundRequest | null>(null);
@@ -353,12 +354,22 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                         </h1>
                         <p className="text-sm text-gray-500">Valide los datos bancarios y documentos adjuntos de los clientes contra el registro de la orden.</p>
                     </div>
-                    <div>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={splitNames}
+                                onChange={(e) => setSplitNames(e.target.checked)}
+                                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4"
+                            />
+                            <span>Separar nombres en columnas</span>
+                        </label>
                         <a
                             href={route('admin.refunds.requests.export_csv', {
                                 search: search || undefined,
                                 status: status || 'processing',
                                 refund_event_id: refundEventId || undefined,
+                                split_names: splitNames ? '1' : undefined,
                             })}
                             target="_blank"
                             rel="noopener noreferrer"

@@ -441,6 +441,57 @@ class AdminRefundController extends Controller
     }
 
     /**
+     * Splits a Spanish full name into its constituent parts:
+     * Nombre, Segundo Nombre, Apellido Paterno, Apellido Materno.
+     */
+    private function splitSpanishName(?string $fullName): array
+    {
+        if (empty($fullName)) {
+            return [
+                'nombre' => '',
+                'segundo_nombre' => '',
+                'apellido_paterno' => '',
+                'apellido_materno' => '',
+            ];
+        }
+
+        $name = trim(preg_replace('/\s+/', ' ', $fullName));
+        $parts = explode(' ', $name);
+
+        $nombre = '';
+        $segundoNombre = '';
+        $apellidoPaterno = '';
+        $apellidoMaterno = '';
+
+        $count = count($parts);
+        if ($count === 1) {
+            $nombre = $parts[0];
+        } elseif ($count === 2) {
+            $nombre = $parts[0];
+            $apellidoPaterno = $parts[1];
+        } elseif ($count === 3) {
+            $nombre = $parts[0];
+            $apellidoPaterno = $parts[1];
+            $apellidoMaterno = $parts[2];
+        } else {
+            // 4 or more parts
+            $nombre = $parts[0];
+            // Middle name is everything between first name and last 2 parts
+            $middleParts = array_slice($parts, 1, $count - 3);
+            $segundoNombre = implode(' ', $middleParts);
+            $apellidoPaterno = $parts[$count - 2];
+            $apellidoMaterno = $parts[$count - 1];
+        }
+
+        return [
+            'nombre' => $nombre,
+            'segundo_nombre' => $segundoNombre,
+            'apellido_paterno' => $apellidoPaterno,
+            'apellido_materno' => $apellidoMaterno,
+        ];
+    }
+
+    /**
      * Export refund requests to CSV matching the accounting REEMBOLSOS BLT structure.
      */
     public function exportCsv(Request $request)
@@ -448,6 +499,7 @@ class AdminRefundController extends Controller
         $search = $request->input('search');
         $status = $request->input('status') ?: 'processing';
         $refundEventId = $request->input('refund_event_id');
+        $splitNames = $request->boolean('split_names');
 
         $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
 
@@ -472,18 +524,29 @@ class AdminRefundController extends Controller
 
         $filename = 'ReportRefunds_'.date('Y-m-d_H-i-s').'.csv';
 
-        return response()->streamDownload(function () use ($requests) {
+        return response()->streamDownload(function () use ($requests, $splitNames) {
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM for Microsoft Excel compatibility
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
             // CSV Header matching exact structure from REEMBOLSOS BLT
-            fputcsv($handle, [
+            $headers = [
                 'IT',
                 'ORDEN',
                 'EVENTO',
-                'NOMBRE DEL TITULAR DE LA TARJETA',
+            ];
+
+            if ($splitNames) {
+                $headers[] = 'PRIMER NOMBRE';
+                $headers[] = 'SEGUNDO NOMBRE';
+                $headers[] = 'APELLIDO PATERNO';
+                $headers[] = 'APELLIDO MATERNO';
+            } else {
+                $headers[] = 'NOMBRE DEL TITULAR DE LA TARJETA';
+            }
+
+            $headers = array_merge($headers, [
                 'TC/CL INT',
                 'C/D',
                 'BANCO',
@@ -505,6 +568,8 @@ class AdminRefundController extends Controller
                 'AUDIENCIA',
                 'OBSERVACION',
             ]);
+
+            fputcsv($handle, $headers);
 
             foreach ($requests as $idx => $req) {
                 $purchase = $req->refundPurchase;
@@ -543,11 +608,23 @@ class AdminRefundController extends Controller
 
                 $eventTitle = $req->refundEvent?->externalEvent?->title ?? 'DESCONOCIDO';
 
-                fputcsv($handle, [
+                $row = [
                     $idx + 1,                                                   // IT
                     $req->order_number,                                         // ORDEN
                     $eventTitle,                                                // EVENTO
-                    $req->buyer_name,                                           // NOMBRE DEL TITULAR DE LA TARJETA
+                ];
+
+                if ($splitNames) {
+                    $split = $this->splitSpanishName($req->buyer_name);
+                    $row[] = $split['nombre'];
+                    $row[] = $split['segundo_nombre'];
+                    $row[] = $split['apellido_paterno'];
+                    $row[] = $split['apellido_materno'];
+                } else {
+                    $row[] = $req->buyer_name;                                  // NOMBRE DEL TITULAR DE LA TARJETA
+                }
+
+                $row = array_merge($row, [
                     $req->clabe ?? $req->card_last_four ?? '',                  // TC/CL INT
                     'CLABE',                                                    // C/D
                     $req->bank_name ?? 'NO ESPECIFICADO',                       // BANCO
@@ -569,6 +646,8 @@ class AdminRefundController extends Controller
                     '',                                                         // AUDIENCIA
                     '',                                                         // OBSERVACION (X - para control interno)
                 ]);
+
+                fputcsv($handle, $row);
             }
 
             fclose($handle);
@@ -760,6 +839,7 @@ class AdminRefundController extends Controller
 
         $search = $request->input('search');
         $filterType = $request->input('filter_type', 'all');
+        $splitNames = $request->boolean('split_names');
 
         $requests = RefundRequest::where('refund_event_id', $event->id)
             ->get()
@@ -846,15 +926,23 @@ class AdminRefundController extends Controller
         $eventTitle = str_replace(' ', '_', $event->externalEvent->title ?? 'evento');
         $filename = "reporte_contable_reembolsos_{$eventTitle}_".date('Ymd_His').'.csv';
 
-        return response()->streamDownload(function () use ($filtered) {
+        return response()->streamDownload(function () use ($filtered, $splitNames) {
             $handle = fopen('php://output', 'w');
 
             // UTF-8 BOM for Excel
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
 
-            fputcsv($handle, [
-                'ID ORDEN',
-                'TITULAR COMPRA',
+            $headers = ['ID ORDEN'];
+            if ($splitNames) {
+                $headers[] = 'PRIMER NOMBRE COMPRA';
+                $headers[] = 'SEGUNDO NOMBRE COMPRA';
+                $headers[] = 'APELLIDO PATERNO COMPRA';
+                $headers[] = 'APELLIDO MATERNO COMPRA';
+            } else {
+                $headers[] = 'TITULAR COMPRA';
+            }
+
+            $headers = array_merge($headers, [
                 'METODO PAGO',
                 'ULTIMOS 4',
                 'ESTADO COMPRA',
@@ -871,12 +959,74 @@ class AdminRefundController extends Controller
                 'ESTATUS TRAMITE',
                 'MONTO REEMBOLSO CALCULADO',
                 'CARGOS INCLUIDOS',
-                'TITULAR CUENTA TRANSFERENCIA',
+            ]);
+
+            if ($splitNames) {
+                $headers[] = 'PRIMER NOMBRE TRANSFERENCIA';
+                $headers[] = 'SEGUNDO NOMBRE TRANSFERENCIA';
+                $headers[] = 'APELLIDO PATERNO TRANSFERENCIA';
+                $headers[] = 'APELLIDO MATERNO TRANSFERENCIA';
+            } else {
+                $headers[] = 'TITULAR CUENTA TRANSFERENCIA';
+            }
+
+            $headers = array_merge($headers, [
                 'BANCO',
                 'CLABE',
                 'FECHA SOLICITUD',
                 'FECHA APROBACION',
             ]);
+
+            fputcsv($handle, $headers);
+
+            $buildRow = function ($p, $req, $statusLabel, $reqStatus, $item, $splitNames, $ticketData) {
+                $row = [$p->order_number];
+                if ($splitNames) {
+                    $split = $this->splitSpanishName($p->buyer_name);
+                    $row[] = $split['nombre'];
+                    $row[] = $split['segundo_nombre'];
+                    $row[] = $split['apellido_paterno'];
+                    $row[] = $split['apellido_materno'];
+                } else {
+                    $row[] = $p->buyer_name;
+                }
+
+                $row = array_merge($row, [
+                    $p->payment_method,
+                    $p->card_last_four ?? '',
+                    $statusLabel,
+                    $ticketData['ticket_id'],
+                    $ticketData['barcode'],
+                    $ticketData['area'],
+                    $ticketData['seat'],
+                    $ticketData['status'],
+                    $ticketData['price'],
+                    $ticketData['cxs'],
+                    $ticketData['tc'],
+                    $ticketData['cxadm'],
+                    $ticketData['total'],
+                    $reqStatus,
+                    number_format((float) $item['refund_amount'], 2, '.', ''),
+                    $item['include_charges'] ? 'SI' : 'NO',
+                ]);
+
+                if ($splitNames) {
+                    $split = $this->splitSpanishName($req ? $req->buyer_name : '');
+                    $row[] = $split['nombre'];
+                    $row[] = $split['segundo_nombre'];
+                    $row[] = $split['apellido_paterno'];
+                    $row[] = $split['apellido_materno'];
+                } else {
+                    $row[] = $req ? $req->buyer_name : '';
+                }
+
+                return array_merge($row, [
+                    $req ? ($req->bank_name ?? '') : '',
+                    $req ? ($req->clabe ?? $req->card_last_four ?? '') : '',
+                    $req && $req->created_at ? $req->created_at->format('d/m/Y') : '',
+                    $req && $req->status === 'approved' && $req->updated_at ? $req->updated_at->format('d/m/Y') : '',
+                ]);
+            };
 
             foreach ($filtered as $item) {
                 $p = $item['purchase'];
@@ -897,58 +1047,34 @@ class AdminRefundController extends Controller
                 $tickets = $p->tickets_details ?? [];
                 if (empty($tickets)) {
                     // Fallback row if no ticket details exist
-                    fputcsv($handle, [
-                        $p->order_number,
-                        $p->buyer_name,
-                        $p->payment_method,
-                        $p->card_last_four ?? '',
-                        $statusLabel,
-                        'N/A',
-                        'N/A',
-                        'N/A',
-                        'N/A',
-                        'N/A',
-                        '0.00',
-                        '0.00',
-                        '0.00',
-                        '0.00',
-                        number_format((float) $p->amount, 2, '.', ''),
-                        $reqStatus,
-                        number_format((float) $item['refund_amount'], 2, '.', ''),
-                        $item['include_charges'] ? 'SI' : 'NO',
-                        $req ? $req->buyer_name : '',
-                        $req ? ($req->bank_name ?? '') : '',
-                        $req ? ($req->clabe ?? $req->card_last_four ?? '') : '',
-                        $req && $req->created_at ? $req->created_at->format('d/m/Y') : '',
-                        $req && $req->status === 'approved' && $req->updated_at ? $req->updated_at->format('d/m/Y') : '',
-                    ]);
+                    $fallbackTicket = [
+                        'ticket_id' => 'N/A',
+                        'barcode' => 'N/A',
+                        'area' => 'N/A',
+                        'seat' => 'N/A',
+                        'status' => 'N/A',
+                        'price' => '0.00',
+                        'cxs' => '0.00',
+                        'tc' => '0.00',
+                        'cxadm' => '0.00',
+                        'total' => number_format((float) $p->amount, 2, '.', ''),
+                    ];
+                    fputcsv($handle, $buildRow($p, $req, $statusLabel, $reqStatus, $item, $splitNames, $fallbackTicket));
                 } else {
                     foreach ($tickets as $t) {
-                        fputcsv($handle, [
-                            $p->order_number,
-                            $p->buyer_name,
-                            $p->payment_method,
-                            $p->card_last_four ?? '',
-                            $statusLabel,
-                            $t['ticket_id'] ?? 'N/A',
-                            $t['barcode'] ?? 'N/A',
-                            $t['area'] ?? 'N/A',
-                            $t['seat'] ?? 'N/A',
-                            strtoupper($t['status'] ?? 'PAGADO'),
-                            number_format((float) ($t['price'] ?? 0), 2, '.', ''),
-                            number_format((float) ($t['cxs'] ?? 0), 2, '.', ''),
-                            number_format((float) ($t['tc'] ?? 0), 2, '.', ''),
-                            number_format((float) ($t['cxadm'] ?? 0), 2, '.', ''),
-                            number_format((float) ($t['total'] ?? 0), 2, '.', ''),
-                            $reqStatus,
-                            number_format((float) $item['refund_amount'], 2, '.', ''),
-                            $item['include_charges'] ? 'SI' : 'NO',
-                            $req ? $req->buyer_name : '',
-                            $req ? ($req->bank_name ?? '') : '',
-                            $req ? ($req->clabe ?? $req->card_last_four ?? '') : '',
-                            $req && $req->created_at ? $req->created_at->format('d/m/Y') : '',
-                            $req && $req->status === 'approved' && $req->updated_at ? $req->updated_at->format('d/m/Y') : '',
-                        ]);
+                        $ticketData = [
+                            'ticket_id' => $t['ticket_id'] ?? 'N/A',
+                            'barcode' => $t['barcode'] ?? 'N/A',
+                            'area' => $t['area'] ?? 'N/A',
+                            'seat' => $t['seat'] ?? 'N/A',
+                            'status' => strtoupper($t['status'] ?? 'PAGADO'),
+                            'price' => number_format((float) ($t['price'] ?? 0), 2, '.', ''),
+                            'cxs' => number_format((float) ($t['cxs'] ?? 0), 2, '.', ''),
+                            'tc' => number_format((float) ($t['tc'] ?? 0), 2, '.', ''),
+                            'cxadm' => number_format((float) ($t['cxadm'] ?? 0), 2, '.', ''),
+                            'total' => number_format((float) ($t['total'] ?? 0), 2, '.', ''),
+                        ];
+                        fputcsv($handle, $buildRow($p, $req, $statusLabel, $reqStatus, $item, $splitNames, $ticketData));
                     }
                 }
             }
