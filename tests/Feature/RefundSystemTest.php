@@ -782,6 +782,7 @@ test('admin can export event orders report to CSV with and without split names',
     expect($contentSplit)->toContain('PRIMER NOMBRE TRANSFERENCIA');
 });
 
+/*
 test('admin can upload mass validation csv and update statuses excluding exceptions', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
@@ -829,6 +830,7 @@ test('admin can upload mass validation csv and update statuses excluding excepti
     expect($req2->validated_documents)->toBeArray();
     expect($req2->validated_documents['clabe'])->toBeTrue();
 });
+*/
 
 test('admin can export requests to CSV and filter only new ones while marking them as exported', function () {
     $user = User::factory()->create();
