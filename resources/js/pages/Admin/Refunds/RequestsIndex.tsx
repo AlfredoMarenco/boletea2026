@@ -27,7 +27,7 @@ interface RefundRequest {
     proof_of_payment_path: string | null;
     tickets_path: string | null;
     validated_tickets: string[] | null;
-    status: 'pending' | 'processing' | 'approved' | 'rejected';
+    status: 'pending' | 'processing' | 'validation_banco_masivo' | 'approved' | 'rejected';
     admin_notes: string | null;
     correction_url: string;
     validated_documents?: Record<string, boolean> | null;
@@ -116,6 +116,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [showShowareReminder, setShowShowareReminder] = useState(false);
     const [pendingStatusUpdate, setPendingStatusUpdate] = useState<'processing' | 'approved' | null>(null);
     const [copiedLink, setCopiedLink] = useState(false);
+    const [showExportConfirm, setShowExportConfirm] = useState(false);
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -229,7 +230,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         );
     };
 
-    const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'approved' | 'rejected') => {
+    const handleUpdateStatus = (newStatus: 'pending' | 'processing' | 'validation_banco_masivo' | 'approved' | 'rejected') => {
         if (!selectedRequest) return;
 
         setLoading(true);
@@ -319,6 +320,8 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                 return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400';
             case 'processing':
                 return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'validation_banco_masivo':
+                return 'bg-indigo-105 text-indigo-850 dark:bg-indigo-900/30 dark:text-indigo-400';
             case 'approved':
                 return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
             case 'rejected':
@@ -334,10 +337,36 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
         switch (req.status) {
             case 'pending': return 'Pendiente';
             case 'processing': return 'En Trámite';
+            case 'validation_banco_masivo': return 'Validación Banco Masivo';
             case 'approved': return 'Aprobado';
             case 'rejected': return isTotallyRejected(req) ? 'Rechazado Definitivo' : 'Rechazado (Docs Pendientes)';
             default: return req.status;
         }
+    };
+
+    const handleUploadMassValidationCsv = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (confirm('¿Estás seguro de que deseas procesar este archivo CSV para validar reembolsos masivamente?')) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            router.post(
+                route('admin.refunds.requests.process_mass_validation'),
+                formData,
+                {
+                    forceFormData: true,
+                    onSuccess: () => {
+                        alert('Archivo CSV procesado con éxito.');
+                    },
+                    onError: (errors) => {
+                        alert('Error al procesar el archivo: ' + (errors.file || 'Error desconocido'));
+                    }
+                }
+            );
+        }
+        e.target.value = '';
     };
 
     const isSelectedTotallyRejected = isTotallyRejected(selectedRequest);
@@ -364,22 +393,28 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                             />
                             <span>Separar nombres en columnas</span>
                         </label>
-                        <a
-                            href={route('admin.refunds.requests.export_csv', {
-                                search: search || undefined,
-                                status: status || 'processing',
-                                refund_event_id: refundEventId || undefined,
-                                split_names: splitNames ? '1' : undefined,
-                            })}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-600/20 cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                            </svg>
+                            <span>Cargar Val. Masiva Banco</span>
+                            <input
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={handleUploadMassValidationCsv}
+                                className="hidden"
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setShowExportConfirm(true)}
                             className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                             </svg>
-                            Exportar CSV {status ? `(${status === 'processing' ? 'En Trámite' : status === 'pending' ? 'Pendientes' : status === 'approved' ? 'Aprobados' : status === 'rejected' ? 'Rechazados' : status})` : '(En Trámite)'}
-                        </a>
+                            Exportar CSV {status ? `(${status === 'processing' ? 'En Trámite' : status === 'validation_banco_masivo' ? 'Validación Banco Masivo' : status === 'pending' ? 'Pendientes' : status === 'approved' ? 'Aprobados' : status === 'rejected' ? 'Rechazados' : status})` : '(En Trámite)'}
+                        </button>
                     </div>
                 </div>
 
@@ -419,6 +454,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                             <option value="">Todos</option>
                             <option value="pending">Pendientes</option>
                             <option value="processing">En Trámite</option>
+                            <option value="validation_banco_masivo">Validación Banco Masivo</option>
                             <option value="approved">Aprobados</option>
                             <option value="rejected">Rechazados</option>
                         </select>
@@ -1373,7 +1409,88 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                         </div>
                     </div>
                 )}
-                 {/* SHOWARE REMINDER MODAL */}
+                {showExportConfirm && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70] backdrop-blur-xs animate-in fade-in">
+                        <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-100 dark:border-neutral-800 shadow-2xl space-y-6">
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                        Exportar Solicitudes a CSV
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Selecciona qué solicitudes deseas incluir en el archivo de exportación.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowExportConfirm(false);
+                                        const url = route('admin.refunds.requests.export_csv', {
+                                            search: search || undefined,
+                                            status: status || 'processing',
+                                            refund_event_id: refundEventId || undefined,
+                                            split_names: splitNames ? '1' : undefined,
+                                            export_filter: 'new'
+                                        });
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="w-full text-left p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800 transition flex justify-between items-center"
+                                >
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Solo solicitudes nuevas</p>
+                                        <p className="text-[11px] text-gray-400">Exporta únicamente las solicitudes que no han sido descargadas en un CSV anterior.</p>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5 text-emerald-600">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowExportConfirm(false);
+                                        const url = route('admin.refunds.requests.export_csv', {
+                                            search: search || undefined,
+                                            status: status || 'processing',
+                                            refund_event_id: refundEventId || undefined,
+                                            split_names: splitNames ? '1' : undefined,
+                                            export_filter: 'all'
+                                        });
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="w-full text-left p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800 transition flex justify-between items-center"
+                                >
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Todas las solicitudes</p>
+                                        <p className="text-[11px] text-gray-400">Exporta todos los registros según los filtros actuales, incluyendo los ya descargados.</p>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5 text-gray-400">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowExportConfirm(false)}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-750 transition"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* SHOWARE REMINDER MODAL */}
                 {showShowareReminder && (
                     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70] backdrop-blur-xs animate-in fade-in">
                         <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-100 dark:border-neutral-800 shadow-2xl space-y-6">

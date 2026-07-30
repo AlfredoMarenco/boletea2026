@@ -103,7 +103,8 @@ export default function TrackStatus({ events }: Props) {
     const getStatusStep = (status: string) => {
         switch (status) {
             case 'pending': return 1;
-            case 'processing': return 2;
+            case 'processing':
+            case 'validation_banco_masivo': return 2;
             case 'approved':
             case 'rejected': return 3;
             default: return 1;
@@ -194,7 +195,7 @@ export default function TrackStatus({ events }: Props) {
                                         <div className="space-y-8 relative">
                                             {/* Step 1: Pending */}
                                             <div className="flex items-start space-x-4 pl-2">
-                                                <div className={`w-4 h-4 rounded-full border-4 ${getStatusStep(requestData.status) >= 1 ? 'bg-green-500 border-green-200 dark:border-green-950' : 'bg-gray-200 border-gray-100 dark:bg-neutral-800 dark:border-neutral-900'} z-10`}></div>
+                                                <div className={`w-4 h-4 rounded-full border-4 ${getStatusStep(requestData.status) >= 1 ? 'bg-green-500 border-green-200 dark:border-green-955' : 'bg-gray-200 border-gray-100 dark:bg-neutral-800 dark:border-neutral-900'} z-10`}></div>
                                                 <div>
                                                     <h3 className="text-sm font-bold">Solicitud Recibida</h3>
                                                     <p className="text-xs text-gray-400 mt-0.5">Su documentación se encuentra en nuestra base de datos.</p>
@@ -203,10 +204,14 @@ export default function TrackStatus({ events }: Props) {
 
                                             {/* Step 2: Processing */}
                                             <div className="flex items-start space-x-4 pl-2">
-                                                <div className={`w-4 h-4 rounded-full border-4 ${getStatusStep(requestData.status) >= 2 ? 'bg-blue-500 border-blue-200 dark:border-blue-950' : 'bg-gray-200 border-gray-100 dark:bg-neutral-800 dark:border-neutral-900'} z-10`}></div>
+                                                <div className={`w-4 h-4 rounded-full border-4 ${getStatusStep(requestData.status) >= 2 ? 'bg-blue-500 border-blue-200 dark:border-blue-955' : 'bg-gray-200 border-gray-100 dark:bg-neutral-800 dark:border-neutral-900'} z-10`}></div>
                                                 <div>
-                                                    <h3 className="text-sm font-bold">En Trámite / Revisión</h3>
-                                                    <p className="text-xs text-gray-400 mt-0.5">Validando documentos y cuentas bancarias.</p>
+                                                    <h3 className="text-sm font-bold">
+                                                        {requestData.status === 'validation_banco_masivo' ? 'En Trámite (Validación Banco)' : 'En Trámite / Revisión'}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-400 mt-0.5">
+                                                        {requestData.status === 'validation_banco_masivo' ? 'Documentos validados. En espera de confirmación de transferencia.' : 'Validando documentos y cuentas bancarias.'}
+                                                    </p>
                                                 </div>
                                             </div>
 

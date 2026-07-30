@@ -127,6 +127,7 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
 
     Route::get('requests', [AdminRefundController::class, 'requestsIndex'])->name('requests');
     Route::get('requests/export-csv', [AdminRefundController::class, 'exportCsv'])->name('requests.export_csv');
+    Route::post('requests/process-mass-validation', [AdminRefundController::class, 'processMassRefundValidation'])->name('requests.process_mass_validation');
     Route::post('requests/{refundRequest}/status', [AdminRefundController::class, 'updateRequestStatus'])->name('requests.status');
     Route::get('requests/{refundRequest}/file/{type}', [AdminRefundController::class, 'downloadFile'])->name('requests.file');
 });

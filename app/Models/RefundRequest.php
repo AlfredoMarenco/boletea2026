@@ -26,12 +26,14 @@ class RefundRequest extends Model
         'include_charges',
         'status',
         'admin_notes',
+        'exported',
     ];
 
     protected $casts = [
         'validated_tickets' => 'array',
         'validated_documents' => 'array',
         'include_charges' => 'boolean',
+        'exported' => 'boolean',
     ];
 
     protected $appends = [
@@ -111,7 +113,7 @@ class RefundRequest extends Model
      */
     public function isActiveOrPendingCorrection(): bool
     {
-        if (in_array($this->status, ['pending', 'processing', 'approved'], true)) {
+        if (in_array($this->status, ['pending', 'processing', 'validation_banco_masivo', 'approved'], true)) {
             return true;
         }
 

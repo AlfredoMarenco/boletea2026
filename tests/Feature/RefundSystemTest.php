@@ -781,3 +781,97 @@ test('admin can export event orders report to CSV with and without split names',
     expect($contentSplit)->toContain('APELLIDO MATERNO COMPRA');
     expect($contentSplit)->toContain('PRIMER NOMBRE TRANSFERENCIA');
 });
+
+test('admin can upload mass validation csv and update statuses excluding exceptions', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    // Create some refund requests
+    $req1 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '2124310', // Exception order
+        'buyer_name' => 'Exception User One',
+        'email' => 'exc1@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    $req2 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '1000001', // Normal order to update
+        'buyer_name' => 'Normal User',
+        'email' => 'normal@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    // Create a mock CSV content
+    $csvContent = "ORDEN,EVENTO\n2124310,Test Concert\n1000001,Test Concert\n";
+    $csvFile = UploadedFile::fake()->createWithContent('ReportRefunds_Masivo.csv', $csvContent);
+
+    $response = $this->post(route('admin.refunds.requests.process_mass_validation'), [
+        'file' => $csvFile,
+    ]);
+
+    $response->assertStatus(302); // Redirect back
+
+    // Refresh model data
+    $req1->refresh();
+    $req2->refresh();
+
+    // Verify req1 (exception) remained 'pending'
+    expect($req1->status)->toBe('pending');
+
+    // Verify req2 was updated to 'validation_banco_masivo' and documents were validated
+    expect($req2->status)->toBe('validation_banco_masivo');
+    expect($req2->validated_documents)->toBeArray();
+    expect($req2->validated_documents['clabe'])->toBeTrue();
+});
+
+test('admin can export requests to CSV and filter only new ones while marking them as exported', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    // Create request 1 (already exported)
+    $req1 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '11111',
+        'buyer_name' => 'User One',
+        'email' => 'one@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'processing',
+        'exported' => true,
+    ]);
+
+    // Create request 2 (not exported yet)
+    $req2 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '22222',
+        'buyer_name' => 'User Two',
+        'email' => 'two@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'processing',
+        'exported' => false,
+    ]);
+
+    // Export only new ones
+    $response = $this->get(route('admin.refunds.requests.export_csv', [
+        'status' => 'processing',
+        'export_filter' => 'new',
+    ]));
+
+    $response->assertStatus(200);
+    $content = $response->streamedContent();
+
+    // Verify User Two is in the CSV, but User One is not
+    expect($content)->toContain('User Two');
+    expect($content)->not->toContain('User One');
+
+    // Verify req2 was marked as exported in the database
+    $req2->refresh();
+    expect($req2->exported)->toBeTrue();
+});

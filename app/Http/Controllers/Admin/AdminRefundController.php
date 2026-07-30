@@ -267,6 +267,143 @@ class AdminRefundController extends Controller
     }
 
     /**
+     * Process bulk validation from CSV file.
+     */
+    public function processMassRefundValidation(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        $handle = fopen($path, 'r');
+
+        $sanitizeStr = function (?string $value) {
+            if ($value === null || $value === '') {
+                return '';
+            }
+            $encoding = mb_detect_encoding($value, 'UTF-8, ISO-8859-1, Windows-1252', true);
+            if (! $encoding) {
+                $encoding = 'ISO-8859-1';
+            }
+            $utf8 = mb_convert_encoding($value, 'UTF-8', $encoding);
+
+            return trim(trim($utf8, '"'));
+        };
+
+        $headerRow = fgetcsv($handle);
+        if (! $headerRow) {
+            fclose($handle);
+
+            return back()->withErrors(['file' => 'El archivo CSV está vacío o tiene un formato no válido.']);
+        }
+
+        $headers = array_map(function ($h) use ($sanitizeStr) {
+            return strtolower($sanitizeStr($h));
+        }, $headerRow);
+
+        // Find the index of the order number column
+        $orderIdx = null;
+        $orderKeys = ['orden', 'order', 'orderid', 'order_id', 'id_orden', 'id_order', 'it'];
+        foreach ($orderKeys as $key) {
+            $idx = array_search(strtolower($key), $headers);
+            if ($idx !== false) {
+                $orderIdx = $idx;
+                break;
+            }
+        }
+
+        if ($orderIdx === null) {
+            fclose($handle);
+
+            return back()->withErrors(['file' => 'No se encontró la columna "ORDEN" o "OrderID" en el archivo CSV.']);
+        }
+
+        // Exceptions list (orders that must not be changed)
+        $exceptions = ['2124310', '2109161', '2115690', '2108832'];
+
+        $ordersInCsv = [];
+        while (($row = fgetcsv($handle)) !== false) {
+            if (! isset($row[$orderIdx])) {
+                continue;
+            }
+            $orderNum = trim($sanitizeStr($row[$orderIdx]));
+            if ($orderNum !== '') {
+                $ordersInCsv[] = $orderNum;
+            }
+        }
+        fclose($handle);
+
+        $ordersInCsv = array_unique($ordersInCsv);
+
+        // Filter out the exceptions
+        $ordersToProcess = array_filter($ordersInCsv, function ($orderNum) use ($exceptions) {
+            return ! in_array($orderNum, $exceptions);
+        });
+
+        if (empty($ordersToProcess)) {
+            return back()->with('success', 'El proceso masivo finalizó. No se encontraron órdenes válidas para procesar.');
+        }
+
+        // Now update the refund requests
+        $updatedCount = 0;
+        $refundRequests = RefundRequest::whereIn('order_number', $ordersToProcess)
+            ->where('status', '!=', 'approved') // Only change if not already approved
+            ->where('status', '!=', 'rejected') // Or totally rejected, following isActiveOrPendingCorrection rules
+            ->get();
+
+        DB::transaction(function () use ($refundRequests, &$updatedCount) {
+            foreach ($refundRequests as $req) {
+                // Determine which docs to validate based on tickets_path, clabe, etc.
+                $validatedDocs = [];
+                if (! empty($req->clabe)) {
+                    $validatedDocs['clabe'] = true;
+                }
+                if (! empty($req->ine_path)) {
+                    $validatedDocs['ine'] = true;
+                }
+                // Proof is NOT validated yet, so proof = false
+                $validatedDocs['proof'] = false;
+
+                if (! empty($req->tickets_path)) {
+                    $parsed = null;
+                    try {
+                        $parsed = json_decode($req->tickets_path, true);
+                    } catch (\Exception $e) {
+                    }
+
+                    if (is_array($parsed)) {
+                        foreach ($parsed as $subId => $path) {
+                            $validatedDocs['ticket_'.$subId] = true;
+                        }
+                    } else {
+                        $validatedDocs['tickets'] = true;
+                    }
+                }
+
+                $req->update([
+                    'status' => 'validation_banco_masivo',
+                    'validated_documents' => $validatedDocs,
+                ]);
+
+                // Send email
+                if ($req->email) {
+                    try {
+                        Mail::to($req->email)->send(new RefundStatusMail($req));
+                    } catch (\Exception $e) {
+                        // Silence mail errors to prevent process aborting
+                    }
+                }
+
+                $updatedCount++;
+            }
+        });
+
+        return back()->with('success', "Proceso masivo completado. Se actualizaron {$updatedCount} solicitudes al estado 'Validación Banco Masivo'.");
+    }
+
+    /**
      * Display customer refund requests.
      */
     public function requestsIndex(Request $request)
@@ -326,7 +463,7 @@ class AdminRefundController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => 'required|in:pending,processing,approved,rejected',
+            'status' => 'required|in:pending,processing,validation_banco_masivo,approved,rejected',
             'admin_notes' => 'nullable|string',
             'validated_documents' => 'nullable|array',
             'include_charges' => 'nullable|boolean',
@@ -357,7 +494,7 @@ class AdminRefundController extends Controller
             $validatedDocs['proof'] = true;
         }
 
-        if (in_array($newStatus, ['processing', 'approved'])) {
+        if (in_array($newStatus, ['processing', 'validation_banco_masivo', 'approved'])) {
             $invalidDocs = [];
             if (! empty($refundRequest->clabe) && empty($validatedDocs['clabe'])) {
                 $invalidDocs[] = 'Cuenta CLABE Interbancaria';
@@ -500,6 +637,7 @@ class AdminRefundController extends Controller
         $status = $request->input('status') ?: 'processing';
         $refundEventId = $request->input('refund_event_id');
         $splitNames = $request->boolean('split_names');
+        $exportFilter = $request->input('export_filter', 'all');
 
         $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
 
@@ -520,7 +658,15 @@ class AdminRefundController extends Controller
             $query->where('refund_event_id', $refundEventId);
         }
 
+        if ($exportFilter === 'new') {
+            $query->where('exported', false);
+        }
+
         $requests = $query->orderBy('created_at', 'asc')->get();
+
+        if ($requests->isNotEmpty()) {
+            RefundRequest::whereIn('id', $requests->pluck('id'))->update(['exported' => true]);
+        }
 
         $filename = 'ReportRefunds_'.date('Y-m-d_H-i-s').'.csv';
 

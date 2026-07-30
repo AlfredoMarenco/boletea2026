@@ -28,6 +28,7 @@ class RefundStatusMail extends Mailable
         $subject = match ($this->request->status) {
             'pending' => 'Solicitud de reembolso recibida - Orden #'.$this->request->order_number,
             'processing' => 'Su reembolso está en trámite - Orden #'.$this->request->order_number,
+            'validation_banco_masivo' => 'Su reembolso está en trámite - Orden #'.$this->request->order_number,
             'approved' => 'Reembolso Aprobado - Orden #'.$this->request->order_number,
             'rejected' => 'Actualización de solicitud de reembolso - Orden #'.$this->request->order_number,
             default => 'Actualización de reembolso - Orden #'.$this->request->order_number,
@@ -46,6 +47,7 @@ class RefundStatusMail extends Mailable
         $statusLabel = match ($this->request->status) {
             'pending' => 'Recibido / Pendiente',
             'processing' => 'En Trámite',
+            'validation_banco_masivo' => 'Validación Banco Masivo',
             'approved' => 'Aprobado',
             'rejected' => 'Rechazado',
         };
@@ -53,6 +55,7 @@ class RefundStatusMail extends Mailable
         $statusColor = match ($this->request->status) {
             'pending' => '#f59e0b', // Amber
             'processing' => '#3b82f6', // Blue
+            'validation_banco_masivo' => '#2563eb', // Darker Blue
             'approved' => '#10b981', // Green
             'rejected' => '#ef4444', // Red
         };
@@ -101,6 +104,7 @@ class RefundStatusMail extends Mailable
         $bodyText = match ($this->request->status) {
             'pending' => 'Hemos recibido su solicitud de reembolso de manera correcta. Nuestro equipo revisará la información y los documentos proporcionados.',
             'processing' => 'Su solicitud ha sido revisada y ahora se encuentra **en trámite**. Estamos procesando la verificación bancaria correspondiente.',
+            'validation_banco_masivo' => 'Su solicitud ha sido revisada y pre-validada. Nos encontramos en proceso de trámite y validación con el banco para proceder con la transferencia correspondiente.',
             'approved' => '¡Buenas noticias! Su reembolso ha sido **Aprobado**. Se ha procedido a realizar la transferencia interbancaria a la cuenta CLABE registrada a nombre de: **'.$this->request->buyer_name.'**.',
             'rejected' => ! empty($invalidDocs)
                 ? 'Le informamos que su solicitud requiere corrección debido a inconsistencias o archivos ilegibles en su información o documentos adjuntos. Es necesario que corrija los puntos listados abajo para poder continuar.'

@@ -53,7 +53,7 @@ class RefundController extends Controller
 
         $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
-            ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+            ->whereIn('status', ['pending', 'processing', 'validation_banco_masivo', 'approved', 'rejected'])
             ->get()
             ->filter(function (RefundRequest $req) {
                 return $req->isActiveOrPendingCorrection();
@@ -228,7 +228,7 @@ class RefundController extends Controller
         // Compute requested tickets
         $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
-            ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+            ->whereIn('status', ['pending', 'processing', 'validation_banco_masivo', 'approved', 'rejected'])
             ->get()
             ->filter(function (RefundRequest $req) {
                 return $req->isActiveOrPendingCorrection();
@@ -309,7 +309,7 @@ class RefundController extends Controller
         // Check if the ticket has already been requested
         $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
             ->where('order_number', $validated['order_number'])
-            ->whereIn('status', ['pending', 'processing', 'approved'])
+            ->whereIn('status', ['pending', 'processing', 'validation_banco_masivo', 'approved'])
             ->get();
 
         foreach ($existingRequests as $req) {
@@ -425,7 +425,7 @@ class RefundController extends Controller
             // Web Card orders
             $existingRequest = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
                 ->where('order_number', $validated['order_number'])
-                ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+                ->whereIn('status', ['pending', 'processing', 'validation_banco_masivo', 'approved', 'rejected'])
                 ->get()
                 ->first(function (RefundRequest $req) {
                     return $req->isActiveOrPendingCorrection();
@@ -453,7 +453,7 @@ class RefundController extends Controller
             // For Taquilla orders, we allow multiple requests for the same order, but NOT the same tickets
             $existingRequests = RefundRequest::where('refund_event_id', $validated['refund_event_id'])
                 ->where('order_number', $validated['order_number'])
-                ->whereIn('status', ['pending', 'processing', 'approved', 'rejected'])
+                ->whereIn('status', ['pending', 'processing', 'validation_banco_masivo', 'approved', 'rejected'])
                 ->get()
                 ->filter(function (RefundRequest $req) {
                     return $req->isActiveOrPendingCorrection();
