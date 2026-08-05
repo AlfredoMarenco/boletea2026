@@ -4,7 +4,7 @@ import { route } from 'ziggy-js';
 import { useAppearance } from '@/hooks/use-appearance';
 import { User, Menu, X } from 'lucide-react';
 import WorldCupTheme from '@/components/WorldCupTheme';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface Props {
     canRegister?: boolean;
@@ -13,6 +13,20 @@ interface Props {
 export default function PublicHeader({ canRegister = false }: Props) {
     const { resolvedAppearance } = useAppearance();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [loginDropdownOpen, setLoginDropdownOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setLoginDropdownOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     return (
         <>
@@ -94,13 +108,34 @@ export default function PublicHeader({ canRegister = false }: Props) {
                 </nav>
                 <div className="flex items-center gap-4">
                     <ModeToggle />
-                    <a
-                        href="https://boletea.com.mx/login.asp?gifrompage=2&gitopage=2"
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-900 transition-all hover:bg-[#c90000] hover:text-white dark:bg-white/10 dark:text-white dark:hover:bg-[#c90000]"
-                        title="Iniciar Sesión"
-                    >
-                        <User className="h-5 w-5" />
-                    </a>
+                    <div className="relative" ref={dropdownRef}>
+                        <button
+                            onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-900 transition-all hover:bg-[#c90000] hover:text-white dark:bg-white/10 dark:text-white dark:hover:bg-[#c90000]"
+                            title="Iniciar Sesión"
+                        >
+                            <User className="h-5 w-5" />
+                        </button>
+
+                        {loginDropdownOpen && (
+                            <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-2 shadow-xl shadow-gray-200/50 dark:shadow-none animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                                <a
+                                    href="https://boletea.com.mx/login.asp?gifrompage=2&gitopage=2"
+                                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-neutral-800 hover:text-[#c90000] dark:hover:text-[#c90000] transition-colors"
+                                    onClick={() => setLoginDropdownOpen(false)}
+                                >
+                                    Iniciar como cliente
+                                </a>
+                                <a
+                                    href="https://boletea.com.mx/reporting"
+                                    className="flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-neutral-800 hover:text-[#c90000] dark:hover:text-[#c90000] transition-colors"
+                                    onClick={() => setLoginDropdownOpen(false)}
+                                >
+                                    Iniciar como promotor
+                                </a>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Hamburger Button */}
                     <button

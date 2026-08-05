@@ -117,6 +117,7 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
     const [pendingStatusUpdate, setPendingStatusUpdate] = useState<'processing' | 'approved' | null>(null);
     const [copiedLink, setCopiedLink] = useState(false);
     const [showExportConfirm, setShowExportConfirm] = useState(false);
+    const [showBanamexExportConfirm, setShowBanamexExportConfirm] = useState(false);
 
     const [isMounted, setIsMounted] = useState(false);
 
@@ -404,6 +405,17 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                             </svg>
                             Exportar CSV {status ? `(${status === 'processing' ? 'En Trámite' : status === 'validation_banco_masivo' ? 'Validación Banco Masivo' : status === 'pending' ? 'Pendientes' : status === 'approved' ? 'Aprobados' : status === 'rejected' ? 'Rechazados' : status})` : '(En Trámite)'}
                         </button>
+
+                        {/* <button
+                            type="button"
+                            onClick={() => setShowBanamexExportConfirm(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-md shadow-blue-600/20"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                            </svg>
+                            Exportar Banamex (.xlsx)
+                        </button> */}
                     </div>
                 </div>
 
@@ -1471,6 +1483,85 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                 <button
                                     type="button"
                                     onClick={() => setShowExportConfirm(false)}
+                                    className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-750 transition"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {showBanamexExportConfirm && (
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[70] backdrop-blur-xs animate-in fade-in">
+                        <div className="w-full max-w-md bg-white dark:bg-neutral-900 rounded-3xl p-6 border border-gray-100 dark:border-neutral-800 shadow-2xl space-y-6">
+                            <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                    </svg>
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                                        Exportar a Layout Banamex (.xlsx)
+                                    </h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Selecciona qué solicitudes deseas incluir en el archivo Excel formateado para Banamex.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowBanamexExportConfirm(false);
+                                        const url = route('admin.refunds.requests.export_banamex', {
+                                            search: search || undefined,
+                                            status: status || 'validation_banco_masivo',
+                                            refund_event_id: refundEventId || undefined,
+                                            export_filter: 'new'
+                                        });
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="w-full text-left p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800 transition flex justify-between items-center"
+                                >
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Solo solicitudes nuevas</p>
+                                        <p className="text-[11px] text-gray-400">Exporta únicamente las solicitudes que no han sido descargadas anteriormente.</p>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5 text-blue-600">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowBanamexExportConfirm(false);
+                                        const url = route('admin.refunds.requests.export_banamex', {
+                                            search: search || undefined,
+                                            status: status || 'validation_banco_masivo',
+                                            refund_event_id: refundEventId || undefined,
+                                            export_filter: 'all'
+                                        });
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="w-full text-left p-4 rounded-2xl border border-gray-200 dark:border-neutral-800 hover:bg-gray-50 dark:hover:bg-neutral-800 transition flex justify-between items-center"
+                                >
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">Todas las solicitudes</p>
+                                        <p className="text-[11px] text-gray-400">Exporta todos los registros según los filtros actuales.</p>
+                                    </div>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-5 h-5 text-gray-400">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className="flex gap-3 justify-end pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowBanamexExportConfirm(false)}
                                     className="px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-750 transition"
                                 >
                                     Cancelar

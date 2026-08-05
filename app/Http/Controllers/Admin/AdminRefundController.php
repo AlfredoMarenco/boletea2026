@@ -9,10 +9,15 @@ use App\Models\RefundEvent;
 use App\Models\RefundPurchase;
 use App\Models\RefundRequest;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class AdminRefundController extends Controller
 {
@@ -554,7 +559,7 @@ class AdminRefundController extends Controller
     /**
      * Securely serve uploaded document files to authenticated admin users.
      */
-    public function downloadFile(\Illuminate\Http\Request $request, RefundRequest $refundRequest, string $type)
+    public function downloadFile(Request $request, RefundRequest $refundRequest, string $type)
     {
         $subId = $request->query('subId');
 
@@ -940,7 +945,7 @@ class AdminRefundController extends Controller
 
         $paginatedItems = $filteredPurchases->slice(($page - 1) * $perPage, $perPage)->values();
 
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginator = new LengthAwarePaginator(
             $paginatedItems,
             $total,
             $perPage,
@@ -1228,6 +1233,214 @@ class AdminRefundController extends Controller
             fclose($handle);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Helper to clean Spanish accents and special characters (like Ñ).
+     */
+    private function cleanStringForBanamex(?string $str): string
+    {
+        if (empty($str)) {
+            return '';
+        }
+
+        $unwanted_array = [
+            'Š' => 'S', 'š' => 's', 'Ž' => 'Z', 'ž' => 'z', 'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A', 'Æ' => 'A', 'Ç' => 'C',
+            'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I', 'Ñ' => 'N', 'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O',
+            'Õ' => 'O', 'Ö' => 'O', 'Ø' => 'O', 'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ý' => 'Y', 'Þ' => 'B', 'ß' => 'Ss', 'à' => 'a', 'á' => 'a',
+            'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'æ' => 'a', 'ç' => 'c', 'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i',
+            'î' => 'i', 'ï' => 'i', 'ð' => 'o', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ø' => 'o', 'ù' => 'u', 'ú' => 'u',
+            'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'þ' => 'b', 'ÿ' => 'y',
+        ];
+
+        $str = strtr($str, $unwanted_array);
+
+        // Remove any other character that is not alphanumeric, whitespace, comma, or slash
+        $str = preg_replace('/[^A-Za-z0-9\s,\/]/', '', $str);
+
+        return mb_strtoupper(trim($str));
+    }
+
+    /**
+     * Export refund requests to Banamex Layout in Excel (.xlsx) format.
+     */
+    public function exportBanamexExcel(Request $request)
+    {
+        $search = $request->input('search');
+        $status = $request->input('status') ?: 'validation_banco_masivo';
+        $refundEventId = $request->input('refund_event_id');
+        $exportFilter = $request->input('export_filter', 'all');
+
+        $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('buyer_name', 'like', "%{$search}%")
+                    ->orWhere('clabe', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($refundEventId) {
+            $query->where('refund_event_id', $refundEventId);
+        }
+
+        if ($exportFilter === 'new') {
+            $query->where('exported', false);
+        }
+
+        $requests = $query->orderBy('created_at', 'asc')->get();
+
+        if ($requests->isNotEmpty()) {
+            RefundRequest::whereIn('id', $requests->pluck('id'))->update(['exported' => true]);
+        }
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Headers
+        $headers = [
+            'Tipo Transacción',
+            'Tipo Cuenta Origen',
+            'Sucursal Cuenta Origen',
+            'Cuenta Origen',
+            'Tipo Cuenta Destino',
+            'Sucursal Cuenta Destino',
+            'Cuenta Destino',
+            'Banco Destino',
+            'Importe',
+            'Moneda',
+            'Descripción',
+            'Concepto',
+            'Referencia',
+            'Beneficiario',
+            'Plazo',
+            'Fecha de aplicación',
+            'Hora de aplicación',
+            'RFC',
+            'IVA',
+        ];
+
+        foreach ($headers as $colIndex => $header) {
+            $colLetter = Coordinate::stringFromColumnIndex($colIndex + 1);
+            $sheet->setCellValueExplicit($colLetter.'1', $header, DataType::TYPE_STRING);
+        }
+
+        $rowIndex = 2;
+        foreach ($requests as $req) {
+            $purchase = $req->refundPurchase;
+            $allTickets = $purchase?->tickets_details ?? [];
+
+            $isPartial = ! empty($req->validated_tickets) && is_array($req->validated_tickets);
+            $validatedList = $isPartial ? array_map(fn ($v) => strtolower(trim((string) $v)), $req->validated_tickets) : [];
+
+            $matchedTickets = $isPartial
+                ? collect($allTickets)->filter(function ($t) use ($validatedList) {
+                    return in_array(strtolower(trim((string) ($t['barcode'] ?? ''))), $validatedList)
+                        || in_array(strtolower(trim((string) ($t['ticket_id'] ?? ''))), $validatedList);
+                })->values()->all()
+                : $allTickets;
+
+            $targetTickets = count($matchedTickets) > 0 ? $matchedTickets : $allTickets;
+
+            $includeCharges = (bool) ($req->include_charges ?? false);
+
+            if (count($targetTickets) > 0) {
+                $priceTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['price'] ?? 0));
+                $cxsTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxs'] ?? 0));
+                $tcTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['tc'] ?? 0));
+                $cxadmTotal = collect($targetTickets)->sum(fn ($t) => (float) ($t['cxadm'] ?? 0));
+                $chargesTotal = $cxsTotal + $tcTotal + $cxadmTotal;
+            } else {
+                $priceTotal = (float) ($purchase?->amount ?? 0);
+                $chargesTotal = 0;
+            }
+
+            $montoRefund = $includeCharges ? ($priceTotal + $chargesTotal) : $priceTotal;
+
+            // Determinar Tipo Transacción (Col A)
+            $clabe = trim((string) $req->clabe);
+            $isBanamex = str_starts_with($clabe, '002');
+            $tipoTransaccion = $isBanamex ? '03' : '09';
+
+            // Banco Destino (Col H)
+            $bancoDestino = '';
+            if ($tipoTransaccion === '09') {
+                $bancoDestino = substr($clabe, 0, 3);
+            }
+
+            // Cuenta Destino (Col G)
+            $cuentaDestino = str_pad($clabe, 18, '0', STR_PAD_LEFT);
+
+            // Importe (Col I)
+            $importe = number_format($montoRefund, 2, '.', '');
+
+            // Descripción (Col K)
+            $descripcion = substr($this->cleanStringForBanamex('REEMBOLSO BOLETOS'), 0, 40);
+
+            // Referencia (Col M)
+            $referenciaNumerica = preg_replace('/[^0-9]/', '', $req->order_number);
+            $referenciaNumerica = substr($referenciaNumerica, -7);
+
+            // Beneficiario (Col N)
+            $beneficiario = '';
+            if ($tipoTransaccion === '09') {
+                $split = $this->splitSpanishName($req->buyer_name);
+                $nombres = trim($split['nombre'].' '.$split['segundo_nombre']);
+                $paterno = trim($split['apellido_paterno']);
+                $materno = trim($split['apellido_materno']);
+
+                $nombresClean = $this->cleanStringForBanamex($nombres);
+                $paternoClean = $this->cleanStringForBanamex($paterno);
+                $maternoClean = $this->cleanStringForBanamex($materno);
+
+                $beneficiario = substr($nombresClean.','.$paternoClean.'/'.$maternoClean, 0, 55);
+            }
+
+            $rowValues = [
+                $tipoTransaccion,       // A
+                '01',                   // B
+                '0930',                 // C
+                '7004272',              // D
+                '40',                   // E
+                '',                     // F
+                $cuentaDestino,         // G
+                $bancoDestino,          // H
+                $importe,               // I
+                '001',                  // J
+                $descripcion,           // K
+                '',                     // L
+                $referenciaNumerica,    // M
+                $beneficiario,          // N
+                '00',                   // O
+                '',                     // P
+                '',                     // Q
+                '',                     // R
+                '',                      // S
+            ];
+
+            foreach ($rowValues as $colIndex => $value) {
+                $colLetter = Coordinate::stringFromColumnIndex($colIndex + 1);
+                $sheet->setCellValueExplicit($colLetter.$rowIndex, $value, DataType::TYPE_STRING);
+            }
+
+            $rowIndex++;
+        }
+
+        $filename = 'Reembolsos_Banamex_'.date('Ymd_His').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
         ]);
     }
 }

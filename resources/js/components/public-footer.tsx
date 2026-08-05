@@ -67,6 +67,12 @@ export default function PublicFooter() {
                                     Puntos de Venta
                                 </Link>
                             </li>
+                            <li>
+                                <a href="https://boletea.com.mx/reporting" className="hover:text-[#c90000] transition-colors flex items-center gap-2 group">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-muted-foreground group-hover:bg-[#c90000] transition-colors"></span>
+                                    Acceso a Promotores
+                                </a>
+                            </li>
                         </ul>
                     </div>
 

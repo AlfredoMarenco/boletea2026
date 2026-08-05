@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Bank;
 use App\Models\ExternalEvent;
 use App\Models\RefundEvent;
 use App\Models\RefundPurchase;
@@ -7,13 +8,14 @@ use App\Models\RefundRequest;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 beforeEach(function () {
     Storage::fake('local');
 
     // Seed test banks
-    \App\Models\Bank::create(['code' => '012', 'name' => 'BBVA', 'enabled' => true]);
-    \App\Models\Bank::create(['code' => '002', 'name' => 'BANAMEX', 'enabled' => false]);
+    Bank::create(['code' => '012', 'name' => 'BBVA', 'enabled' => true]);
+    Bank::create(['code' => '002', 'name' => 'BANAMEX', 'enabled' => false]);
 
     // Create an external event and link it to refunds
     $this->externalEvent = ExternalEvent::create([
@@ -484,7 +486,7 @@ test('customer must confirm card last four digits and can update rejected clabe'
         'admin_notes' => 'CLABE incorrecta',
     ]);
 
-    $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $signedUrl = URL::temporarySignedRoute(
         'refund.update_documents',
         now()->addHours(48),
         ['refundRequest' => $request->id]
@@ -521,7 +523,7 @@ test('customer must confirm card last four digits and can update rejected clabe'
 });
 
 test('canceled web purchases in CSV return web_auto_refund status and automatic refund message', function () {
-    $purchase = \App\Models\RefundPurchase::create([
+    $purchase = RefundPurchase::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'AUTO999',
         'buyer_name' => 'Web Customer',
@@ -548,7 +550,7 @@ test('canceled web purchases in CSV return web_auto_refund status and automatic 
 });
 
 test('existing requests in database return already_requested status with explicit existing request message', function () {
-    $purchase = \App\Models\RefundPurchase::create([
+    $purchase = RefundPurchase::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'EXISTING123',
         'buyer_name' => 'Existing Customer',
@@ -561,7 +563,7 @@ test('existing requests in database return already_requested status with explici
         ],
     ]);
 
-    \App\Models\RefundRequest::create([
+    RefundRequest::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'EXISTING123',
         'buyer_name' => 'Existing Customer',
@@ -585,7 +587,7 @@ test('existing requests in database return already_requested status with explici
 });
 
 test('rejected request with pending document corrections blocks new request for same order', function () {
-    $purchase = \App\Models\RefundPurchase::create([
+    $purchase = RefundPurchase::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'REJCORR123',
         'buyer_name' => 'Rejected Customer',
@@ -598,7 +600,7 @@ test('rejected request with pending document corrections blocks new request for 
         ],
     ]);
 
-    $req = \App\Models\RefundRequest::create([
+    $req = RefundRequest::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'REJCORR123',
         'buyer_name' => 'Rejected Customer',
@@ -624,7 +626,7 @@ test('rejected request with pending document corrections blocks new request for 
 });
 
 test('rejected request with all documents validated (final rejection) allows re-submitting order', function () {
-    $purchase = \App\Models\RefundPurchase::create([
+    $purchase = RefundPurchase::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'FINALREJ456',
         'buyer_name' => 'Final Rejected Customer',
@@ -637,7 +639,7 @@ test('rejected request with all documents validated (final rejection) allows re-
         ],
     ]);
 
-    $req = \App\Models\RefundRequest::create([
+    $req = RefundRequest::create([
         'refund_event_id' => $this->refundEvent->id,
         'order_number' => 'FINALREJ456',
         'buyer_name' => 'Final Rejected Customer',
@@ -694,7 +696,7 @@ test('customer cannot view or submit update documents for a totally rejected req
         'validated_documents' => ['clabe' => true],
     ]);
 
-    $signedUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+    $signedUrl = URL::temporarySignedRoute(
         'refund.update_documents',
         now()->addHours(48),
         ['refundRequest' => $req->id]
@@ -876,4 +878,45 @@ test('admin can export requests to CSV and filter only new ones while marking th
     // Verify req2 was marked as exported in the database
     $req2->refresh();
     expect($req2->exported)->toBeTrue();
+});
+
+test('admin can export requests to Banamex Excel layout', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    // Create a Banamex refund request (CLABE starts with 002)
+    $req1 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '11111',
+        'buyer_name' => 'JUAN PEREZ SANCHEZ',
+        'email' => 'juan@example.com',
+        'clabe' => '002345678901234567',
+        'bank_name' => 'BANAMEX',
+        'status' => 'validation_banco_masivo',
+        'exported' => false,
+    ]);
+
+    // Create a non-Banamex refund request (CLABE starts with 012)
+    $req2 = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '22222',
+        'buyer_name' => 'PEDRO GABRIEL ALBA RODRIGUEZ',
+        'email' => 'pedro@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'validation_banco_masivo',
+        'exported' => false,
+    ]);
+
+    $response = $this->get(route('admin.refunds.requests.export_banamex', [
+        'status' => 'validation_banco_masivo',
+        'export_filter' => 'all',
+    ]));
+
+    $response->assertStatus(200);
+    $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Verify both requests are now marked as exported
+    expect($req1->refresh()->exported)->toBeTrue();
+    expect($req2->refresh()->exported)->toBeTrue();
 });
