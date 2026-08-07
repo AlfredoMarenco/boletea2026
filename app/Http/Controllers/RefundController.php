@@ -7,9 +7,12 @@ use App\Models\Bank;
 use App\Models\RefundEvent;
 use App\Models\RefundPurchase;
 use App\Models\RefundRequest;
+use App\Models\SiteSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 
@@ -31,7 +34,7 @@ class RefundController extends Controller
                 ];
             });
 
-        $ticketSampleImage = \App\Models\SiteSetting::where('key', 'refund_ticket_sample_image')->first()?->value;
+        $ticketSampleImage = SiteSetting::where('key', 'refund_ticket_sample_image')->first()?->value;
         $banks = Bank::orderBy('name')->get();
 
         return Inertia::render('Public/Refund/RefundForm', [
@@ -491,7 +494,7 @@ class RefundController extends Controller
 
         $trackingId = null;
         do {
-            $trackingId = 'REF-'.strtoupper(\Illuminate\Support\Str::random(8));
+            $trackingId = 'REF-'.strtoupper(Str::random(8));
         } while (RefundRequest::where('tracking_id', $trackingId)->exists());
 
         $refundRequest = RefundRequest::create([
@@ -510,6 +513,16 @@ class RefundController extends Controller
             'status' => 'pending',
         ]);
 
+        $refundRequest->histories()->create([
+            'action' => 'created',
+            'description' => 'Solicitud de reembolso creada por el cliente.',
+            'details' => [
+                'status' => 'pending',
+                'buyer_name' => $refundRequest->buyer_name,
+                'email' => $refundRequest->email,
+            ],
+        ]);
+
         // Send email notification
         if ($refundRequest->email) {
             try {
@@ -525,7 +538,7 @@ class RefundController extends Controller
         ]);
     }
 
-    public function showSuccess(): InertiaResponse|\Illuminate\Http\RedirectResponse
+    public function showSuccess(): InertiaResponse|RedirectResponse
     {
         $orderNumber = session('order_number');
         $trackingId = session('tracking_id');
@@ -737,6 +750,15 @@ class RefundController extends Controller
         $updates['admin_notes'] = null;
 
         $refundRequest->update($updates);
+
+        $refundRequest->histories()->create([
+            'action' => 'documents_corrected',
+            'description' => 'El cliente corrigió y subió la documentación rechazada: '.implode(', ', $invalidDocs),
+            'details' => [
+                'invalid_docs_before' => $invalidDocs,
+                'status' => 'pending',
+            ],
+        ]);
 
         return redirect()->route('refund.success')->with([
             'order_number' => $refundRequest->order_number,

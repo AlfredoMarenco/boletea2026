@@ -95,6 +95,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const [lastNameMaternal, setLastNameMaternal] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('');
     const [clabe, setClabe] = useState('');
+    const [confirmClabe, setConfirmClabe] = useState('');
     const [bankName, setBankName] = useState('');
     const [cardLastFour, setCardLastFour] = useState('');
     const [clabeError, setClabeError] = useState('');
@@ -484,8 +485,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
 
         const isCard = requiresCard;
         
-        if (!firstName || !lastNamePaternal || !lastNameMaternal || !clabe || !bankName || !ineFile || !email) {
+        if (!firstName || !lastNamePaternal || !lastNameMaternal || !clabe || !confirmClabe || !bankName || !ineFile || !email) {
             setErrorMessage('Por favor rellene todos los campos requeridos (nombre, apellidos, banco, correo) y suba la INE.');
+            return;
+        }
+
+        if (clabe !== confirmClabe) {
+            setErrorMessage('La CLABE interbancaria y su confirmación no coinciden. Por favor verifique.');
             return;
         }
 
@@ -1069,6 +1075,11 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                         setClabeError('');
                                                     }
                                                 }}
+                                                onCopy={(e) => e.preventDefault()}
+                                                onPaste={(e) => e.preventDefault()}
+                                                onCut={(e) => e.preventDefault()}
+                                                onDrag={(e) => e.preventDefault()}
+                                                onDrop={(e) => e.preventDefault()}
                                                 maxLength={18}
                                                 required
                                                 placeholder="012345678901234567"
@@ -1079,6 +1090,29 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                     {clabeError}
                                                 </p>
                                             )}
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                                Confirmar CLABE Interbancaria (18 dígitos) <span className="text-red-500 ml-1">*</span>
+                                            </label>
+                                            <p className="text-[11px] text-gray-400 mb-2">
+                                                Escriba nuevamente su CLABE interbancaria para confirmación.
+                                            </p>
+                                            <input
+                                                type="text"
+                                                value={confirmClabe}
+                                                onChange={(e) => setConfirmClabe(e.target.value.replace(/\D/g, ''))}
+                                                onCopy={(e) => e.preventDefault()}
+                                                onPaste={(e) => e.preventDefault()}
+                                                onCut={(e) => e.preventDefault()}
+                                                onDrag={(e) => e.preventDefault()}
+                                                onDrop={(e) => e.preventDefault()}
+                                                maxLength={18}
+                                                required
+                                                placeholder="012345678901234567"
+                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                            />
                                         </div>
 
                                         <div>

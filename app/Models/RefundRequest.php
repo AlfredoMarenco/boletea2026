@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\URL;
 
 class RefundRequest extends Model
@@ -60,6 +61,11 @@ class RefundRequest extends Model
     public function refundPurchase(): BelongsTo
     {
         return $this->belongsTo(RefundPurchase::class);
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(RefundRequestHistory::class)->orderBy('created_at', 'desc');
     }
 
     /**

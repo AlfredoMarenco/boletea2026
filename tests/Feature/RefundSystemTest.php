@@ -920,3 +920,61 @@ test('admin can export requests to Banamex Excel layout', function () {
     expect($req1->refresh()->exported)->toBeTrue();
     expect($req2->refresh()->exported)->toBeTrue();
 });
+
+test('creating a refund request records history', function () {
+    $ine = UploadedFile::fake()->image('ine.jpg');
+    $tickets = UploadedFile::fake()->image('tickets.jpg');
+
+    $response = $this->post('/reembolsos/solicitar', [
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '12345',
+        'buyer_name' => 'Cash Buyer Modified',
+        'email' => 'cashcontact@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'ine' => $ine,
+        'ticket_photos' => ['BC111' => $tickets],
+        'validated_tickets' => ['BC111'],
+    ]);
+
+    $response->assertRedirect(route('refund.success'));
+
+    $request = RefundRequest::where('order_number', '12345')->first();
+    expect($request)->not->toBeNull();
+    expect($request->histories)->toHaveCount(1);
+    expect($request->histories->first()->action)->toBe('created');
+});
+
+test('admin updating refund request status records history', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $refundRequest = RefundRequest::create([
+        'refund_event_id' => $this->refundEvent->id,
+        'order_number' => '11111',
+        'buyer_name' => 'JUAN PEREZ SANCHEZ',
+        'email' => 'juan@example.com',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'status' => 'pending',
+    ]);
+
+    $response = $this->post(route('admin.refunds.requests.status', $refundRequest), [
+        'status' => 'processing',
+        'admin_notes' => 'Procesando en test',
+        'buyer_name' => 'JUAN PEREZ SANCHEZ',
+        'include_charges' => false,
+        'validated_documents' => ['clabe' => true, 'ine' => true],
+    ]);
+
+    $response->assertSessionHasNoErrors();
+
+    $refundRequest->refresh();
+    expect($refundRequest->status)->toBe('processing');
+    expect($refundRequest->histories)->toHaveCount(1);
+
+    $history = $refundRequest->histories->first();
+    expect($history->action)->toBe('status_updated');
+    expect($history->user_id)->toBe($user->id);
+    expect($history->description)->toContain("Estado cambiado de 'pending' a 'processing'");
+});

@@ -33,6 +33,19 @@ interface RefundRequest {
     validated_documents?: Record<string, boolean> | null;
     include_charges?: boolean;
     created_at: string;
+    histories?: Array<{
+        id: number;
+        refund_request_id: number;
+        user_id: number | null;
+        action: string;
+        description: string;
+        details: any;
+        created_at: string;
+        user?: {
+            name: string;
+            email: string;
+        } | null;
+    }>;
     refund_event?: {
         external_event?: {
             title: string;
@@ -1132,6 +1145,39 @@ export default function RequestsIndex({ requests, refundEvents, filters }: Props
                                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                             Archivo seleccionado para guardar: <strong>{proofFile.name}</strong> ({(proofFile.size / 1024).toFixed(1)} KB)
                                         </div>
+                                    )}
+                                </div>
+
+                                {/* History of Changes (Bitácora) */}
+                                <div className="border-t border-gray-200 dark:border-neutral-800 pt-5 space-y-3">
+                                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Historial de Cambios / Bitácora</h3>
+                                    {selectedRequest.histories && selectedRequest.histories.length > 0 ? (
+                                        <div className="relative border-l border-gray-200 dark:border-neutral-800 ml-2.5 pl-6 space-y-4">
+                                            {selectedRequest.histories.map((hist) => {
+                                                const formattedDate = new Date(hist.created_at).toLocaleString('es-MX', {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                });
+                                                return (
+                                                    <div key={hist.id} className="relative group">
+                                                        {/* Timeline Bullet */}
+                                                        <span className="absolute -left-[31px] top-1.5 flex h-3 w-3 items-center justify-center rounded-full bg-gray-300 dark:bg-neutral-700 ring-4 ring-white dark:ring-neutral-900 group-hover:bg-[#c90000] transition-colors" />
+                                                        
+                                                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                            {formattedDate}
+                                                        </div>
+                                                        <div className="text-sm font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+                                                            {hist.description}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic">No hay historial registrado para esta solicitud.</p>
                                     )}
                                 </div>
 

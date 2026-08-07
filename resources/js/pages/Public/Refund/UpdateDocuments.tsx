@@ -2,7 +2,7 @@ import PublicHeader from '@/components/public-header';
 import PublicFooter from '@/components/public-footer';
 import { GeolocationProvider } from '@/contexts/GeolocationProvider';
 import { Head, useForm } from '@inertiajs/react';
-import React from 'react';
+import React, { useState } from 'react';
 
 interface Bank {
     id: number;
@@ -54,8 +54,19 @@ export default function UpdateDocuments({ refundRequest, banks }: Props) {
         setData(key, file);
     };
 
+    const [confirmClabe, setConfirmClabe] = useState('');
+    const [clabeMatchError, setClabeMatchError] = useState('');
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (refundRequest.invalid_documents.includes('clabe')) {
+            if (data.clabe !== confirmClabe) {
+                setClabeMatchError('La CLABE interbancaria y su confirmación no coinciden. Por favor verifique.');
+                return;
+            }
+            setClabeMatchError('');
+        }
 
         // Post to the current URL which has the signed signature
         post(window.location.href, {
@@ -188,11 +199,39 @@ export default function UpdateDocuments({ refundRequest, banks }: Props) {
                                                         }
                                                     }
                                                 }}
+                                                onCopy={(e) => e.preventDefault()}
+                                                onPaste={(e) => e.preventDefault()}
+                                                onCut={(e) => e.preventDefault()}
+                                                onDrag={(e) => e.preventDefault()}
+                                                onDrop={(e) => e.preventDefault()}
                                                 className="w-full text-sm font-mono tracking-wider px-3.5 py-2.5 border border-gray-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#c90000]"
                                                 placeholder="012345678901234567"
                                             />
                                             {errors.clabe && (
                                                 <p className="text-xs text-red-500 mt-1 font-medium">{errors.clabe}</p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                                                Confirmar Nueva CLABE Interbancaria (18 dígitos) <span className="text-[#c90000]">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                maxLength={18}
+                                                required
+                                                value={confirmClabe}
+                                                onChange={(e) => setConfirmClabe(e.target.value.replace(/\D/g, '').slice(0, 18))}
+                                                onCopy={(e) => e.preventDefault()}
+                                                onPaste={(e) => e.preventDefault()}
+                                                onCut={(e) => e.preventDefault()}
+                                                onDrag={(e) => e.preventDefault()}
+                                                onDrop={(e) => e.preventDefault()}
+                                                className="w-full text-sm font-mono tracking-wider px-3.5 py-2.5 border border-gray-300 dark:border-neutral-700 rounded-xl bg-white dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#c90000]"
+                                                placeholder="012345678901234567"
+                                            />
+                                            {clabeMatchError && (
+                                                <p className="text-xs text-red-500 mt-1 font-medium">{clabeMatchError}</p>
                                             )}
                                         </div>
 

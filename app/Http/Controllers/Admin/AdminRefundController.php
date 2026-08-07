@@ -387,9 +387,20 @@ class AdminRefundController extends Controller
                     }
                 }
 
+                $oldStatus = $req->status;
                 $req->update([
                     'status' => 'validation_banco_masivo',
                     'validated_documents' => $validatedDocs,
+                ]);
+
+                $req->histories()->create([
+                    'user_id' => request()->user()?->id,
+                    'action' => 'csv_import',
+                    'description' => 'Estado cambiado a "validation_banco_masivo" por importación masiva de CSV.',
+                    'details' => [
+                        'old_status' => $oldStatus,
+                        'new_status' => 'validation_banco_masivo',
+                    ],
                 ]);
 
                 // Send email
@@ -422,7 +433,7 @@ class AdminRefundController extends Controller
             $sortDirection = 'asc';
         }
 
-        $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase']);
+        $query = RefundRequest::with(['refundEvent.externalEvent', 'refundPurchase', 'histories.user']);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -466,6 +477,15 @@ class AdminRefundController extends Controller
                 'status' => 'Esta solicitud de reembolso ha sido rechazada definitivamente y no se puede modificar.',
             ]);
         }
+
+        $original = [
+            'status' => $refundRequest->status,
+            'buyer_name' => $refundRequest->buyer_name,
+            'admin_notes' => $refundRequest->admin_notes,
+            'validated_documents' => $refundRequest->validated_documents,
+            'include_charges' => $refundRequest->include_charges,
+            'proof_of_payment_path' => $refundRequest->proof_of_payment_path,
+        ];
 
         $validated = $request->validate([
             'status' => 'required|in:pending,processing,validation_banco_masivo,approved,rejected',
@@ -543,6 +563,44 @@ class AdminRefundController extends Controller
             'validated_documents' => $validatedDocs,
             'include_charges' => $request->boolean('include_charges'),
         ]);
+
+        $changes = [];
+        $descriptions = [];
+        $adminName = $request->user()?->name ?? 'Administrador';
+
+        if ($original['status'] !== $refundRequest->status) {
+            $changes['status'] = ['old' => $original['status'], 'new' => $refundRequest->status];
+            $descriptions[] = "Estado cambiado de '{$original['status']}' a '{$refundRequest->status}'";
+        }
+        if ($original['buyer_name'] !== $refundRequest->buyer_name) {
+            $changes['buyer_name'] = ['old' => $original['buyer_name'], 'new' => $refundRequest->buyer_name];
+            $descriptions[] = "Nombre del beneficiario modificado a '{$refundRequest->buyer_name}'";
+        }
+        if ($original['admin_notes'] !== $refundRequest->admin_notes) {
+            $changes['admin_notes'] = ['old' => $original['admin_notes'], 'new' => $refundRequest->admin_notes];
+            $descriptions[] = 'Notas de administrador modificadas';
+        }
+        if ($original['include_charges'] !== $refundRequest->include_charges) {
+            $changes['include_charges'] = ['old' => $original['include_charges'], 'new' => $refundRequest->include_charges];
+            $descriptions[] = 'Incluir cargos de servicio cambiado a '.($refundRequest->include_charges ? 'Sí' : 'No');
+        }
+        if ($original['proof_of_payment_path'] !== $refundRequest->proof_of_payment_path) {
+            $changes['proof_of_payment_path'] = ['old' => $original['proof_of_payment_path'], 'new' => $refundRequest->proof_of_payment_path];
+            $descriptions[] = 'Comprobante de pago cargado/actualizado';
+        }
+        if ($original['validated_documents'] != $refundRequest->validated_documents) {
+            $changes['validated_documents'] = ['old' => $original['validated_documents'], 'new' => $refundRequest->validated_documents];
+            $descriptions[] = 'Documentos/boletos validados actualizados';
+        }
+
+        if (! empty($changes)) {
+            $refundRequest->histories()->create([
+                'user_id' => $request->user()?->id,
+                'action' => 'status_updated',
+                'description' => "Modificado por {$adminName}: ".implode(', ', $descriptions),
+                'details' => $changes,
+            ]);
+        }
 
         // Send status update notification email if email is registered
         if ($refundRequest->email) {
