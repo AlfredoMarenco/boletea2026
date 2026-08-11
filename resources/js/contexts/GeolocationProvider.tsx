@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+    createContext,
+    useContext,
+    useState,
+    useEffect,
+    ReactNode,
+} from 'react';
 
 interface GeolocationData {
     city: string | null;
@@ -15,7 +21,9 @@ interface GeolocationContextType extends GeolocationData {
     refreshLocation: () => void;
 }
 
-const GeolocationContext = createContext<GeolocationContextType | undefined>(undefined);
+const GeolocationContext = createContext<GeolocationContextType | undefined>(
+    undefined,
+);
 
 const STORAGE_KEY = 'user_geolocation';
 const STORAGE_EXPIRY_HOURS = 24;
@@ -49,12 +57,17 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
                     headers: {
                         'User-Agent': 'Boletea2026/1.0',
                     },
-                }
+                },
             );
             const data = await response.json();
 
             if (data && data.address) {
-                const city = data.address.city || data.address.town || data.address.village || data.address.municipality || null;
+                const city =
+                    data.address.city ||
+                    data.address.town ||
+                    data.address.village ||
+                    data.address.municipality ||
+                    null;
                 const state = data.address.state || null;
                 const country = data.address.country || null;
 
@@ -82,7 +95,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
             }
         } catch (error) {
             console.error('Reverse geocoding error:', error);
-            setLocationData(prev => ({
+            setLocationData((prev) => ({
                 ...prev,
                 isLoading: false,
                 error: 'No se pudo obtener la ciudad',
@@ -92,7 +105,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
 
     const requestLocation = () => {
         if (!navigator.geolocation) {
-            setLocationData(prev => ({
+            setLocationData((prev) => ({
                 ...prev,
                 isLoading: false,
                 error: 'Geolocalización no disponible',
@@ -108,14 +121,18 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
             },
             (error) => {
                 // Use warn instead of error to avoid server-side log spam from bots/IAB browsers
-                console.warn('Geolocation unavailable:', error.code, error.message);
+                console.warn(
+                    'Geolocation unavailable:',
+                    error.code,
+                    error.message,
+                );
                 let errorMessage = 'No se pudo obtener la ubicación';
 
                 if (error.code === error.PERMISSION_DENIED) {
                     errorMessage = 'Permiso de ubicación denegado';
                 }
 
-                setLocationData(prev => ({
+                setLocationData((prev) => ({
                     ...prev,
                     isLoading: false,
                     error: errorMessage,
@@ -126,7 +143,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
                 enableHighAccuracy: false,
                 timeout: 10000,
                 maximumAge: 300000, // Accept cached GPS position up to 5 minutes old
-            }
+            },
         );
     };
 
@@ -164,7 +181,7 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
 
     const refreshLocation = () => {
         localStorage.removeItem(STORAGE_KEY);
-        setLocationData(prev => ({ ...prev, isLoading: true }));
+        setLocationData((prev) => ({ ...prev, isLoading: true }));
         requestLocation();
     };
 
@@ -176,12 +193,14 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
 
         if (!hasStored) {
             // Mark as not loading since we won't auto-request
-            setLocationData(prev => ({ ...prev, isLoading: false }));
+            setLocationData((prev) => ({ ...prev, isLoading: false }));
         }
     }, []);
 
     return (
-        <GeolocationContext.Provider value={{ ...locationData, refreshLocation }}>
+        <GeolocationContext.Provider
+            value={{ ...locationData, refreshLocation }}
+        >
             {children}
         </GeolocationContext.Provider>
     );
@@ -190,7 +209,9 @@ export function GeolocationProvider({ children }: { children: ReactNode }) {
 export function useGeolocation() {
     const context = useContext(GeolocationContext);
     if (context === undefined) {
-        throw new Error('useGeolocation must be used within a GeolocationProvider');
+        throw new Error(
+            'useGeolocation must be used within a GeolocationProvider',
+        );
     }
     return context;
 }

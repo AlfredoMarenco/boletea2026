@@ -39,25 +39,37 @@ export default function GlobalLoader() {
         };
     }, []);
 
-    if (!isLoading || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'))) return null;
+    if (
+        !isLoading ||
+        (typeof window !== 'undefined' &&
+            window.location.pathname.startsWith('/admin'))
+    )
+        return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white dark:bg-background transition-opacity duration-500 ease-in-out">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white transition-opacity duration-500 ease-in-out dark:bg-background">
             <div className="relative flex flex-col items-center">
                 <img
-                    src={resolvedAppearance === 'dark' ? '/images/logoBoleteaDarkTheme.png' : 'https://boletea.com/img/logoBoletea.png'}
+                    src={
+                        resolvedAppearance === 'dark'
+                            ? '/images/logoBoleteaDarkTheme.png'
+                            : 'https://boletea.com/img/logoBoletea.png'
+                    }
                     alt="Boletea Logo"
                     className="h-24 w-auto"
-                    onError={(e) => { e.currentTarget.src = 'https://boletea.com/img/logoBoletea.png'; }}
+                    onError={(e) => {
+                        e.currentTarget.src =
+                            'https://boletea.com/img/logoBoletea.png';
+                    }}
                 />
                 <div className="mt-8 flex gap-2">
                     <span className="sr-only">Cargando...</span>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.75s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.6s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.45s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="h-2 w-2 rounded-full bg-[#c90000] dark:bg-white animate-bounce"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] [animation-delay:-0.75s] dark:bg-white"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] [animation-delay:-0.6s] dark:bg-white"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] [animation-delay:-0.45s] dark:bg-white"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] [animation-delay:-0.3s] dark:bg-white"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] [animation-delay:-0.15s] dark:bg-white"></div>
+                    <div className="h-2 w-2 animate-bounce rounded-full bg-[#c90000] dark:bg-white"></div>
                 </div>
             </div>
         </div>

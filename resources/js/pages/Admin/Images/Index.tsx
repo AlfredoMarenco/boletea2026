@@ -29,12 +29,18 @@ export default function Index({ images }: Props) {
         setUploading(true);
         try {
             await axios.post(route('admin.images.store'), formData, {
-                headers: { 'Accept': 'application/json' }
+                headers: { Accept: 'application/json' },
             });
             router.reload({ only: ['images'] });
         } catch (error: any) {
-            console.error('Error uploading image:', error.response?.data || error);
-            let msg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error(
+                'Error uploading image:',
+                error.response?.data || error,
+            );
+            let msg =
+                error.response?.data?.message ||
+                error.message ||
+                'Error desconocido';
             if (error.response?.data?.errors?.image) {
                 msg = error.response.data.errors.image[0];
             }
@@ -48,16 +54,27 @@ export default function Index({ images }: Props) {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('¿Seguro que deseas eliminar esta imagen para siempre? Si está vinculada a un evento, dejará de verse.')) return;
+        if (
+            !confirm(
+                '¿Seguro que deseas eliminar esta imagen para siempre? Si está vinculada a un evento, dejará de verse.',
+            )
+        )
+            return;
 
         try {
             await axios.delete(route('admin.images.destroy', id), {
-                headers: { 'Accept': 'application/json' }
+                headers: { Accept: 'application/json' },
             });
             router.reload({ only: ['images'] });
         } catch (error: any) {
-            console.error('Error deleting image:', error.response?.data || error);
-            const msg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error(
+                'Error deleting image:',
+                error.response?.data || error,
+            );
+            const msg =
+                error.response?.data?.message ||
+                error.message ||
+                'Error desconocido';
             alert('Error al eliminar: ' + msg);
         }
     };
@@ -68,20 +85,20 @@ export default function Index({ images }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Multimedia', href: '#' }
-        ]}>
+        <AppLayout breadcrumbs={[{ title: 'Multimedia', href: '#' }]}>
             <Head title="Biblioteca de Medios" />
 
-            <div className="p-6 max-w-7xl mx-auto">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+            <div className="mx-auto max-w-7xl p-6">
+                <div className="mb-6 flex flex-col items-start justify-between sm:flex-row sm:items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center">
-                            <ImageIcon className="w-6 h-6 mr-2" />
+                        <h1 className="flex items-center text-2xl font-bold text-gray-800 dark:text-gray-100">
+                            <ImageIcon className="mr-2 h-6 w-6" />
                             Biblioteca de Medios
                         </h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Administra todas las imágenes subidas al sistema. Estas imágenes pueden ser reutilizadas en eventos y puntos de venta.
+                        <p className="mt-1 text-sm text-gray-500">
+                            Administra todas las imágenes subidas al sistema.
+                            Estas imágenes pueden ser reutilizadas en eventos y
+                            puntos de venta.
                         </p>
                     </div>
 
@@ -95,9 +112,17 @@ export default function Index({ images }: Props) {
                             disabled={uploading}
                         />
                         <label htmlFor="global-upload">
-                            <Button variant="default" asChild disabled={uploading}>
+                            <Button
+                                variant="default"
+                                asChild
+                                disabled={uploading}
+                            >
                                 <span>
-                                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                                    {uploading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Upload className="mr-2 h-4 w-4" />
+                                    )}
                                     Subir Nueva Imagen
                                 </span>
                             </Button>
@@ -105,48 +130,60 @@ export default function Index({ images }: Props) {
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-background dark:border-border p-6">
+                <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-border dark:bg-background">
                     {images.length > 0 ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                             {images.map((img) => (
-                                <div key={img.id} className="relative group rounded-lg overflow-hidden border bg-gray-50 dark:bg-card border-gray-200 dark:border-border transition-all hover:shadow-md">
-                                    <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-background border-b border-gray-100 dark:border-border">
-                                        <a href={img.url} target="_blank" rel="noreferrer">
+                                <div
+                                    key={img.id}
+                                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50 transition-all hover:shadow-md dark:border-border dark:bg-card"
+                                >
+                                    <div className="aspect-square overflow-hidden border-b border-gray-100 bg-gray-100 dark:border-border dark:bg-background">
+                                        <a
+                                            href={img.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
                                             <img
                                                 src={img.url}
-                                                className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                                className="h-full w-full object-cover transition-transform group-hover:scale-105"
                                                 alt="Library item"
                                                 loading="lazy"
                                             />
                                         </a>
                                     </div>
-                                    <div className="p-2 flex justify-between items-center bg-white dark:bg-card">
+                                    <div className="flex items-center justify-between bg-white p-2 dark:bg-card">
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 text-xs px-2"
-                                            onClick={() => copyToClipboard(img.url)}
+                                            className="h-8 px-2 text-xs"
+                                            onClick={() =>
+                                                copyToClipboard(img.url)
+                                            }
                                             title="Copiar URL"
                                         >
-                                            <Copy className="w-3.5 h-3.5 mr-1" /> URL
+                                            <Copy className="mr-1 h-3.5 w-3.5" />{' '}
+                                            URL
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                            className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
                                             onClick={() => handleDelete(img.id)}
                                             title="Eliminar"
                                         >
-                                            <Trash className="w-4 h-4" />
+                                            <Trash className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-20 text-gray-500 dark:text-muted-foreground">
-                            <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Biblioteca vacía</h3>
+                        <div className="py-20 text-center text-gray-500 dark:text-muted-foreground">
+                            <ImageIcon className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                            <h3 className="mb-1 text-lg font-medium text-gray-900 dark:text-gray-100">
+                                Biblioteca vacía
+                            </h3>
                             <p>No has subido ninguna imagen todavía.</p>
                         </div>
                     )}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\DistanceCalculator;
 use App\Models\Category;
+use App\Models\Event;
 use App\Models\ExternalEvent;
 use App\Models\SiteSetting;
 use App\Models\Venue;
@@ -16,7 +17,8 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        $baseQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
+        // 1. Base Query for External Events
+        $baseExternalQuery = ExternalEvent::with(['venue', 'categories', 'state', 'cityLocation'])
             ->where('status', 'published')
             ->whereDoesntHave('parentEvents')
             ->where(function ($q) {
@@ -26,47 +28,85 @@ class HomeController extends Controller
                 })->orWhere('end_date', '>=', now()->startOfDay());
             });
 
-        $carouselEvents = (clone $baseQuery)
+        // 2. Base Query for Local Events
+        $baseLocalQuery = Event::with(['venue'])
+            ->where('status', 'published')
+            ->where('start_date', '>=', now()->startOfDay());
+
+        // --- Fetch & Map Carousel Events ---
+        $externalCarousel = (clone $baseExternalQuery)
             ->orderByDesc('is_featured')
             ->orderBy('start_date', 'asc')
             ->take(15)
             ->get();
 
+        $localCarousel = (clone $baseLocalQuery)
+            ->orderBy('start_date', 'asc')
+            ->take(10)
+            ->get();
+
+        $carouselEvents = $externalCarousel->map(fn ($e) => $this->mapEvent($e, false))
+            ->merge($localCarousel->map(fn ($e) => $this->mapEvent($e, true)))
+            ->sortBy(function ($e) {
+                return [
+                    ! ($e['is_featured'] ?? false),
+                    $e['start_date'],
+                ];
+            })
+            ->take(15)
+            ->values();
+
         $settings = SiteSetting::all()->pluck('value', 'key');
         $showFeatured = ($settings['show_featured_events'] ?? '1') === '1';
         $showNearby = ($settings['show_nearby_events'] ?? '1') === '1';
 
-        // 1.5. Featured Events
+        // --- Fetch & Map Featured Events ---
         $featuredEvents = collect();
         if ($showFeatured) {
-            $featuredEvents = (clone $baseQuery)
+            $featuredExternal = (clone $baseExternalQuery)
                 ->where('is_featured', true)
                 ->orderBy('start_date', 'asc')
                 ->get();
+
+            // Local events don't have is_featured column, but we could mark all published ones or default to none
+            $featuredEvents = $featuredExternal->map(fn ($e) => $this->mapEvent($e, false))->values();
         }
 
-        // 2. Filtered Events (Main Grid - "Todos los eventos" or Search Results)
-        $query = clone $baseQuery;
+        // --- Main Grid (Filtered Events) ---
+        $queryExt = clone $baseExternalQuery;
+        $queryLoc = clone $baseLocalQuery;
 
-        // Apply Filters
+        // Apply Filters for Search
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%'.$request->search.'%');
+            $term = $request->search;
+            $queryExt->where('title', 'like', '%'.$term.'%');
+            $queryLoc->where('name', 'like', '%'.$term.'%');
         }
         if ($request->filled('city')) {
-            $query->where('city', $request->city);
+            $city = $request->city;
+            $queryExt->where('city', $city);
+            // Local events can check if venue matches city
+            $queryLoc->whereHas('venue', function ($q) use ($city) {
+                $q->where('city', 'like', '%'.$city.'%');
+            });
         }
         if ($request->filled('venue_id')) {
-            $query->where('venue_id', $request->venue_id);
+            $venueId = $request->venue_id;
+            $queryExt->where('venue_id', $venueId);
+            $queryLoc->where('venue_id', $venueId);
         }
         if ($request->filled('category') && $request->category !== 'all') {
-            $query->whereHas('categories', function ($q) use ($request) {
-                $q->where('name', $request->category);
+            $cat = $request->category;
+            $queryExt->whereHas('categories', function ($q) use ($cat) {
+                $q->where('name', $cat);
             });
+            // Local events category check (local events don't strictly have categories relation in schema yet)
+            $queryLoc->whereRaw('0 = 1'); // don't match any for now
         }
         if ($request->filled('date_start') && $request->filled('date_end')) {
             $start = $request->date_start;
             $end = $request->date_end;
-            $query->where(function ($q) use ($start, $end) {
+            $queryExt->where(function ($q) use ($start, $end) {
                 $q->where(function ($sq) use ($start, $end) {
                     $sq->whereNotNull('end_date')
                         ->where('start_date', '<=', $end)
@@ -76,11 +116,19 @@ class HomeController extends Controller
                         ->whereBetween('start_date', [$start, $end]);
                 });
             });
+
+            $queryLoc->whereBetween('start_date', [$start, $end]);
         }
 
-        $allEvents = $query->orderBy('start_date', 'asc')->get();
+        $allExternal = $queryExt->orderBy('start_date', 'asc')->get();
+        $allLocal = $queryLoc->orderBy('start_date', 'asc')->get();
 
-        // 3. Nearby Events (Strict 40km from VENUE)
+        $allEvents = $allExternal->map(fn ($e) => $this->mapEvent($e, false))
+            ->merge($allLocal->map(fn ($e) => $this->mapEvent($e, true)))
+            ->sortBy('start_date')
+            ->values();
+
+        // --- Fetch & Map Nearby Events ---
         $nearbyEvents = collect();
         $userLocation = session('user_location');
 
@@ -95,16 +143,20 @@ class HomeController extends Controller
             $userLng = $userLocation['lng'] ?? null;
 
             if ($userLat && $userLng) {
-                $potentialNearby = (clone $baseQuery)->get();
+                $potentialExternal = (clone $baseExternalQuery)->get();
+                $potentialLocal = (clone $baseLocalQuery)->get();
+
+                $potentialNearby = $potentialExternal->map(fn ($e) => $this->mapEvent($e, false))
+                    ->merge($potentialLocal->map(fn ($e) => $this->mapEvent($e, true)));
 
                 // Calculate distances for all potential events
                 $eventsWithDistance = $potentialNearby->map(function ($event) use ($userLat, $userLng) {
-                    $lat = $event->venue->latitude ?? null;
-                    $lng = $event->venue->longitude ?? null;
+                    $lat = $event['venue']['latitude'] ?? null;
+                    $lng = $event['venue']['longitude'] ?? null;
 
                     if ($lat && $lng) {
                         $distance = DistanceCalculator::haversine($userLat, $userLng, $lat, $lng);
-                        $event->distance_km = round($distance, 1);
+                        $event['distance_km'] = round($distance, 1);
 
                         return $event;
                     }
@@ -114,17 +166,12 @@ class HomeController extends Controller
 
                 // First priority: Events strictly within 40km
                 $strictNearby = $eventsWithDistance->filter(function ($event) {
-                    return $event->distance_km <= 40;
+                    return $event['distance_km'] <= 40;
                 });
 
-                // If we don't have 4 events, dynamically expand to take the closest 4 overall
-                // (or fewer if there are less than 4 upcoming events total)
                 if ($strictNearby->count() < 4) {
                     $nearbyEvents = $eventsWithDistance->take(4);
                 } else {
-                    // We have 4 or more within 40km, so limit to 4 to match UI constraint
-                    // If you want to show MORE than 4 when they are within 40km, remove the take(4) here.
-                    // But the requirement says "always show 4", so let's guarantee exactly 4 if possible.
                     $nearbyEvents = $strictNearby->take(4);
                 }
             }
@@ -145,7 +192,6 @@ class HomeController extends Controller
                 ->inRandomOrder()
                 ->first();
 
-            // Optional: append resolved attrs for Inertia context
             if ($bannerEvent) {
                 $bannerEvent->append(['resolved_image', 'resolved_link', 'resolved_title']);
             }
@@ -153,11 +199,11 @@ class HomeController extends Controller
 
         return Inertia::render('Welcome', [
             'canRegister' => Features::enabled(Features::registration()),
-            'events' => $allEvents, // "Todos los eventos" / Filtered results
-            'nearbyEvents' => $nearbyEvents, // "Eventos cerca de ti"
-            'featuredEvents' => $featuredEvents, // "Eventos Destacados"
-            'carouselEvents' => $carouselEvents, // "Próximos eventos" (Carousel)
-            'bannerEvent' => $bannerEvent, // For the floating banner card
+            'events' => $allEvents,
+            'nearbyEvents' => $nearbyEvents,
+            'featuredEvents' => $featuredEvents,
+            'carouselEvents' => $carouselEvents,
+            'bannerEvent' => $bannerEvent,
             'showFeatured' => $showFeatured,
             'showNearby' => $showNearby,
             'filters' => $request->all(['search', 'city', 'venue_id', 'category', 'date_start', 'date_end']),
@@ -170,9 +216,62 @@ class HomeController extends Controller
             'meta' => [
                 'title' => 'Inicio - Boletea',
                 'description' => 'Descubre los mejores conciertos, festivales y obras de teatro en tu ciudad con Boletea. Compra tus boletos de forma segura y vive la experiencia.',
-                'image' => asset('logo.ico'), // Default logo image
+                'image' => asset('logo.ico'),
                 'url' => route('home'),
             ],
         ]);
+    }
+
+    /**
+     * Map events (external or local) to a unified shape.
+     */
+    private function mapEvent($event, bool $isLocal = false): array
+    {
+        if ($isLocal) {
+            return [
+                'id' => $event->id,
+                'title' => $event->name,
+                'slug' => $event->slug,
+                'description' => $event->description,
+                'start_date' => $event->start_date ? $event->start_date->toIso8601String() : null,
+                'end_date' => $event->end_date ? $event->end_date->toIso8601String() : null,
+                'image_path' => $event->image_path ? asset('storage/'.$event->image_path) : null,
+                'status' => $event->status,
+                'venue' => $event->venue ? [
+                    'id' => $event->venue->id,
+                    'name' => $event->venue->name,
+                    'address' => $event->venue->address,
+                    'latitude' => $event->venue->latitude,
+                    'longitude' => $event->venue->longitude,
+                ] : null,
+                'categories' => [],
+                'is_local_event' => true,
+                'redirect_external' => false,
+                'is_featured' => false,
+            ];
+        }
+
+        return [
+            'id' => $event->id,
+            'title' => $event->title,
+            'slug' => $event->slug,
+            'description' => $event->description,
+            'start_date' => $event->start_date ? $event->start_date->toIso8601String() : null,
+            'end_date' => $event->end_date ? $event->end_date->toIso8601String() : null,
+            'image_path' => $event->image_path ? asset($event->image_path) : null,
+            'status' => $event->status,
+            'venue' => $event->venue ? [
+                'id' => $event->venue->id,
+                'name' => $event->venue->name,
+                'address' => $event->venue->address,
+                'latitude' => $event->venue->latitude,
+                'longitude' => $event->venue->longitude,
+            ] : null,
+            'categories' => $event->categories ? $event->categories->map(fn ($c) => ['name' => $c->name])->toArray() : [],
+            'is_local_event' => false,
+            'redirect_external' => (bool) $event->redirect_external,
+            'performance_url' => $event->performance_url,
+            'is_featured' => (bool) $event->is_featured,
+        ];
     }
 }

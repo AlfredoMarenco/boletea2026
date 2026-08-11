@@ -7,7 +7,7 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Artisan::command('events:sync', function (\App\Services\EventImportService $service) {
+Artisan::command('events:sync', function (EventImportService $service) {
     $this->info('Iniciando sincronización de eventos...');
 
     try {
@@ -17,11 +17,13 @@ Artisan::command('events:sync', function (\App\Services\EventImportService $serv
         } else {
             $this->error($result['message']);
         }
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         $this->error('Error durante la sincronización: '.$e->getMessage());
     }
 })->purpose('Sincronizar eventos desde la API externa');
 
+use App\Services\EventImportService;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('events:sync')->hourly();
+Schedule::command('reservations:cleanup')->everyMinute();

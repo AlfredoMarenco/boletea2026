@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Event;
 use App\Models\ExternalEvent;
 use Inertia\Inertia;
 
@@ -14,10 +15,22 @@ class EventController extends Controller
         }])
             ->where('slug', $slug)
             ->orWhere('id', $slug)
-            ->firstOrFail();
+            ->first();
 
-        if ($event->status !== 'published' && ! auth()->check()) {
-            return redirect()->route('home');
+        if (! $event) {
+            // Check if there is a local event matching this slug or ID
+            $localEvent = Event::with(['venue'])
+                ->where('slug', $slug)
+                ->orWhere('id', $slug)
+                ->firstOrFail();
+
+            if ($localEvent->status !== 'published' && ! auth()->check()) {
+                return redirect()->route('home');
+            }
+
+            return Inertia::render('Public/LocalEventShow', [
+                'event' => $localEvent,
+            ]);
         }
 
         $id = $event->id; // for related events logic

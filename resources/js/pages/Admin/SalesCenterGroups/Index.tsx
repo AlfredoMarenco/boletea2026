@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Edit, Trash } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -28,14 +28,19 @@ export default function Index({ groups }: { groups: SalesCenterGroup[] }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: route('admin.dashboard') },
-            { title: 'Grupos de Ventas', href: route('admin.sales-center-groups.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Dashboard', href: route('admin.dashboard') },
+                {
+                    title: 'Grupos de Ventas',
+                    href: route('admin.sales-center-groups.index'),
+                },
+            ]}
+        >
             <Head title="Grupos de Ventas" />
 
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Grupos de Centros de Venta
                     </h1>
@@ -54,33 +59,59 @@ export default function Index({ groups }: { groups: SalesCenterGroup[] }) {
                                 <TableHead>Nombre</TableHead>
                                 <TableHead>Descripción</TableHead>
                                 <TableHead>Puntos de Venta</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {groups.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                    <TableCell
+                                        colSpan={4}
+                                        className="py-10 text-center text-muted-foreground"
+                                    >
                                         No hay grupos registrados.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 groups.map((group) => (
                                     <TableRow key={group.id}>
-                                        <TableCell className="font-medium">{group.name}</TableCell>
-                                        <TableCell className="text-muted-foreground">{group.description || '-'}</TableCell>
+                                        <TableCell className="font-medium">
+                                            {group.name}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {group.description || '-'}
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant="secondary">
-                                                {group.sales_centers_count} Puntos
+                                                {group.sales_centers_count}{' '}
+                                                Puntos
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('admin.sales-center-groups.edit', group.id)}>
+                                        <TableCell className="space-x-2 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={route(
+                                                        'admin.sales-center-groups.edit',
+                                                        group.id,
+                                                    )}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(group.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                    handleDelete(group.id)
+                                                }
+                                                className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                            >
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </TableCell>

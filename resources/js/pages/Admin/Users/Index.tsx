@@ -21,7 +21,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from '@/components/ui/alert-dialog';
 
 interface User {
     id: number;
@@ -58,11 +58,15 @@ export default function Index({ users }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Usuarios', href: route('admin.users.index') }]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Usuarios', href: route('admin.users.index') },
+            ]}
+        >
             <Head title="Administrar Usuarios" />
 
             <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                         Usuarios
                     </h1>
@@ -73,7 +77,7 @@ export default function Index({ users }: Props) {
                     </Button>
                 </div>
 
-                <div className="bg-white rounded-md shadow overflow-hidden dark:bg-background border border-gray-200 dark:border-border flex flex-col">
+                <div className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow dark:border-border dark:bg-background">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -81,7 +85,9 @@ export default function Index({ users }: Props) {
                                     <TableHead>ID</TableHead>
                                     <TableHead>Nombre</TableHead>
                                     <TableHead>Email</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    <TableHead className="text-right">
+                                        Acciones
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -89,32 +95,67 @@ export default function Index({ users }: Props) {
                                     users.data.map((user) => (
                                         <TableRow key={user.id}>
                                             <TableCell>{user.id}</TableCell>
-                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {user.name}
+                                            </TableCell>
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button asChild size="icon" variant="ghost">
-                                                        <Link href={route('admin.users.edit', user.id)}>
+                                                    <Button
+                                                        asChild
+                                                        size="icon"
+                                                        variant="ghost"
+                                                    >
+                                                        <Link
+                                                            href={route(
+                                                                'admin.users.edit',
+                                                                user.id,
+                                                            )}
+                                                        >
                                                             <Edit className="h-4 w-4" />
                                                         </Link>
                                                     </Button>
 
                                                     <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button size="icon" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950">
+                                                        <AlertDialogTrigger
+                                                            asChild
+                                                        >
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950"
+                                                            >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
                                                             <AlertDialogHeader>
-                                                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                                                <AlertDialogTitle>
+                                                                    ¿Estás
+                                                                    seguro?
+                                                                </AlertDialogTitle>
                                                                 <AlertDialogDescription>
-                                                                    Esta acción no se puede deshacer. Esto eliminará permanentemente al usuario.
+                                                                    Esta acción
+                                                                    no se puede
+                                                                    deshacer.
+                                                                    Esto
+                                                                    eliminará
+                                                                    permanentemente
+                                                                    al usuario.
                                                                 </AlertDialogDescription>
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
-                                                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                                                <AlertDialogAction onClick={() => handleDelete(user.id)} className="bg-red-500 text-white hover:bg-red-600">
+                                                                <AlertDialogCancel>
+                                                                    Cancelar
+                                                                </AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            user.id,
+                                                                        )
+                                                                    }
+                                                                    className="bg-red-500 text-white hover:bg-red-600"
+                                                                >
                                                                     Eliminar
                                                                 </AlertDialogAction>
                                                             </AlertDialogFooter>
@@ -126,7 +167,10 @@ export default function Index({ users }: Props) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                                        <TableCell
+                                            colSpan={4}
+                                            className="py-8 text-center text-gray-500"
+                                        >
                                             No hay usuarios registrados.
                                         </TableCell>
                                     </TableRow>
@@ -137,30 +181,36 @@ export default function Index({ users }: Props) {
 
                     {/* Pagination */}
                     {users.total > 0 && (
-                        <div className="p-4 border-t border-gray-200 dark:border-border flex items-center justify-between">
+                        <div className="flex items-center justify-between border-t border-gray-200 p-4 dark:border-border">
                             <div className="text-sm text-gray-500">
-                                Mostrando {users.from} a {users.to} de {users.total} resultados
+                                Mostrando {users.from} a {users.to} de{' '}
+                                {users.total} resultados
                             </div>
                             <div className="flex gap-1">
-                                {users.links.map((link, i) => (
+                                {users.links.map((link, i) =>
                                     link.url ? (
                                         <Link
                                             key={i}
                                             href={link.url}
-                                            className={`px-3 py-1 text-sm rounded-md transition-colors ${link.active
-                                                ? 'bg-primary text-primary-foreground font-medium'
-                                                : 'hover:bg-accent text-foreground'
-                                                }`}
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                            className={`rounded-md px-3 py-1 text-sm transition-colors ${
+                                                link.active
+                                                    ? 'bg-primary font-medium text-primary-foreground'
+                                                    : 'text-foreground hover:bg-accent'
+                                            }`}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
                                         />
                                     ) : (
                                         <span
                                             key={i}
                                             className="px-3 py-1 text-sm text-gray-400"
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
                                         />
-                                    )
-                                ))}
+                                    ),
+                                )}
                             </div>
                         </div>
                     )}

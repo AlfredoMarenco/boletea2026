@@ -61,7 +61,11 @@ export default function Index({ events, filters }: Props) {
                 router.get(
                     route('admin.events.index'),
                     { show_past: filters?.show_past, search: searchQuery },
-                    { preserveState: true, preserveScroll: true, replace: true }
+                    {
+                        preserveState: true,
+                        preserveScroll: true,
+                        replace: true,
+                    },
                 );
             }
         }, 300);
@@ -77,12 +81,16 @@ export default function Index({ events, filters }: Props) {
         router.get(
             route('admin.events.index'),
             { show_past: checked, search: filters?.search },
-            { preserveState: true, preserveScroll: true }
+            { preserveState: true, preserveScroll: true },
         );
     };
 
     const handleDelete = (id: number) => {
-        if (confirm('¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.')) {
+        if (
+            confirm(
+                '¿Estás seguro de que deseas eliminar este evento? Esta acción no se puede deshacer.',
+            )
+        ) {
             router.delete(route('admin.events.destroy', id), {
                 preserveScroll: true,
             });
@@ -90,11 +98,18 @@ export default function Index({ events, filters }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Eventos Externos', href: route('admin.events.index') }]}>
+        <AppLayout
+            breadcrumbs={[
+                {
+                    title: 'Eventos Externos',
+                    href: route('admin.events.index'),
+                },
+            ]}
+        >
             <Head title="Administrar Eventos" />
 
             <div className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                <div className="mb-6 flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                         Eventos Externos
                     </h1>
@@ -107,26 +122,37 @@ export default function Index({ events, filters }: Props) {
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
-                        <div className="flex items-center gap-2 border-l border-gray-200 dark:border-border pl-4">
+                        <div className="flex items-center gap-2 border-l border-gray-200 pl-4 dark:border-border">
                             <Switch
                                 id="show-past"
                                 checked={filters?.show_past}
                                 onCheckedChange={handleTogglePast}
                             />
-                            <Label htmlFor="show-past" className="cursor-pointer text-sm font-medium whitespace-nowrap">
+                            <Label
+                                htmlFor="show-past"
+                                className="cursor-pointer text-sm font-medium whitespace-nowrap"
+                            >
                                 Mostrar pasados
                             </Label>
                         </div>
                         <Button asChild variant="default">
-                            <Link href={route('admin.events.create')}>Crear Evento</Link>
+                            <Link href={route('admin.events.create')}>
+                                Crear Evento
+                            </Link>
                         </Button>
-                        <Button onClick={handleSync} disabled={processing} variant="outline">
-                            {processing ? 'Sincronizando...' : 'Sincronizar API'}
+                        <Button
+                            onClick={handleSync}
+                            disabled={processing}
+                            variant="outline"
+                        >
+                            {processing
+                                ? 'Sincronizando...'
+                                : 'Sincronizar API'}
                         </Button>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-md shadow overflow-hidden dark:bg-background border border-gray-200 dark:border-border flex flex-col">
+                <div className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow dark:border-border dark:bg-background">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
@@ -136,7 +162,9 @@ export default function Index({ events, filters }: Props) {
                                     <TableHead>Título</TableHead>
                                     <TableHead>Ciudad</TableHead>
                                     <TableHead>Estado</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
+                                    <TableHead className="text-right">
+                                        Acciones
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -145,19 +173,49 @@ export default function Index({ events, filters }: Props) {
                                         <TableRow key={event.id}>
                                             <TableCell>{event.id}</TableCell>
                                             <TableCell>
-                                                <img src={event.image_path || undefined} alt={event.title} className="w-20 h-20 object-contain" />
+                                                <img
+                                                    src={
+                                                        event.image_path ||
+                                                        undefined
+                                                    }
+                                                    alt={event.title}
+                                                    className="h-20 w-20 object-contain"
+                                                />
                                             </TableCell>
-                                            <TableCell className="font-medium">{event.title}</TableCell>
-                                            <TableCell>{event.city || '-'}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {event.title}
+                                            </TableCell>
                                             <TableCell>
-                                                <Badge variant={event.status === 'published' ? 'default' : 'secondary'}>
-                                                    {event.status === 'published' ? 'Publicado' : 'Borrador'}
+                                                {event.city || '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={
+                                                        event.status ===
+                                                        'published'
+                                                            ? 'default'
+                                                            : 'secondary'
+                                                    }
+                                                >
+                                                    {event.status ===
+                                                    'published'
+                                                        ? 'Publicado'
+                                                        : 'Borrador'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <Button asChild size="sm" variant="ghost">
-                                                        <Link href={route('admin.events.edit', event.id)}>
+                                                    <Button
+                                                        asChild
+                                                        size="sm"
+                                                        variant="ghost"
+                                                    >
+                                                        <Link
+                                                            href={route(
+                                                                'admin.events.edit',
+                                                                event.id,
+                                                            )}
+                                                        >
                                                             Editar
                                                         </Link>
                                                     </Button>
@@ -165,9 +223,13 @@ export default function Index({ events, filters }: Props) {
                                                         size="sm"
                                                         variant="ghost"
                                                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                                                        onClick={() => handleDelete(event.id)}
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                event.id,
+                                                            )
+                                                        }
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -175,8 +237,12 @@ export default function Index({ events, filters }: Props) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                                            No hay eventos registrados. Intenta sincronizar.
+                                        <TableCell
+                                            colSpan={7}
+                                            className="py-8 text-center text-gray-500"
+                                        >
+                                            No hay eventos registrados. Intenta
+                                            sincronizar.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -186,30 +252,36 @@ export default function Index({ events, filters }: Props) {
 
                     {/* Pagination */}
                     {events.total > 0 && (
-                        <div className="p-4 border-t border-gray-200 dark:border-border flex items-center justify-between">
+                        <div className="flex items-center justify-between border-t border-gray-200 p-4 dark:border-border">
                             <div className="text-sm text-gray-500">
-                                Mostrando {events.from} a {events.to} de {events.total} resultados
+                                Mostrando {events.from} a {events.to} de{' '}
+                                {events.total} resultados
                             </div>
                             <div className="flex gap-1">
-                                {events.links.map((link, i) => (
+                                {events.links.map((link, i) =>
                                     link.url ? (
                                         <Link
                                             key={i}
                                             href={link.url}
-                                            className={`px-3 py-1 text-sm rounded-md transition-colors ${link.active
-                                                ? 'bg-primary text-primary-foreground font-medium'
-                                                : 'hover:bg-accent text-foreground'
-                                                }`}
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                            className={`rounded-md px-3 py-1 text-sm transition-colors ${
+                                                link.active
+                                                    ? 'bg-primary font-medium text-primary-foreground'
+                                                    : 'text-foreground hover:bg-accent'
+                                            }`}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
                                         />
                                     ) : (
                                         <span
                                             key={i}
                                             className="px-3 py-1 text-sm text-gray-400"
-                                            dangerouslySetInnerHTML={{ __html: link.label }}
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
                                         />
-                                    )
-                                ))}
+                                    ),
+                                )}
                             </div>
                         </div>
                     )}

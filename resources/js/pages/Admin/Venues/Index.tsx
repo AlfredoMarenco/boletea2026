@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Pencil, Trash2, MapPin } from 'lucide-react';
 
 interface Venue {
@@ -31,58 +31,78 @@ export default function Index({ venues }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Recintos', href: route('admin.venues.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Recintos', href: route('admin.venues.index') },
+            ]}
+        >
             <Head title="Recintos" />
 
-            <div className="p-6 max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
+            <div className="mx-auto max-w-6xl p-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold">Recintos (Venues)</h1>
                     <Button asChild>
                         <Link href={route('admin.venues.create')}>
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="mr-2 h-4 w-4" />
                             Nuevo Recinto
                         </Link>
                     </Button>
                 </div>
 
-                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nombre</TableHead>
                                 <TableHead>Ubicación</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {venues.length > 0 ? (
                                 venues.map((venue) => (
                                     <TableRow key={venue.id}>
-                                        <TableCell className="font-medium">{venue.name}</TableCell>
+                                        <TableCell className="font-medium">
+                                            {venue.name}
+                                        </TableCell>
                                         <TableCell>
-                                            {venue.latitude && venue.longitude ? (
-                                                <span className="flex items-center text-green-600 text-xs">
-                                                    <MapPin className="h-3 w-3 mr-1" />
+                                            {venue.latitude &&
+                                            venue.longitude ? (
+                                                <span className="flex items-center text-xs text-green-600">
+                                                    <MapPin className="mr-1 h-3 w-3" />
                                                     Coordenadas OK
                                                 </span>
                                             ) : (
-                                                <span className="text-orange-500 text-xs">Sin ubicación</span>
+                                                <span className="text-xs text-orange-500">
+                                                    Sin ubicación
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="icon" asChild>
-                                                    <Link href={route('admin.venues.edit', venue.id)}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={route(
+                                                            'admin.venues.edit',
+                                                            venue.id,
+                                                        )}
+                                                    >
                                                         <Pencil className="h-4 w-4" />
                                                     </Link>
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleDelete(venue.id)}
+                                                    className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    onClick={() =>
+                                                        handleDelete(venue.id)
+                                                    }
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -92,7 +112,10 @@ export default function Index({ venues }: Props) {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-24 text-center">
+                                    <TableCell
+                                        colSpan={3}
+                                        className="h-24 text-center"
+                                    >
                                         No hay recintos registrados.
                                     </TableCell>
                                 </TableRow>

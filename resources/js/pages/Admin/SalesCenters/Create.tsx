@@ -49,13 +49,17 @@ export default function Create({ states }: { states: State[] }) {
         payment_methods_card: false,
     });
 
-    const handleScheduleChange = (dayKey: string, field: string, value: any) => {
+    const handleScheduleChange = (
+        dayKey: string,
+        field: string,
+        value: any,
+    ) => {
         setData('opening_hours', {
             ...data.opening_hours,
             [dayKey]: {
                 ...data.opening_hours[dayKey],
-                [field]: value
-            }
+                [field]: value,
+            },
         });
     };
 
@@ -69,14 +73,19 @@ export default function Create({ states }: { states: State[] }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Puntos de Venta', href: route('admin.sales-centers.index') },
-            { title: 'Nuevo', href: '#' },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                {
+                    title: 'Puntos de Venta',
+                    href: route('admin.sales-centers.index'),
+                },
+                { title: 'Nuevo', href: '#' },
+            ]}
+        >
             <Head title="Nuevo Punto de Venta" />
 
-            <div className="p-6 max-w-4xl mx-auto">
-                <div className="flex items-center gap-4 mb-6">
+            <div className="mx-auto max-w-4xl p-6">
+                <div className="mb-6 flex items-center gap-4">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href={route('admin.sales-centers.index')}>
                             <ArrowLeft className="h-5 w-5" />
@@ -85,18 +94,27 @@ export default function Create({ states }: { states: State[] }) {
                     <h1 className="text-2xl font-bold">Nuevo Punto de Venta</h1>
                 </div>
 
-                <form onSubmit={submit} className="space-y-8 bg-card p-6 rounded-xl border shadow-sm">
+                <form
+                    onSubmit={submit}
+                    className="space-y-8 rounded-xl border bg-card p-6 shadow-sm"
+                >
                     {/* Basic Info */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre</Label>
                             <Input
                                 id="name"
                                 value={data.name}
-                                onChange={e => setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
                                 placeholder="Ej. Taquilla Principal"
                             />
-                            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+                            {errors.name && (
+                                <span className="text-sm text-red-500">
+                                    {errors.name}
+                                </span>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -105,38 +123,68 @@ export default function Create({ states }: { states: State[] }) {
                                 id="logo"
                                 type="file"
                                 accept="image/*"
-                                onChange={e => setData('logo_path', e.target.files ? e.target.files[0] : null)}
+                                onChange={(e) =>
+                                    setData(
+                                        'logo_path',
+                                        e.target.files
+                                            ? e.target.files[0]
+                                            : null,
+                                    )
+                                }
                             />
-                            {errors.logo_path && <span className="text-red-500 text-sm">{errors.logo_path}</span>}
+                            {errors.logo_path && (
+                                <span className="text-sm text-red-500">
+                                    {errors.logo_path}
+                                </span>
+                            )}
                         </div>
 
                         {/* Checkbox para mostrar que solo venden boleto digital */}
 
                         <div className="space-y-2">
-                            <Label htmlFor="is_digital_only">¿Solo venden boleto digital?</Label>
-                            <p className="text-sm text-muted-foreground">Si está activo, se mostrará un mensaje en el punto de venta que indica que solo venden boletos digitales.</p>
+                            <Label htmlFor="is_digital_only">
+                                ¿Solo venden boleto digital?
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                                Si está activo, se mostrará un mensaje en el
+                                punto de venta que indica que solo venden
+                                boletos digitales.
+                            </p>
                             <Switch
                                 id="is_digital_only"
                                 checked={data.is_digital_only}
-                                onCheckedChange={value => setData('is_digital_only', value)}
+                                onCheckedChange={(value) =>
+                                    setData('is_digital_only', value)
+                                }
                             />
                         </div>
                         {/*  Checkboxes que deje seleccionar si se puede pagar con tarjeta y efectivo o segun lo que se le asigne */}
                         <div className="space-y-2">
-                            <Label htmlFor="payment_methods">Métodos de pago</Label>
-                            <p className="text-sm text-muted-foreground">Selecciona los métodos de pago que se aceptan en el punto de venta.</p>
+                            <Label htmlFor="payment_methods">
+                                Métodos de pago
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                                Selecciona los métodos de pago que se aceptan en
+                                el punto de venta.
+                            </p>
                             <div className="flex gap-4">
-                                <Label htmlFor="payment_methods">Efectivo</Label>
+                                <Label htmlFor="payment_methods">
+                                    Efectivo
+                                </Label>
                                 <Switch
                                     id="payment_methods_cash"
                                     checked={data.payment_methods_cash}
-                                    onCheckedChange={value => setData('payment_methods_cash', value)}
+                                    onCheckedChange={(value) =>
+                                        setData('payment_methods_cash', value)
+                                    }
                                 />
-                                <Label htmlFor="payment_methods">Tarjeta</Label>    
+                                <Label htmlFor="payment_methods">Tarjeta</Label>
                                 <Switch
                                     id="payment_methods_card"
                                     checked={data.payment_methods_card}
-                                    onCheckedChange={value => setData('payment_methods_card', value)}
+                                    onCheckedChange={(value) =>
+                                        setData('payment_methods_card', value)
+                                    }
                                 />
                             </div>
                         </div>
@@ -149,7 +197,7 @@ export default function Create({ states }: { states: State[] }) {
                                 <Textarea
                                     id="address"
                                     value={data.address}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                         setData('address', e.target.value);
                                         setSearchQuery(e.target.value);
                                     }}
@@ -158,15 +206,21 @@ export default function Create({ states }: { states: State[] }) {
                                 <Button
                                     type="button"
                                     variant="secondary"
-                                    onClick={() => setMapSearchQuery(searchQuery)}
+                                    onClick={() =>
+                                        setMapSearchQuery(searchQuery)
+                                    }
                                     title="Buscar en el mapa"
                                     className="h-auto"
                                 >
-                                    <MapPin className="h-4 w-4 mr-2" />
+                                    <MapPin className="mr-2 h-4 w-4" />
                                     Buscar en Mapa
                                 </Button>
                             </div>
-                            {errors.address && <span className="text-red-500 text-sm">{errors.address}</span>}
+                            {errors.address && (
+                                <span className="text-sm text-red-500">
+                                    {errors.address}
+                                </span>
+                            )}
                         </div>
 
                         <div className="space-y-2 md:col-span-2">
@@ -174,38 +228,63 @@ export default function Create({ states }: { states: State[] }) {
                             <LocationPicker
                                 searchQuery={mapSearchQuery}
                                 onLocationChange={(lat, lng) => {
-                                    setData(data => ({ ...data, latitude: lat, longitude: lng }));
+                                    setData((data) => ({
+                                        ...data,
+                                        latitude: lat,
+                                        longitude: lng,
+                                    }));
                                 }}
                                 onAddressFound={(address) => {
-                                    setData(data => ({ ...data, address: address }));
+                                    setData((data) => ({
+                                        ...data,
+                                        address: address,
+                                    }));
                                     setSearchQuery(address);
                                 }}
                             />
                             {/* Hidden inputs to ensure data is submitted if needed, though useForm handles it */}
                             <p className="text-sm text-gray-500">
-                                Haz clic en el mapa para seleccionar la ubicación exacta o usa el botón "Buscar en Mapa" con la dirección ingresada.
+                                Haz clic en el mapa para seleccionar la
+                                ubicación exacta o usa el botón "Buscar en Mapa"
+                                con la dirección ingresada.
                             </p>
                         </div>
                     </div>
 
                     {/* States */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Estados Relacionados</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-card/50">
+                        <h3 className="text-lg font-semibold">
+                            Estados Relacionados
+                        </h3>
+                        <div className="grid grid-cols-2 gap-4 rounded-lg border bg-card/50 p-4 md:grid-cols-4">
                             {states.map((state) => (
-                                <div key={state.id} className="flex items-center space-x-2">
+                                <div
+                                    key={state.id}
+                                    className="flex items-center space-x-2"
+                                >
                                     <Switch
                                         id={`state-${state.id}`}
                                         checked={data.states.includes(state.id)}
                                         onCheckedChange={(checked) => {
                                             if (checked) {
-                                                setData('states', [...data.states, state.id]);
+                                                setData('states', [
+                                                    ...data.states,
+                                                    state.id,
+                                                ]);
                                             } else {
-                                                setData('states', data.states.filter((id: number) => id !== state.id));
+                                                setData(
+                                                    'states',
+                                                    data.states.filter(
+                                                        (id: number) =>
+                                                            id !== state.id,
+                                                    ),
+                                                );
                                             }
                                         }}
                                     />
-                                    <Label htmlFor={`state-${state.id}`}>{state.name}</Label>
+                                    <Label htmlFor={`state-${state.id}`}>
+                                        {state.name}
+                                    </Label>
                                 </div>
                             ))}
                         </div>
@@ -213,38 +292,67 @@ export default function Create({ states }: { states: State[] }) {
 
                     {/* Schedule */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold">Horarios de Atención</h3>
+                        <h3 className="text-lg font-semibold">
+                            Horarios de Atención
+                        </h3>
                         <div className="grid gap-4">
                             {DAYS.map((day) => {
-                                const schedule = data.opening_hours[day.key] || { closed: true };
+                                const schedule = data.opening_hours[
+                                    day.key
+                                ] || { closed: true };
                                 return (
-                                    <div key={day.key} className="flex items-center gap-4 p-3 rounded-lg border bg-background/50">
-                                        <div className="w-24 font-medium">{day.label}</div>
+                                    <div
+                                        key={day.key}
+                                        className="flex items-center gap-4 rounded-lg border bg-background/50 p-3"
+                                    >
+                                        <div className="w-24 font-medium">
+                                            {day.label}
+                                        </div>
 
                                         <div className="flex items-center gap-2">
                                             <Switch
                                                 checked={!schedule.closed}
-                                                onCheckedChange={(checked) => handleScheduleChange(day.key, 'closed', !checked)}
+                                                onCheckedChange={(checked) =>
+                                                    handleScheduleChange(
+                                                        day.key,
+                                                        'closed',
+                                                        !checked,
+                                                    )
+                                                }
                                             />
-                                            <span className="text-sm text-muted-foreground w-16">
-                                                {schedule.closed ? 'Cerrado' : 'Abierto'}
+                                            <span className="w-16 text-sm text-muted-foreground">
+                                                {schedule.closed
+                                                    ? 'Cerrado'
+                                                    : 'Abierto'}
                                             </span>
                                         </div>
 
                                         {!schedule.closed && (
-                                            <div className="flex items-center gap-2 flex-1">
+                                            <div className="flex flex-1 items-center gap-2">
                                                 <Input
                                                     type="time"
                                                     className="w-32"
                                                     value={schedule.open}
-                                                    onChange={(e) => handleScheduleChange(day.key, 'open', e.target.value)}
+                                                    onChange={(e) =>
+                                                        handleScheduleChange(
+                                                            day.key,
+                                                            'open',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                 />
                                                 <span>a</span>
                                                 <Input
                                                     type="time"
                                                     className="w-32"
                                                     value={schedule.close}
-                                                    onChange={(e) => handleScheduleChange(day.key, 'close', e.target.value)}
+                                                    onChange={(e) =>
+                                                        handleScheduleChange(
+                                                            day.key,
+                                                            'close',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                 />
                                             </div>
                                         )}
@@ -254,21 +362,25 @@ export default function Create({ states }: { states: State[] }) {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t">
+                    <div className="flex items-center justify-between border-t pt-4">
                         <div className="flex items-center gap-2">
                             <Switch
                                 checked={data.is_active}
-                                onCheckedChange={(checked) => setData('is_active', checked)}
+                                onCheckedChange={(checked) =>
+                                    setData('is_active', checked)
+                                }
                             />
                             <Label>Punto de Venta Activo</Label>
                         </div>
 
                         <Button type="submit" disabled={processing}>
-                            {processing ? 'Guardando...' : 'Guardar Punto de Venta'}
+                            {processing
+                                ? 'Guardando...'
+                                : 'Guardar Punto de Venta'}
                         </Button>
                     </div>
                 </form>
-            </div >
-        </AppLayout >
+            </div>
+        </AppLayout>
     );
 }

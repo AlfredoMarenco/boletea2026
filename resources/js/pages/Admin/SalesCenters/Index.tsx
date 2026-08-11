@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Edit, Trash, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,7 +22,11 @@ interface SalesCenter {
     is_digital_only?: boolean;
 }
 
-export default function Index({ salesCenters }: { salesCenters: SalesCenter[] }) {
+export default function Index({
+    salesCenters,
+}: {
+    salesCenters: SalesCenter[];
+}) {
     const handleDelete = (id: number) => {
         if (confirm('¿Estás seguro de eliminar este punto de venta?')) {
             router.delete(route('admin.sales-centers.destroy', id));
@@ -30,14 +34,19 @@ export default function Index({ salesCenters }: { salesCenters: SalesCenter[] })
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: route('admin.dashboard') },
-            { title: 'Puntos de Venta', href: route('admin.sales-centers.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Dashboard', href: route('admin.dashboard') },
+                {
+                    title: 'Puntos de Venta',
+                    href: route('admin.sales-centers.index'),
+                },
+            ]}
+        >
             <Head title="Puntos de Venta" />
 
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Puntos de Venta
                     </h1>
@@ -53,17 +62,26 @@ export default function Index({ salesCenters }: { salesCenters: SalesCenter[] })
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[100px]">Logo</TableHead>
+                                <TableHead className="w-[100px]">
+                                    Logo
+                                </TableHead>
                                 <TableHead>Nombre</TableHead>
                                 <TableHead>Dirección</TableHead>
-                                <TableHead className="w-[100px]">Estado</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="w-[100px]">
+                                    Estado
+                                </TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {salesCenters.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                                    <TableCell
+                                        colSpan={6}
+                                        className="py-10 text-center text-muted-foreground"
+                                    >
                                         No hay puntos de venta registrados.
                                     </TableCell>
                                 </TableRow>
@@ -72,25 +90,62 @@ export default function Index({ salesCenters }: { salesCenters: SalesCenter[] })
                                     <TableRow key={center.id}>
                                         <TableCell>
                                             {center.logo_path ? (
-                                                <img src={center.logo_path} alt={center.name} className="h-10 w-10 object-contain rounded" />
+                                                <img
+                                                    src={center.logo_path}
+                                                    alt={center.name}
+                                                    className="h-10 w-10 rounded object-contain"
+                                                />
                                             ) : (
-                                                <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center text-xs text-gray-400">N/A</div>
+                                                <div className="flex h-10 w-10 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">
+                                                    N/A
+                                                </div>
                                             )}
                                         </TableCell>
-                                        <TableCell className="font-medium">{center.name}</TableCell>
-                                        <TableCell className="max-w-xs truncate" title={center.address}>{center.address}</TableCell>
+                                        <TableCell className="font-medium">
+                                            {center.name}
+                                        </TableCell>
+                                        <TableCell
+                                            className="max-w-xs truncate"
+                                            title={center.address}
+                                        >
+                                            {center.address}
+                                        </TableCell>
                                         <TableCell>
-                                            <Badge variant={center.is_active ? 'default' : 'secondary'}>
-                                                {center.is_active ? 'Activo' : 'Inactivo'}
+                                            <Badge
+                                                variant={
+                                                    center.is_active
+                                                        ? 'default'
+                                                        : 'secondary'
+                                                }
+                                            >
+                                                {center.is_active
+                                                    ? 'Activo'
+                                                    : 'Inactivo'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('admin.sales-centers.edit', center.id)}>
+                                        <TableCell className="space-x-2 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={route(
+                                                        'admin.sales-centers.edit',
+                                                        center.id,
+                                                    )}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(center.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                    handleDelete(center.id)
+                                                }
+                                                className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                            >
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </TableCell>

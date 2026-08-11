@@ -1,0 +1,1602 @@
+import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+    Settings,
+    Hash,
+    Map as MapIcon,
+    Palette,
+    Trash2,
+    Layers,
+    AlignLeft,
+    AlignRight,
+    AlignStartVertical,
+    AlignEndVertical,
+    ChevronDown,
+    ChevronRight,
+    Info,
+    Languages,
+    Navigation,
+    Image as ImageIcon,
+    MoreHorizontal,
+    ArrowLeftRight,
+    ArrowUpDown,
+    Check,
+    Plus,
+    Users,
+    LayoutList,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { SeatingLayout, SeatingNode } from './types';
+
+interface SectionHeaderProps {
+    title: string;
+    icon: React.ComponentType<{ className?: string }>;
+    isOpen: boolean;
+    onToggle: () => void;
+    Action?: React.ComponentType<any> | (() => React.ReactNode);
+}
+
+const SectionHeader: React.FC<SectionHeaderProps> = ({
+    title,
+    icon: Icon,
+    isOpen,
+    onToggle,
+    Action,
+}) => (
+    <div className="flex w-full items-center justify-between pr-2">
+        <button
+            type="button"
+            onClick={onToggle}
+            className="group flex flex-1 items-center justify-between px-1 py-3 transition-colors hover:bg-muted/50"
+        >
+            <div className="flex items-center gap-2">
+                <div
+                    className={cn(
+                        'rounded bg-muted p-1 transition-colors group-hover:bg-background',
+                        isOpen && 'bg-blue-600/10 text-blue-600',
+                    )}
+                >
+                    <Icon className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                    {title}
+                </span>
+            </div>
+            {isOpen ? (
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />
+            ) : (
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" />
+            )}
+        </button>
+        {Action &&
+            (typeof Action === 'function' ? (Action as any)() : Action)}
+    </div>
+);
+
+interface PropertyRowProps {
+    label: string;
+    children: React.ReactNode;
+    info?: string;
+}
+
+const PropertyRow: React.FC<PropertyRowProps> = ({ label, children, info }) => (
+    <div className="flex items-center justify-between gap-4 py-1.5">
+        <div className="flex min-w-[100px] items-center gap-1.5">
+            <Label className="text-[11px] font-medium text-muted-foreground">
+                {label}
+            </Label>
+            {info && (
+                <Info className="h-3 w-3 cursor-help text-muted-foreground/30" />
+            )}
+        </div>
+        <div className="max-w-[120px] flex-1">{children}</div>
+    </div>
+);
+
+interface InspectorProps {
+    layout: SeatingLayout;
+    onUpdateConfig: (newConfig: any) => void;
+    selectedNodes: SeatingNode[];
+    onUpdate: (properties: any) => void;
+    onDelete: () => void;
+    onAlign: (direction: string) => void;
+    onRedistribute: (axis: 'x' | 'y') => void;
+    onCaptureSeats: (sectionNodeId: string) => void;
+}
+
+
+const DraggableNumberInput = ({ value, onChange, onComplete, className, min = -15, max = 15, step = 0.5, speed = 0.1 }: any) => {
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [localValue, setLocalValue] = React.useState(value);
+    const startX = React.useRef(0);
+    const startVal = React.useRef(0);
+
+    React.useEffect(() => {
+        if (!isDragging) setLocalValue(value);
+    }, [value, isDragging]);
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        startX.current = e.clientX;
+        startVal.current = localValue || 0;
+        setIsDragging(true);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    };
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX.current;
+        let newVal = startVal.current + (dx * speed);
+        newVal = Math.max(min, Math.min(max, newVal));
+        newVal = Math.round(newVal / step) * step;
+        newVal = parseFloat(newVal.toFixed(4));
+        setLocalValue(newVal);
+        onChange(newVal);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+        if (isDragging) {
+            setIsDragging(false);
+            (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+            if (onComplete) onComplete();
+        }
+    };
+
+    return (
+        <Input
+            type="number"
+            step={step}
+            value={isDragging ? localValue : value}
+            onChange={(e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val)) {
+                    onChange(val);
+                    if (onComplete) onComplete();
+                }
+            }}
+            onBlur={onComplete}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className={cn("cursor-ew-resize select-none", className)}
+            style={{ touchAction: 'none' }}
+        />
+    );
+};
+
+const Inspector: React.FC<InspectorProps> = ({
+    layout,
+    onUpdateConfig,
+    selectedNodes,
+    onUpdate,
+    onDelete,
+    onAlign,
+    onRedistribute,
+    onCaptureSeats,
+}) => {
+    const categories = layout?.config?.categories || [];
+
+    const handleAddCategory = () => {
+        const newCat = {
+            id: 'cat-' + Math.random().toString(36).substr(2, 9),
+            name: 'Nueva Categoría',
+            color:
+                '#' +
+                Math.floor(Math.random() * 16777215)
+                    .toString(16)
+                    .padStart(6, '0'),
+        };
+        onUpdateConfig({ categories: [...categories, newCat] });
+    };
+
+    const handleUpdateCategory = (id: string, field: string, value: any) => {
+        const updated = categories.map((c: any) =>
+            c.id === id ? { ...c, [field]: value } : c,
+        );
+        onUpdateConfig({ categories: updated });
+    };
+
+    const handleDeleteCategory = (id: string) => {
+        const isAssigned = layout.nodes.some((n) => n.category_id === id);
+        if (isAssigned) {
+            alert(
+                'No se puede eliminar esta categoría porque ya está asignada a algunos asientos.',
+            );
+            return;
+        }
+        onUpdateConfig({
+            categories: categories.filter((c: any) => c.id !== id),
+        });
+    };
+
+    const [isEditingCategories, setIsEditingCategories] = useState(false);
+
+    const [sections, setSections] = useState<Record<string, boolean>>({
+        category: true,
+        row: true,
+        sectionLabeling: false,
+        rowLabeling: true,
+        seatLabeling: true,
+        view: false,
+    });
+
+    const [formData, setFormData] = useState<Record<string, any>>({
+        section: '',
+        row: '',
+        fill: '#94a3b8',
+        radius: 10,
+        numSeats: 10,
+        curve: 0,
+        seatSpacing: 35,
+        rowSpacing: 40,
+        rowLabelEnabled: true,
+        rowLabelType: 'ABC',
+        rowLabelStart: 'A',
+        rowLabelSkip: 'I,O,Q',
+        rowLabelPosition: 'both',
+        rowLabelOverride: '',
+        rowLabelDisplayType: 'Row',
+        seatLabelType: '123',
+        seatLabelStart: 1,
+        seatLabelDirection: 'LR',
+        category_id: null,
+        capacity: 100,
+    });
+
+    // Tracking pending changes for structural fields
+    const [pendingStructural, setPendingStructural] = useState<
+        Record<string, any>
+    >({});
+
+    const selectedIdsStr = selectedNodes
+        .map((n) => n.id)
+        .sort()
+        .join(',');
+
+    useEffect(() => {
+        if (selectedNodes.length > 0) {
+            const first = selectedNodes[0];
+
+            // Aggregate values to find commonalities
+            const getCommon = (
+                field: keyof SeatingNode,
+                defaultValue: any = '',
+            ) => {
+                const firstVal = first[field];
+                return selectedNodes.every((n) => n[field] === firstVal)
+                    ? firstVal
+                    : defaultValue;
+            };
+
+            // Enhanced logic for seat count
+            const rowUuids = Array.from(
+                new Set(selectedNodes.map((n) => n.row_uuid).filter(Boolean)),
+            );
+            let commonNumSeats = 0;
+            if (rowUuids.length > 0) {
+                const counts = rowUuids.map(
+                    (uuid) =>
+                        layout?.nodes?.filter((n) => n.row_uuid === uuid)
+                            .length || 0,
+                );
+                if (counts.length > 0 && counts.every((v) => v === counts[0]))
+                    commonNumSeats = counts[0];
+            }
+
+            const tableUuids = Array.from(
+                new Set(selectedNodes.map((n) => n.table_uuid).filter(Boolean)),
+            );
+            if (tableUuids.length > 0 && layout?.nodes) {
+                const counts = tableUuids.map(
+                    (uuid) =>
+                        layout.nodes.filter(
+                            (n) => n.table_uuid === uuid && n.type === 'seat',
+                        ).length,
+                );
+                if (counts.length > 0 && counts.every((v) => v === counts[0]))
+                    commonNumSeats = counts[0];
+            }
+
+            const totalSelectedSeats = selectedNodes.filter(
+                (n) => n.type === 'seat',
+            ).length;
+            const totalRowSeats = rowUuids.reduce(
+                (sum, uuid) =>
+                    sum +
+                    (layout?.nodes?.filter((n) => n.row_uuid === uuid).length ||
+                        0),
+                0,
+            );
+            const totalTableSeats = tableUuids.reduce(
+                (sum, uuid) =>
+                    sum +
+                    (layout?.nodes?.filter(
+                        (n) => n.table_uuid === uuid && n.type === 'seat',
+                    ).length || 0),
+                0,
+            );
+
+            const data = {
+                section: getCommon('section'),
+                category_id: getCommon('category_id', null),
+                capacity: getCommon('capacity', 100),
+                row: rowUuids.length === 1 ? first.row || '' : '',
+                fill: getCommon('fill', '#94a3b8'),
+                radius: getCommon('radius', 10),
+                shape: getCommon('shape', 'circle'),
+                numSeats: commonNumSeats || 0,
+                totalSeats:
+                    totalRowSeats || totalTableSeats || totalSelectedSeats || 0,
+                curve: getCommon('curvature', 0),
+                seatSpacing: getCommon('seatSpacing', 35),
+                seatLabelDirection: getCommon('seatLabelDirection', 'LR'),
+                rowLabelEnabled: getCommon('row_label_enabled', true),
+                rowLabelPosition: getCommon('row_label_position', 'both'),
+                rowLabelOverride: getCommon('row_label_override', ''),
+                rowLabelDisplayType: getCommon('row_label_display_type', 'Row'),
+                name: getCommon('name', ''),
+                width: getCommon('width', 0),
+                height: getCommon('height', 0),
+                stroke: getCommon('stroke', '#3b82f6'),
+                showTitle: getCommon('showTitle', true),
+                titlePosition: getCommon('titlePosition', 'top'),
+                sectionType: getCommon('sectionType', 'numbered'),
+            };
+
+            setFormData((prev) => ({ ...prev, ...data }));
+            setPendingStructural({});
+        }
+    }, [selectedIdsStr, layout?.nodes]);
+
+    const toggleSection = (section: string) => {
+        setSections((prev) => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    const handleImmediateChange = (field: string, value: any) => {
+        setFormData((prev) => ({ ...prev, [field]: value }));
+        onUpdate({ [field]: value });
+    };
+
+    const handlePendingChange = (field: string, value: any) => {
+        setPendingStructural((prev) => ({ ...prev, [field]: value }));
+        setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const handleStructuralBlur = () => {
+        if (Object.keys(pendingStructural).length > 0) {
+            onUpdate(pendingStructural);
+            setPendingStructural({});
+        }
+    };
+
+    if (selectedNodes.length === 0) {
+        return (
+            <div className="flex-1 space-y-4 overflow-y-auto px-4 pt-4 pb-12">
+                <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center text-xs font-bold tracking-widest text-muted-foreground uppercase">
+                        <Palette className="mr-2 h-4 w-4" />
+                        Categorías de Precio
+                    </h3>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={handleAddCategory}
+                    >
+                        <Plus className="mr-1 h-3.5 w-3.5" /> Agregar
+                    </Button>
+                </div>
+
+                <div className="space-y-3">
+                    {categories.map((cat: any) => (
+                        <div
+                            key={cat.id}
+                            className="group relative space-y-2 rounded-lg border bg-muted/20 p-3"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="absolute top-2 right-2 p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </button>
+                            <div className="flex items-center gap-2 pr-6">
+                                <input
+                                    type="color"
+                                    value={cat.color}
+                                    onChange={(e) =>
+                                        handleUpdateCategory(
+                                            cat.id,
+                                            'color',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-6 w-6 cursor-pointer rounded border-none"
+                                />
+                                <Input
+                                    value={cat.name}
+                                    onChange={(e) =>
+                                        handleUpdateCategory(
+                                            cat.id,
+                                            'name',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 flex-1 text-xs font-bold"
+                                    placeholder="Nombre"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    {categories.length === 0 && (
+                        <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+                            No hay categorías creadas
+                        </div>
+                    )}
+                </div>
+
+                <Separator className="my-4" />
+                <div className="flex flex-col items-center justify-center space-y-2 py-4 text-center opacity-60">
+                    <p className="text-sm font-medium tracking-widest uppercase">
+                        Inspector Vacío
+                    </p>
+                    <p className="max-w-[200px] text-xs text-muted-foreground">
+                        Selecciona asientos o bloques para configurarlos.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex-1 animate-in space-y-1 overflow-y-auto px-4 pb-12 duration-300 fade-in slide-in-from-right-4">
+            {selectedNodes.some((n) =>
+                [
+                    'section_container',
+                    'zone',
+                    'rect_zone',
+                    'circle_zone',
+                ].includes(n.type),
+            ) && (
+                <>
+                    <SectionHeader
+                        title="Configuración de Sección"
+                        icon={MapIcon}
+                        isOpen={sections.category}
+                        onToggle={() => toggleSection('category')}
+                    />
+                    <div className="space-y-3 px-1 py-3 pb-4">
+                        <PropertyRow label="Nombre">
+                            <Input
+                                value={formData.name || ''}
+                                onChange={(e) =>
+                                    handlePendingChange('name', e.target.value)
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-xs"
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Tipo Sección">
+                            <select
+                                value={formData.sectionType || 'numbered'}
+                                onChange={(e) =>
+                                    handleImmediateChange(
+                                        'sectionType',
+                                        e.target.value,
+                                    )
+                                }
+                                className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                            >
+                                <option value="numbered">
+                                    Numerada (Asientos)
+                                </option>
+                                <option value="general">
+                                    General (Aforo sin asientos)
+                                </option>
+                            </select>
+                        </PropertyRow>
+                        {formData.sectionType === 'general' && (
+                            <PropertyRow label="Aforo Total">
+                                <Input
+                                    type="number"
+                                    value={formData.capacity || 0}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'capacity',
+                                            parseInt(e.target.value) || 0,
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center text-xs"
+                                />
+                            </PropertyRow>
+                        )}
+                        {selectedNodes.some((n) => n.type === 'circle_zone') ? (
+                            <PropertyRow label="Radio">
+                                <Input
+                                    type="number"
+                                    value={formData.radius || 0}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'radius',
+                                            parseInt(e.target.value),
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center text-xs"
+                                />
+                            </PropertyRow>
+                        ) : (
+                            <>
+                                <PropertyRow label="Ancho">
+                                    <Input
+                                        type="number"
+                                        value={formData.width || 0}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'width',
+                                                parseInt(e.target.value),
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-center text-xs"
+                                    />
+                                </PropertyRow>
+                                <PropertyRow label="Alto">
+                                    <Input
+                                        type="number"
+                                        value={formData.height || 0}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'height',
+                                                parseInt(e.target.value),
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-center text-xs"
+                                    />
+                                </PropertyRow>
+                            </>
+                        )}
+                        <PropertyRow label="Color">
+                            <div className="flex gap-2">
+                                <input
+                                    type="color"
+                                    value={
+                                        formData.fill?.startsWith('rgba')
+                                            ? '#3b82f6'
+                                            : formData.fill || '#3b82f6'
+                                    }
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'fill',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-8 w-8 rounded border-none"
+                                />
+                                <div className="flex flex-1 items-center rounded bg-muted/20 px-2 py-1 font-mono text-[10px]">
+                                    {formData.fill}
+                                </div>
+                            </div>
+                        </PropertyRow>
+                        <PropertyRow label="Mostrar Título">
+                            <Checkbox
+                                checked={formData.showTitle !== false}
+                                onCheckedChange={(val) =>
+                                    handleImmediateChange('showTitle', val)
+                                }
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Posición Título">
+                            <select
+                                value={formData.titlePosition || 'top'}
+                                onChange={(e) =>
+                                    handleImmediateChange(
+                                        'titlePosition',
+                                        e.target.value,
+                                    )
+                                }
+                                className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                            >
+                                <option value="top">Arriba</option>
+                                <option value="center">Centro</option>
+                                <option value="bottom">Abajo</option>
+                            </select>
+                        </PropertyRow>
+
+                        {selectedNodes.length === 1 && (
+                            <div className="pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-full gap-2 border-blue-200 text-[10px] text-blue-600 hover:bg-blue-50"
+                                    onClick={() =>
+                                        onCaptureSeats(selectedNodes[0].id)
+                                    }
+                                >
+                                    <Users className="h-3.5 w-3.5" />
+                                    Vincular Asientos en Zona
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {selectedNodes.some((n) => n.type === 'seat') && (
+                <>
+                    <SectionHeader
+                        title="Propiedades de Asiento"
+                        icon={Settings}
+                        isOpen={sections.category}
+                        onToggle={() => toggleSection('category')}
+                    />
+                    <div className="space-y-3 px-1 py-3 pb-4">
+                        {formData.totalSeats > 0 && (
+                            <div className="mb-2 flex items-center justify-between rounded-lg border border-blue-600/10 bg-blue-600/5 px-3 py-2">
+                                <span className="text-[10px] font-bold tracking-wider text-blue-600/70 uppercase">
+                                    Asientos en Selección
+                                </span>
+                                <span className="font-mono text-sm font-black text-blue-700">
+                                    {formData.totalSeats}
+                                </span>
+                            </div>
+                        )}
+                        <PropertyRow label="Sección">
+                            <Input
+                                value={formData.section || ''}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'section',
+                                        e.target.value,
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-xs"
+                            />
+                        </PropertyRow>
+                    </div>
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            <SectionHeader
+                title="Categoría"
+                icon={Palette}
+                isOpen={sections.category}
+                onToggle={() => toggleSection('category')}
+                Action={() => (
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                'h-6 w-6',
+                                isEditingCategories &&
+                                    'bg-blue-500/10 text-blue-500',
+                            )}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsEditingCategories(!isEditingCategories);
+                            }}
+                            title="Gestionar Categorías"
+                        >
+                            <Settings className="h-3 w-3" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddCategory();
+                                if (!isEditingCategories)
+                                    setIsEditingCategories(true);
+                            }}
+                            title="Nueva Categoría"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>
+                    </div>
+                )}
+            />
+            {sections.category && (
+                <div className="space-y-3 px-1 py-3 pb-6">
+                    <div className="flex flex-col gap-2">
+                        {categories.map((cat: any) => (
+                            <div key={cat.id} className="group relative">
+                                {isEditingCategories ? (
+                                    <div className="flex items-center gap-2 rounded-lg border border-blue-500/30 bg-muted/10 p-2">
+                                        <input
+                                            type="color"
+                                            value={cat.color}
+                                            onChange={(e) =>
+                                                handleUpdateCategory(
+                                                    cat.id,
+                                                    'color',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-6 w-6 shrink-0 cursor-pointer rounded border-none"
+                                        />
+                                        <Input
+                                            value={cat.name}
+                                            onChange={(e) =>
+                                                handleUpdateCategory(
+                                                    cat.id,
+                                                    'name',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-7 flex-1 border-none bg-transparent px-1 text-xs font-bold focus-visible:ring-0"
+                                            placeholder="Nombre"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleDeleteCategory(cat.id)
+                                            }
+                                            className="p-1.5 text-muted-foreground transition-colors hover:text-destructive"
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            handleImmediateChange(
+                                                'category_id',
+                                                cat.id,
+                                            );
+                                            handleImmediateChange(
+                                                'fill',
+                                                cat.color,
+                                            );
+                                        }}
+                                        className={cn(
+                                            'flex w-full items-center gap-3 rounded-lg border p-2 text-left transition-colors',
+                                            formData.category_id === cat.id
+                                                ? 'border-blue-500 bg-blue-500/10'
+                                                : 'border-transparent hover:bg-muted/50',
+                                        )}
+                                    >
+                                        <div
+                                            className="h-6 w-6 shrink-0 rounded-md border border-white/20 shadow-inner"
+                                            style={{
+                                                backgroundColor: cat.color,
+                                            }}
+                                        />
+                                        <div className="flex-1 overflow-hidden">
+                                            <div className="truncate text-xs font-bold">
+                                                {cat.name}
+                                            </div>
+                                        </div>
+                                        {formData.category_id === cat.id && (
+                                            <Check className="h-4 w-4 shrink-0 text-blue-500" />
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {categories.length === 0 && (
+                            <div className="rounded-lg border border-dashed p-4 text-center">
+                                <p className="mb-2 text-[10px] text-muted-foreground">
+                                    No hay categorías de precio
+                                </p>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[10px]"
+                                    onClick={handleAddCategory}
+                                >
+                                    Crear Primera Categoría
+                                </Button>
+                            </div>
+                        )}
+                        {!isEditingCategories && (
+                            <div className="mt-2 flex items-center gap-2 border-t border-muted pt-2">
+                                <Label className="shrink-0 text-[10px] text-muted-foreground">
+                                    Color Libre:
+                                </Label>
+                                <div className="flex flex-1 items-center gap-2">
+                                    <input
+                                        type="color"
+                                        value={
+                                            formData.fill?.startsWith('rgba')
+                                                ? '#94a3b8'
+                                                : formData.fill || '#94a3b8'
+                                        }
+                                        onChange={(e) => {
+                                            handleImmediateChange(
+                                                'category_id',
+                                                null,
+                                            );
+                                            handleImmediateChange(
+                                                'fill',
+                                                e.target.value,
+                                            );
+                                        }}
+                                        className="h-5 w-5 cursor-pointer rounded border-none"
+                                    />
+                                    <span className="truncate font-mono text-[10px] text-muted-foreground uppercase">
+                                        {formData.fill}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <Separator className="opacity-50" />
+
+            {selectedNodes.some((n) => n.type === 'standing') && (
+                <>
+                    <SectionHeader
+                        title="Acceso General"
+                        icon={Users}
+                        isOpen={true}
+                        onToggle={() => {}}
+                    />
+                    <div className="space-y-3 px-1 py-3 pb-4">
+                        <PropertyRow label="Nombre">
+                            <Input
+                                value={formData.name || ''}
+                                onChange={(e) =>
+                                    handlePendingChange('name', e.target.value)
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-xs"
+                            />
+                        </PropertyRow>
+                        <PropertyRow
+                            label="Capacidad"
+                            info="Cantidad de personas permitidas"
+                        >
+                            <Input
+                                type="number"
+                                value={formData.capacity || 0}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'capacity',
+                                        parseInt(e.target.value),
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-center font-mono text-xs font-bold text-emerald-600"
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Ancho">
+                            <Input
+                                type="number"
+                                value={formData.width || 0}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'width',
+                                        parseInt(e.target.value),
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-center text-xs"
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Alto">
+                            <Input
+                                type="number"
+                                value={formData.height || 0}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'height',
+                                        parseInt(e.target.value),
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-center text-xs"
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Color">
+                            <div className="flex gap-2">
+                                <input
+                                    type="color"
+                                    value={
+                                        formData.fill?.startsWith('rgba')
+                                            ? '#10b981'
+                                            : formData.fill || '#10b981'
+                                    }
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'fill',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-8 w-8 rounded border-none"
+                                />
+                                <div className="flex flex-1 items-center rounded bg-muted/20 px-2 py-1 font-mono text-[10px]">
+                                    {formData.fill}
+                                </div>
+                            </div>
+                        </PropertyRow>
+                        <PropertyRow label="Posición Título">
+                            <select
+                                value={formData.titlePosition || 'top'}
+                                onChange={(e) =>
+                                    handleImmediateChange(
+                                        'titlePosition',
+                                        e.target.value,
+                                    )
+                                }
+                                className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                            >
+                                <option value="top">Arriba</option>
+                                <option value="center">Centro</option>
+                                <option value="bottom">Abajo</option>
+                            </select>
+                        </PropertyRow>
+                        <div className="mt-4 space-y-2 border-t border-muted/30 pt-4">
+                            <SectionHeader
+                                title="Categoría de Precio"
+                                icon={LayoutList}
+                                isOpen={sections.category}
+                                onToggle={() => toggleSection('category')}
+                                Action={() => (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0"
+                                        onClick={handleAddCategory}
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            />
+                            {sections.category && (
+                                <div className="grid grid-cols-1 gap-2 pt-2">
+                                    {categories.map((cat: any) => (
+                                        <button
+                                            type="button"
+                                            key={cat.id}
+                                            onClick={() => {
+                                                handleImmediateChange(
+                                                    'category_id',
+                                                    cat.id,
+                                                );
+                                                handleImmediateChange(
+                                                    'fill',
+                                                    cat.color,
+                                                );
+                                            }}
+                                            className={cn(
+                                                'flex w-full items-center gap-3 rounded-lg border p-2 text-left transition-colors',
+                                                formData.category_id === cat.id
+                                                    ? 'border-blue-500 bg-blue-500/10'
+                                                    : 'border-transparent hover:bg-muted/50',
+                                            )}
+                                        >
+                                            <div
+                                                className="h-6 w-6 shrink-0 rounded-md border border-white/20 shadow-inner"
+                                                style={{
+                                                    backgroundColor: cat.color,
+                                                }}
+                                            />
+                                            <div className="flex-1 overflow-hidden">
+                                                <div className="truncate text-xs font-bold">
+                                                    {cat.name}
+                                                </div>
+                                            </div>
+                                            {formData.category_id ===
+                                                cat.id && (
+                                                <Check className="h-4 w-4 shrink-0 text-blue-500" />
+                                            )}
+                                        </button>
+                                    ))}
+                                    {categories.length === 0 && (
+                                        <p className="py-2 text-center text-[10px] text-muted-foreground italic">
+                                            Crea categorías para asignar precios
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {selectedNodes.some((n) => n.type === 'table_shape') && (
+                <>
+                    <SectionHeader
+                        title="Configuración de Mesa"
+                        icon={LayoutList}
+                        isOpen={true}
+                        onToggle={() => {}}
+                    />
+                    <div className="space-y-3 px-1 py-3 pb-4">
+                        <PropertyRow label="Nombre">
+                            <Input
+                                value={formData.name || ''}
+                                onChange={(e) =>
+                                    handlePendingChange('name', e.target.value)
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-xs"
+                            />
+                        </PropertyRow>
+                        <PropertyRow label="Forma">
+                            <select
+                                value={formData.shape || 'circle'}
+                                onChange={(e) =>
+                                    handleImmediateChange(
+                                        'shape',
+                                        e.target.value,
+                                    )
+                                }
+                                className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                            >
+                                <option value="circle">Redonda</option>
+                                <option value="rect">
+                                    Cuadrada/Rectangular
+                                </option>
+                            </select>
+                        </PropertyRow>
+                        <PropertyRow
+                            label="Asientos/Fila"
+                            info="Número de asientos en cada fila seleccionada"
+                        >
+                            <Input
+                                type="number"
+                                value={formData.numSeats || 0}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'numSeats',
+                                        parseInt(e.target.value),
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-center text-xs font-bold"
+                            />
+                        </PropertyRow>
+
+                        {formData.totalSeats > 0 && (
+                            <div className="mb-2 flex items-center justify-between rounded-lg border border-blue-600/10 bg-blue-600/5 px-3 py-2">
+                                <span className="text-[10px] font-bold tracking-wider text-blue-600/70 uppercase">
+                                    Asientos Vinculados
+                                </span>
+                                <span className="font-mono text-sm font-black text-blue-700">
+                                    {formData.totalSeats}
+                                </span>
+                            </div>
+                        )}
+                        {formData.shape === 'circle' ? (
+                            <PropertyRow label="Radio">
+                                <Input
+                                    type="number"
+                                    value={formData.radius || 0}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'radius',
+                                            parseInt(e.target.value),
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center text-xs"
+                                />
+                            </PropertyRow>
+                        ) : (
+                            <>
+                                <PropertyRow label="Ancho">
+                                    <Input
+                                        type="number"
+                                        value={formData.width || 0}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'width',
+                                                parseInt(e.target.value),
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-center text-xs"
+                                    />
+                                </PropertyRow>
+                                <PropertyRow label="Alto">
+                                    <Input
+                                        type="number"
+                                        value={formData.height || 0}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'height',
+                                                parseInt(e.target.value),
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-center text-xs"
+                                    />
+                                </PropertyRow>
+                            </>
+                        )}
+                    </div>
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* 3. ROW PROPERTIES - Only show if seats or tables selected */}
+            {selectedNodes.some(
+                (n) => n.type === 'seat' || n.type === 'table_shape',
+            ) && (
+                <>
+                    <SectionHeader
+                        title="Fila"
+                        icon={Hash}
+                        isOpen={sections.row}
+                        onToggle={() => toggleSection('row')}
+                    />
+                    {sections.row && (
+                        <div className="space-y-1 px-1 py-2 pb-6">
+                            <PropertyRow
+                                label="Asientos/Fila"
+                                info="Número de asientos en cada fila seleccionada"
+                            >
+                                <Input
+                                    type="number"
+                                    value={formData.numSeats || 0}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'numSeats',
+                                            parseInt(e.target.value),
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center text-xs font-bold"
+                                />
+                            </PropertyRow>
+
+                            {formData.totalSeats > 0 && (
+                                <div className="mb-2 flex items-center justify-between rounded-lg border border-blue-600/10 bg-blue-600/5 px-3 py-2">
+                                    <span className="text-[10px] font-bold tracking-wider text-blue-600/70 uppercase">
+                                        Asientos Vinculados
+                                    </span>
+                                    <span className="font-mono text-sm font-black text-blue-700">
+                                        {formData.totalSeats}
+                                    </span>
+                                </div>
+                            )}
+
+                            <PropertyRow label="Fila">
+                                <Input
+                                    value={formData.row || ''}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'row',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center text-xs font-bold"
+                                />
+                            </PropertyRow>
+                            <PropertyRow label="Curva">
+                                <DraggableNumberInput
+                                    value={formData.curve || 0}
+                                    step={0.002}
+                                    speed={0.002}
+                                    onChange={(val: number) => handleImmediateChange('curve', val)}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs"
+                                />
+                            </PropertyRow>
+                            <PropertyRow label="Espaciado">
+                                <div className="flex items-center gap-1">
+                                    <Input
+                                        type="number"
+                                        value={formData.seatSpacing}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'seatSpacing',
+                                                parseInt(e.target.value),
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-center font-mono text-xs"
+                                    />
+                                    <span className="text-[10px] text-muted-foreground">
+                                        px
+                                    </span>
+                                </div>
+                            </PropertyRow>
+                        </div>
+                    )}
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* 4. ROW LABELING - Only show if seats selected */}
+            {selectedNodes.some((n) => n.type === 'seat') && (
+                <>
+                    <SectionHeader
+                        title="Etiquetado de Fila"
+                        icon={Languages}
+                        isOpen={sections.rowLabeling}
+                        onToggle={() => toggleSection('rowLabeling')}
+                        Action={() => (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Reset row labeling to defaults
+                                    const defaults = {
+                                        rowLabelEnabled: true,
+                                        rowLabelPosition: 'both',
+                                        rowLabelOverride: '',
+                                        rowLabelDisplayType: 'Row',
+                                    };
+                                    onUpdate(defaults);
+                                }}
+                                className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                            >
+                                <Trash2 className="h-3 w-3" /> Limpiar
+                            </button>
+                        )}
+                    />
+                    {sections.rowLabeling && (
+                        <div className="space-y-1 px-1 py-2 pb-6">
+                            <PropertyRow label="Habilitado">
+                                <Checkbox
+                                    checked={formData.rowLabelEnabled ?? false}
+                                    onCheckedChange={(val) =>
+                                        handlePendingChange(
+                                            'rowLabelEnabled',
+                                            val,
+                                        )
+                                    }
+                                />
+                            </PropertyRow>
+
+                            <PropertyRow label="Etiquetas">
+                                <select
+                                    value={formData.rowLabelType}
+                                    onChange={(e) => {
+                                        const type = e.target.value;
+                                        const defaultStart =
+                                            type === 'ABC' ? 'A' : '1';
+                                        handleImmediateChange(
+                                            'rowLabelType',
+                                            type,
+                                        );
+                                        handleImmediateChange(
+                                            'row',
+                                            defaultStart,
+                                        );
+                                        handleImmediateChange(
+                                            'rowLabelStart',
+                                            defaultStart,
+                                        );
+                                    }}
+                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                >
+                                    <option value="ABC">
+                                        Letras (A, B, C...)
+                                    </option>
+                                    <option value="123">
+                                        Números (1, 2, 3...)
+                                    </option>
+                                </select>
+                            </PropertyRow>
+
+                            <PropertyRow
+                                label="Sobreescribir Etiqueta"
+                                info="Nombre personalizado que oculta la letra de la fila (ej: 'VIP 1')"
+                            >
+                                <div className="flex gap-1">
+                                    <Input
+                                        value={formData.rowLabelOverride}
+                                        onChange={(e) =>
+                                            handlePendingChange(
+                                                'rowLabelOverride',
+                                                e.target.value,
+                                            )
+                                        }
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-xs"
+                                        placeholder="Automático"
+                                    />
+                                </div>
+                            </PropertyRow>
+
+                            <PropertyRow
+                                label="Identificador Fila"
+                                info="La letra o número real de esta fila (A, B, 1, 2...)"
+                            >
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={() => {
+                                            // Implementation for prev label if numeric
+                                        }}
+                                    >
+                                        <ArrowUpDown className="h-3 w-3 rotate-90 opacity-30" />
+                                    </Button>
+                                    <Input
+                                        value={formData.row}
+                                        onChange={(e) => {
+                                            handlePendingChange(
+                                                'row',
+                                                e.target.value,
+                                            );
+                                            handlePendingChange(
+                                                'rowLabelStart',
+                                                e.target.value,
+                                            );
+                                        }}
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 flex-1 bg-muted/20 text-center font-mono text-xs"
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                    >
+                                        <ArrowUpDown className="h-3 w-3 -rotate-90 opacity-30" />
+                                    </Button>
+                                </div>
+                            </PropertyRow>
+
+                            <PropertyRow label="Fila empieza">
+                                <Input
+                                    value={formData.rowLabelStart || ''}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'rowLabelStart',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs font-bold"
+                                />
+                            </PropertyRow>
+
+                            <PropertyRow label="Saltar">
+                                <Input
+                                    value={formData.rowLabelSkip}
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'rowLabelSkip',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs font-bold text-blue-500"
+                                    placeholder="I,O,Q"
+                                />
+                            </PropertyRow>
+
+                            <PropertyRow label="Dirección">
+                                <Button
+                                    variant={
+                                        formData.seatLabelDirection === 'RL'
+                                            ? 'default'
+                                            : 'outline'
+                                    }
+                                    size="sm"
+                                    className="h-7 w-full gap-1 text-[10px]"
+                                    onClick={() =>
+                                        handleImmediateChange(
+                                            'seatLabelDirection',
+                                            formData.seatLabelDirection === 'LR'
+                                                ? 'RL'
+                                                : 'LR',
+                                        )
+                                    }
+                                >
+                                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                                    Invertir
+                                </Button>
+                            </PropertyRow>
+
+                            <PropertyRow label="Posición">
+                                <div className="flex rounded bg-muted/20 p-0.5">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleImmediateChange(
+                                                'rowLabelPosition',
+                                                'left',
+                                            )
+                                        }
+                                        className={cn(
+                                            'flex h-7 flex-1 items-center justify-center rounded text-[10px] font-bold',
+                                            formData.rowLabelPosition === 'left'
+                                                ? 'bg-background text-blue-600 shadow-sm'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        A
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleImmediateChange(
+                                                'rowLabelPosition',
+                                                'both',
+                                            )
+                                        }
+                                        className={cn(
+                                            'flex h-7 flex-1 items-center justify-center rounded border-r border-l border-muted text-[10px] font-bold',
+                                            formData.rowLabelPosition === 'both'
+                                                ? 'bg-background text-blue-600 shadow-sm'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        A-A
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleImmediateChange(
+                                                'rowLabelPosition',
+                                                'right',
+                                            )
+                                        }
+                                        className={cn(
+                                            'flex h-7 flex-1 items-center justify-center rounded text-[10px] font-bold',
+                                            formData.rowLabelPosition ===
+                                                'right'
+                                                ? 'bg-background text-blue-600 shadow-sm'
+                                                : 'text-muted-foreground',
+                                        )}
+                                    >
+                                        A
+                                    </button>
+                                </div>
+                            </PropertyRow>
+
+                            <PropertyRow label="Mostrar tipo">
+                                <select
+                                    value={formData.rowLabelDisplayType}
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'rowLabelDisplayType',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                >
+                                    <option value="Row">Fila</option>
+                                    <option value="Section">Sección</option>
+                                    <option value="None">Ninguno</option>
+                                </select>
+                            </PropertyRow>
+                        </div>
+                    )}
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* 5. SEAT LABELING - Only show if seats selected */}
+            {selectedNodes.some((n) => n.type === 'seat') && (
+                <>
+                    <SectionHeader
+                        title="Etiquetado de Asiento"
+                        icon={Navigation}
+                        isOpen={sections.seatLabeling}
+                        onToggle={() => toggleSection('seatLabeling')}
+                    />
+                    {sections.seatLabeling && (
+                        <div className="space-y-1 px-1 py-2 pb-6">
+                            <PropertyRow label="Tipo Numeración">
+                                <select
+                                    value={formData.seatLabelType}
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'seatLabelType',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                >
+                                    <option value="123">
+                                        Secuencial (1, 2, 3...)
+                                    </option>
+                                    <option value="Pares">
+                                        Pares (2, 4, 6...)
+                                    </option>
+                                    <option value="Impares">
+                                        Impares (1, 3, 5...)
+                                    </option>
+                                </select>
+                            </PropertyRow>
+                            <PropertyRow label="Empieza en">
+                                <Input
+                                    value={formData.seatLabelStart || ''}
+                                    onChange={(e) =>
+                                        handlePendingChange(
+                                            'seatLabelStart',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={handleStructuralBlur}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs"
+                                />
+                            </PropertyRow>
+                            <PropertyRow label="Dirección">
+                                <select
+                                    value={formData.seatLabelDirection}
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'seatLabelDirection',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                >
+                                    <option value="LR">Izq → Der</option>
+                                    <option value="RL">Der → Izq</option>
+                                </select>
+                            </PropertyRow>
+                        </div>
+                    )}
+                    <Separator className="opacity-50" />
+                </>
+            )}
+
+            {/* ACTIONS */}
+            <div className="space-y-3 pt-8">
+                <div className="grid grid-cols-4 gap-2 px-1">
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-9 w-full"
+                        onClick={() => onAlign('left')}
+                        title="Alinear Izquierda"
+                    >
+                        <AlignLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-9 w-full"
+                        onClick={() => onAlign('right')}
+                        title="Alinear Derecha"
+                    >
+                        <AlignRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-9 w-full"
+                        onClick={() => onAlign('top')}
+                        title="Alinear Arriba"
+                    >
+                        <AlignStartVertical className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-9 w-full"
+                        onClick={() => onAlign('bottom')}
+                        title="Alinear Abajo"
+                    >
+                        <AlignEndVertical className="h-4 w-4" />
+                    </Button>
+                </div>
+                <Button
+                    variant="ghost"
+                    className="h-10 w-full text-xs font-bold tracking-widest text-destructive uppercase hover:bg-destructive/10 hover:text-destructive"
+                    onClick={onDelete}
+                >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar Selección
+                </Button>
+            </div>
+        </div>
+    );
+};
+
+export default Inspector;

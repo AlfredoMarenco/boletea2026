@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Loader2, Upload, Trash, Image as ImageIcon } from 'lucide-react';
 import { route } from 'ziggy-js';
 import TicketProgressBar from '@/components/TicketProgressBar';
@@ -17,7 +23,11 @@ interface ImageLibraryProps {
     triggerText?: string;
 }
 
-export default function ImageLibrary({ onSelect, currentImage, triggerText = "Seleccionar de la Biblioteca" }: ImageLibraryProps) {
+export default function ImageLibrary({
+    onSelect,
+    currentImage,
+    triggerText = 'Seleccionar de la Biblioteca',
+}: ImageLibraryProps) {
     const [images, setImages] = useState<Image[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -29,7 +39,7 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
         setLoading(true);
         try {
             const response = await axios.get(route('admin.images.index'), {
-                headers: { 'Accept': 'application/json' }
+                headers: { Accept: 'application/json' },
             });
             setImages(response.data);
         } catch (error) {
@@ -56,16 +66,25 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
         setUploadProgress(0);
         try {
             await axios.post(route('admin.images.store'), formData, {
-                headers: { 'Accept': 'application/json' },
+                headers: { Accept: 'application/json' },
                 onUploadProgress: (progressEvent) => {
-                    const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+                    const percentCompleted = Math.round(
+                        (progressEvent.loaded * 100) /
+                            (progressEvent.total || 1),
+                    );
                     setUploadProgress(percentCompleted);
-                }
+                },
             });
             loadImages();
         } catch (error: any) {
-            console.error('Error uploading image:', error.response?.data || error);
-            let msg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error(
+                'Error uploading image:',
+                error.response?.data || error,
+            );
+            let msg =
+                error.response?.data?.message ||
+                error.message ||
+                'Error desconocido';
             if (error.response?.data?.errors?.image) {
                 msg = error.response.data.errors.image[0];
             }
@@ -84,12 +103,18 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
 
         try {
             await axios.delete(route('admin.images.destroy', id), {
-                headers: { 'Accept': 'application/json' }
+                headers: { Accept: 'application/json' },
             });
             loadImages();
         } catch (error: any) {
-            console.error('Error deleting image:', error.response?.data || error);
-            const msg = error.response?.data?.message || error.message || 'Error desconocido';
+            console.error(
+                'Error deleting image:',
+                error.response?.data || error,
+            );
+            const msg =
+                error.response?.data?.message ||
+                error.message ||
+                'Error desconocido';
             alert('Error al eliminar: ' + msg);
         }
     };
@@ -98,17 +123,17 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" type="button" className="w-full">
-                    <ImageIcon className="w-4 h-4 mr-2" />
+                    <ImageIcon className="mr-2 h-4 w-4" />
                     {triggerText}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+            <DialogContent className="flex max-h-[80vh] max-w-3xl flex-col">
                 <DialogHeader>
                     <DialogTitle>Biblioteca de Imágenes</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex flex-col gap-4 py-4 border-b">
-                    <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-4 border-b py-4">
+                    <div className="flex items-center justify-between">
                         <div className="relative">
                             <input
                                 type="file"
@@ -119,27 +144,44 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
                                 disabled={uploading}
                             />
                             <label htmlFor="library-upload">
-                                <Button variant="default" asChild disabled={uploading}>
+                                <Button
+                                    variant="default"
+                                    asChild
+                                    disabled={uploading}
+                                >
                                     <span>
-                                        {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                                        {uploading ? `Subiendo... ${uploadProgress}%` : 'Subir Nueva Imagen'}
+                                        {uploading ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Upload className="mr-2 h-4 w-4" />
+                                        )}
+                                        {uploading
+                                            ? `Subiendo... ${uploadProgress}%`
+                                            : 'Subir Nueva Imagen'}
                                     </span>
                                 </Button>
                             </label>
                         </div>
                     </div>
-                    <TicketProgressBar show={uploading && uploadProgress > 0} progress={uploadProgress} text="Subiendo imagen..." />
+                    <TicketProgressBar
+                        show={uploading && uploadProgress > 0}
+                        progress={uploadProgress}
+                        text="Subiendo imagen..."
+                    />
                 </div>
 
                 <div className="flex-1 overflow-y-auto py-4">
                     {loading ? (
                         <div className="flex justify-center py-12">
-                            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                         </div>
                     ) : images.length > 0 ? (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
                             {images.map((img) => (
-                                <div key={img.id} className="relative group rounded-lg overflow-hidden border bg-gray-50 border-gray-200">
+                                <div
+                                    key={img.id}
+                                    className="group relative overflow-hidden rounded-lg border border-gray-200 bg-gray-50"
+                                >
                                     <div
                                         className="aspect-square cursor-pointer overflow-hidden bg-gray-100"
                                         onClick={() => {
@@ -147,18 +189,30 @@ export default function ImageLibrary({ onSelect, currentImage, triggerText = "Se
                                             setOpen(false);
                                         }}
                                     >
-                                        <img src={img.url} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Library item" />
+                                        <img
+                                            src={img.url}
+                                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                                            alt="Library item"
+                                        />
                                     </div>
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Button size="icon" variant="destructive" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleDelete(img.id); }}>
-                                            <Trash className="w-4 h-4" />
+                                    <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                        <Button
+                                            size="icon"
+                                            variant="destructive"
+                                            className="h-8 w-8"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(img.id);
+                                            }}
+                                        >
+                                            <Trash className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12 text-gray-500">
+                        <div className="py-12 text-center text-gray-500">
                             No hay imágenes en la biblioteca.
                         </div>
                     )}

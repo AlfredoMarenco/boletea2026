@@ -25,6 +25,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { toast } from 'sonner';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface SeatingMap {
     id: number;
@@ -71,6 +80,30 @@ export default function Builder({ seatingMap }: Props) {
     const [isSaving, setIsSaving] = useState(false);
     const [isCalibrationOpen, setIsCalibrationOpen] = useState(false);
     const [openPopover, setOpenPopover] = useState<'seating' | 'shapes' | null>(null);
+    const [pendingSection, setPendingSection] = useState<any | null>(null);
+    const [sectionForm, setSectionForm] = useState({ name: '', type: '' as 'numbered' | 'general' | '' });
+
+    const handleSectionContainerCreated = useCallback((node: any) => {
+        setPendingSection(node);
+        setSectionForm({ name: '', type: '' });
+    }, []);
+
+    const handleConfirmSection = useCallback(() => {
+        if (!pendingSection || !sectionForm.type || !sectionForm.name.trim()) return;
+        const finalNode = {
+            ...pendingSection,
+            name: sectionForm.name.trim(),
+            sectionType: sectionForm.type,
+            fill: sectionForm.type === 'general'
+                ? 'rgba(16, 185, 129, 0.07)'
+                : 'rgba(59, 130, 246, 0.07)',
+            stroke: sectionForm.type === 'general' ? '#10b981' : '#3b82f6',
+        };
+        setLayout((prev: any) => ({ ...prev, nodes: [...prev.nodes, finalNode] }));
+        setPendingSection(null);
+        setSectionForm({ name: '', type: '' });
+        toast.success(`Sección "${finalNode.name}" creada`);
+    }, [pendingSection, sectionForm]);
 
     const handleSave = () => {
         setIsSaving(true);
@@ -112,8 +145,16 @@ export default function Builder({ seatingMap }: Props) {
                     selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
                 ));
 
-                if (uniqueRowUuids.length === 1) {
-                    canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                if (uniqueRowUuids.length > 0) {
+                    if (uniqueRowUuids.length === 1) {
+                        canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                    } else {
+                        if (canvasRef.current.updateMultipleRowsStructure) {
+                            canvasRef.current.updateMultipleRowsStructure(uniqueRowUuids, properties);
+                        } else {
+                            canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                        }
+                    }
                     return;
                 }
 
@@ -273,6 +314,14 @@ export default function Builder({ seatingMap }: Props) {
 
     const selectedNodes = layout.nodes.filter((n: any) => selectedIds.includes(n.id));
 
+    const hasActiveNumberedSection = useMemo(() => {
+        if (selectedIds.length === 0) return false;
+        return selectedIds.some(id => {
+            const node = layout.nodes.find((n: any) => n.id === id);
+            return node && node.type === 'section_container' && node.sectionType === 'numbered';
+        });
+    }, [selectedIds, layout.nodes]);
+
     const duplicateWarnings = useMemo(() => {
         const seats = layout.nodes.filter((n: any) => n.type === 'seat');
         const seen = new Set();
@@ -387,6 +436,38 @@ export default function Builder({ seatingMap }: Props) {
                             <Maximize2 className="h-3.5 w-3.5 mr-2" />
                             Calibrar Plano
                         </Button>
+                        {layout.config?.bgImageUrl && (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs font-bold uppercase tracking-widest text-emerald-600 border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 dark:text-emerald-400 dark:border-emerald-800 dark:bg-emerald-950/30">
+                                        <Eye className="h-3.5 w-3.5" />
+                                        Vista Inicial{layout.config?.focus ? ' ✓' : ''}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent side="bottom" align="end" className="w-72 p-4 space-y-3 shadow-2xl border-border bg-popover z-[100]">
+                                    <div className="space-y-1">
+                                        <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground border-b pb-2">Vista Inicial del Mapa</h4>
+                                        <p className="text-[11px] text-muted-foreground pt-1">Guarda la posición y zoom actual como la vista por defecto cuando un usuario abre el mapa.</p>
+                                    </div>
+                                    {layout.config?.focus && (
+                                        <div className="rounded-lg border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+                                            <div className="flex justify-between"><span>X:</span><span className="font-mono">{Math.round(layout.config.focus.x)}</span></div>
+                                            <div className="flex justify-between"><span>Y:</span><span className="font-mono">{Math.round(layout.config.focus.y)}</span></div>
+                                            <div className="flex justify-between"><span>Zoom:</span><span className="font-mono">{(layout.config.focus.zoom * 100).toFixed(0)}%</span></div>
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <Button size="sm" className="h-8 flex-1 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => {
+                                            const focus = canvasRef.current?.getCurrentFocus();
+                                            if (focus) handleUpdateConfig({ focus });
+                                        }}>Guardar Vista Actual</Button>
+                                        {layout.config?.focus && (
+                                            <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleUpdateConfig({ focus: null })}>Limpiar</Button>
+                                        )}
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        )}
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" size="sm" className="h-8 text-xs">
@@ -477,8 +558,8 @@ export default function Builder({ seatingMap }: Props) {
 
                             <Separator className="w-8 mx-auto" />
 
-                             {/* Seating Tools Group */}
-                            <div className="flex flex-col gap-1 w-full px-2">
+                             {/* Seating Tools Group - Only visible when a numbered section is selected */}
+                            {hasActiveNumberedSection && <div className="flex flex-col gap-1 w-full px-2">
                                 <Popover open={openPopover === 'seating'} onOpenChange={(open) => setOpenPopover(open ? 'seating' : null)}>
                                     <PopoverTrigger asChild>
                                         <ToolButton 
@@ -528,7 +609,9 @@ export default function Builder({ seatingMap }: Props) {
                                         </div>
                                     </PopoverContent>
                                 </Popover>
+                            </div>}
 
+                            <div className="flex flex-col gap-1 w-full px-2">
                                 <Popover open={openPopover === 'shapes'} onOpenChange={(open) => setOpenPopover(open ? 'shapes' : null)}>
                                     <PopoverTrigger asChild>
                                         <ToolButton 
@@ -606,7 +689,7 @@ export default function Builder({ seatingMap }: Props) {
                         {/* Overlay helpers */}
                         {mode === 'edit' && (
                             <div className="absolute top-4 right-4 bg-white/80 dark:bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border shadow-sm text-[10px] font-medium z-10">
-                                Ctrl+Z para deshacer • Del para borrar • Rueda para Zoom
+                                Mantén C + Arrastra asiento para curvar fila • Ctrl+Z Deshacer • Rueda Zoom
                             </div>
                         )}
                         
@@ -619,6 +702,7 @@ export default function Builder({ seatingMap }: Props) {
                             onSelectionChange={setSelectedIds}
                             onChange={setLayout} 
                             onToolComplete={() => setActiveTool('select')}
+                            onSectionContainerCreated={handleSectionContainerCreated}
                         />
                     </div>
 
@@ -650,6 +734,91 @@ export default function Builder({ seatingMap }: Props) {
                     onFinish={handleCalibrationFinish}
                     initialImage={layout.config?.bgImageUrl}
                 />
+
+                {/* Section Type Modal */}
+                <Dialog open={!!pendingSection} onOpenChange={(open) => { if (!open) setPendingSection(null); }}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="text-base font-bold">Configurar nueva sección</DialogTitle>
+                            <DialogDescription className="text-sm text-muted-foreground">
+                                Define el nombre y tipo de esta sección antes de agregarla al mapa.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-5 pt-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="section-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Nombre de la sección</Label>
+                                <Input
+                                    id="section-name"
+                                    placeholder="ej: Palco Norte, Platea A..."
+                                    value={sectionForm.name}
+                                    onChange={(e) => setSectionForm(f => ({ ...f, name: e.target.value }))}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && sectionForm.type) handleConfirmSection(); }}
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Tipo de sección</Label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSectionForm(f => ({ ...f, type: 'numbered' }))}
+                                        className={cn(
+                                            'flex flex-col items-start gap-1.5 rounded-xl border-2 p-4 text-left transition-all',
+                                            sectionForm.type === 'numbered'
+                                                ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30'
+                                                : 'border-border hover:border-blue-300 hover:bg-muted/50'
+                                        )}
+                                    >
+                                        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', sectionForm.type === 'numbered' ? 'bg-blue-600 text-white' : 'bg-muted')}>
+                                            <LayoutList size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold">Sección Numerada</p>
+                                            <p className="text-[11px] text-muted-foreground">Asientos con fila y número asignado</p>
+                                        </div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSectionForm(f => ({ ...f, type: 'general' }))}
+                                        className={cn(
+                                            'flex flex-col items-start gap-1.5 rounded-xl border-2 p-4 text-left transition-all',
+                                            sectionForm.type === 'general'
+                                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30'
+                                                : 'border-border hover:border-emerald-300 hover:bg-muted/50'
+                                        )}
+                                    >
+                                        <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg', sectionForm.type === 'general' ? 'bg-emerald-600 text-white' : 'bg-muted')}>
+                                            <Users size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold">Acceso General</p>
+                                            <p className="text-[11px] text-muted-foreground">Entrada libre sin numeración</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={() => setPendingSection(null)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    disabled={!sectionForm.type || !sectionForm.name.trim()}
+                                    onClick={handleConfirmSection}
+                                >
+                                    Crear Sección
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );

@@ -4,7 +4,13 @@ import RefundFaqSection from '@/components/RefundFaqSection';
 import { GeolocationProvider } from '@/contexts/GeolocationProvider';
 import { Head, Link, router } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 // Client-side image compression utility using HTML5 Canvas
 const compressImage = (file: File): Promise<File> => {
@@ -45,17 +51,21 @@ const compressImage = (file: File): Promise<File> => {
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                                type: 'image/jpeg',
-                                lastModified: Date.now(),
-                            });
+                            const compressedFile = new File(
+                                [blob],
+                                file.name.replace(/\.[^/.]+$/, '') + '.jpg',
+                                {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now(),
+                                },
+                            );
                             resolve(compressedFile);
                         } else {
                             resolve(file);
                         }
                     },
                     'image/jpeg',
-                    0.75 // 75% quality
+                    0.75, // 75% quality
                 );
             };
             img.onerror = () => resolve(file);
@@ -83,7 +93,11 @@ interface Props {
     banks: Bank[];
 }
 
-export default function RefundForm({ events, ticketSampleImage, banks = [] }: Props) {
+export default function RefundForm({
+    events,
+    ticketSampleImage,
+    banks = [],
+}: Props) {
     const [step, setStep] = useState(1);
     const [eventId, setEventId] = useState('');
     const [orderNumber, setOrderNumber] = useState('');
@@ -124,7 +138,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const [validatedTicketsList, setValidatedTicketsList] = useState<any[]>([]);
     const [ticketVerificationError, setTicketVerificationError] = useState('');
     const [ticketLoading, setTicketLoading] = useState(false);
-    
+
     // Help and Legal states
     const [showSampleModal, setShowSampleModal] = useState(false);
     const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -132,7 +146,8 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     // New states for tickets warning modal
     const [orderTickets, setOrderTickets] = useState<any[]>([]);
     const [requestedTickets, setRequestedTickets] = useState<string[]>([]);
-    const [showTicketsWarningModal, setShowTicketsWarningModal] = useState(false);
+    const [showTicketsWarningModal, setShowTicketsWarningModal] =
+        useState(false);
     const [bypassTicketsWarning, setBypassTicketsWarning] = useState(false);
     const [highlightTicketInput, setHighlightTicketInput] = useState(false);
 
@@ -165,7 +180,9 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const handleVerifyOrder = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!eventId || !orderNumber) {
-            setErrorMessage('Por favor selecciona el evento e ingresa el número de orden.');
+            setErrorMessage(
+                'Por favor selecciona el evento e ingresa el número de orden.',
+            );
             return;
         }
 
@@ -177,8 +194,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
                 body: JSON.stringify({
                     refund_event_id: eventId,
@@ -262,8 +284,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
                 body: JSON.stringify({
                     refund_event_id: eventId,
@@ -292,7 +319,9 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                     setLoading(false);
                     return;
                 }
-                setErrorMessage(data.message || 'La información ingresada no coincide.');
+                setErrorMessage(
+                    data.message || 'La información ingresada no coincide.',
+                );
                 setLoading(false);
                 return;
             }
@@ -322,13 +351,19 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         setTicketLoading(true);
 
         const isAlreadyAdded = validatedTicketsList.some(
-            (t) => 
-                (t.barcode && t.barcode.toLowerCase() === barcodeInput.trim().toLowerCase()) ||
-                (t.ticket_id && String(t.ticket_id).trim().toLowerCase() === barcodeInput.trim().toLowerCase())
+            (t) =>
+                (t.barcode &&
+                    t.barcode.toLowerCase() ===
+                        barcodeInput.trim().toLowerCase()) ||
+                (t.ticket_id &&
+                    String(t.ticket_id).trim().toLowerCase() ===
+                        barcodeInput.trim().toLowerCase()),
         );
 
         if (isAlreadyAdded) {
-            setTicketVerificationError('Este boleto ya fue agregado a la lista.');
+            setTicketVerificationError(
+                'Este boleto ya fue agregado a la lista.',
+            );
             setTicketLoading(false);
             return;
         }
@@ -338,8 +373,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN':
+                        (
+                            document.querySelector(
+                                'meta[name="csrf-token"]',
+                            ) as HTMLMetaElement
+                        )?.content || '',
                 },
                 body: JSON.stringify({
                     refund_event_id: eventId,
@@ -351,12 +391,17 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             const data = await response.json();
 
             if (!response.ok) {
-                setTicketVerificationError(data.message || 'El código de barras no es válido.');
+                setTicketVerificationError(
+                    data.message || 'El código de barras no es válido.',
+                );
                 setTicketLoading(false);
                 return;
             }
 
-            setValidatedTicketsList([...validatedTicketsList, { ...data.ticket, photoFile: null }]);
+            setValidatedTicketsList([
+                ...validatedTicketsList,
+                { ...data.ticket, photoFile: null },
+            ]);
             setBarcodeInput('');
         } catch (err) {
             setTicketVerificationError('Error de red al validar boleto.');
@@ -366,10 +411,15 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     };
 
     const handleRemoveTicket = (barcode: string) => {
-        setValidatedTicketsList(validatedTicketsList.filter((t) => t.barcode !== barcode));
+        setValidatedTicketsList(
+            validatedTicketsList.filter((t) => t.barcode !== barcode),
+        );
     };
 
-    const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>, setter: (f: File | null) => void) => {
+    const handleFileInput = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        setter: (f: File | null) => void,
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -390,7 +440,10 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         }
     };
 
-    const handleTicketPhotoInput = async (e: React.ChangeEvent<HTMLInputElement>, barcode: string) => {
+    const handleTicketPhotoInput = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        barcode: string,
+    ) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
@@ -403,15 +456,26 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         setIsCompressing(true);
         try {
             const compressed = await compressImage(file);
-            setValidatedTicketsList(prev => prev.map(t => t.barcode === barcode ? { ...t, photoFile: compressed } : t));
+            setValidatedTicketsList((prev) =>
+                prev.map((t) =>
+                    t.barcode === barcode ? { ...t, photoFile: compressed } : t,
+                ),
+            );
         } catch (err) {
-            setValidatedTicketsList(prev => prev.map(t => t.barcode === barcode ? { ...t, photoFile: file } : t));
+            setValidatedTicketsList((prev) =>
+                prev.map((t) =>
+                    t.barcode === barcode ? { ...t, photoFile: file } : t,
+                ),
+            );
         } finally {
             setIsCompressing(false);
         }
     };
 
-    const performSubmitRefund = (buyerNameValue: string, isCardValue: boolean) => {
+    const performSubmitRefund = (
+        buyerNameValue: string,
+        isCardValue: boolean,
+    ) => {
         setLoading(true);
         setErrorMessage('');
 
@@ -429,7 +493,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                 formData.append('card_last_four', cardLastFour);
             }
         }
-        
+
         if (requiresTickets) {
             // Taquilla order (cash/card): send validated tickets barcodes and individual photos
             validatedTicketsList.forEach((t) => {
@@ -447,7 +511,7 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
             onError: (errors) => {
                 const firstErr = Object.values(errors)[0];
                 setErrorMessage(firstErr || 'Error al enviar la solicitud.');
-            }
+            },
         });
     };
 
@@ -466,8 +530,13 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
     const handleConfirmOnlySubmit = () => {
         setShowTicketsWarningModal(false);
         setBypassTicketsWarning(true);
-        const constructedBuyerName = [firstName, middleName, lastNamePaternal, lastNameMaternal]
-            .map(s => s.trim())
+        const constructedBuyerName = [
+            firstName,
+            middleName,
+            lastNamePaternal,
+            lastNameMaternal,
+        ]
+            .map((s) => s.trim())
             .filter(Boolean)
             .join(' ')
             .toUpperCase();
@@ -476,22 +545,40 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
 
     const handleSubmitRefund = (e: React.FormEvent) => {
         e.preventDefault();
-        
-        const constructedBuyerName = [firstName, middleName, lastNamePaternal, lastNameMaternal]
-            .map(s => s.trim())
+
+        const constructedBuyerName = [
+            firstName,
+            middleName,
+            lastNamePaternal,
+            lastNameMaternal,
+        ]
+            .map((s) => s.trim())
             .filter(Boolean)
             .join(' ')
             .toUpperCase();
 
         const isCard = requiresCard;
-        
-        if (!firstName || !lastNamePaternal || !lastNameMaternal || !clabe || !confirmClabe || !bankName || !ineFile || !email) {
-            setErrorMessage('Por favor rellene todos los campos requeridos (nombre, apellidos, banco, correo) y suba la INE.');
+
+        if (
+            !firstName ||
+            !lastNamePaternal ||
+            !lastNameMaternal ||
+            !clabe ||
+            !confirmClabe ||
+            !bankName ||
+            !ineFile ||
+            !email
+        ) {
+            setErrorMessage(
+                'Por favor rellene todos los campos requeridos (nombre, apellidos, banco, correo) y suba la INE.',
+            );
             return;
         }
 
         if (clabe !== confirmClabe) {
-            setErrorMessage('La CLABE interbancaria y su confirmación no coinciden. Por favor verifique.');
+            setErrorMessage(
+                'La CLABE interbancaria y su confirmación no coinciden. Por favor verifique.',
+            );
             return;
         }
 
@@ -501,48 +588,66 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
         }
 
         if (clabe.length !== 18 || !/^\d+$/.test(clabe)) {
-            setErrorMessage('La CLABE interbancaria debe ser de exactamente 18 dígitos numéricos.');
+            setErrorMessage(
+                'La CLABE interbancaria debe ser de exactamente 18 dígitos numéricos.',
+            );
             return;
         }
 
         const prefix = clabe.substring(0, 3);
-        const matchedBank = banks.find(b => b.code === prefix);
+        const matchedBank = banks.find((b) => b.code === prefix);
         if (!matchedBank) {
-            setErrorMessage('El prefijo de su CLABE no coincide con ningún banco registrado.');
+            setErrorMessage(
+                'El prefijo de su CLABE no coincide con ningún banco registrado.',
+            );
             return;
         }
         if (!matchedBank.enabled) {
-            setErrorMessage(`El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`);
+            setErrorMessage(
+                `El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`,
+            );
             return;
         }
 
         if (isCard && cardLastFour.length !== 4) {
-            setErrorMessage('Por favor ingrese los 4 dígitos finales de la tarjeta con la que realizó la compra.');
+            setErrorMessage(
+                'Por favor ingrese los 4 dígitos finales de la tarjeta con la que realizó la compra.',
+            );
             return;
         }
 
         if (requiresTickets) {
             // Orders that require tickets (Taquilla cash/card) require validated tickets list and photo of EACH physical ticket
             if (validatedTicketsList.length === 0) {
-                setErrorMessage('Debe validar al menos 1 boleto de su orden para proceder con la solicitud.');
+                setErrorMessage(
+                    'Debe validar al menos 1 boleto de su orden para proceder con la solicitud.',
+                );
                 return;
             }
-            const missingPhotos = validatedTicketsList.some(t => !t.photoFile);
+            const missingPhotos = validatedTicketsList.some(
+                (t) => !t.photoFile,
+            );
             if (missingPhotos) {
-                setErrorMessage('Debe adjuntar la foto para cada uno de los boletos físicos validados.');
+                setErrorMessage(
+                    'Debe adjuntar la foto para cada uno de los boletos físicos validados.',
+                );
                 return;
             }
 
             // Check if there are other eligible tickets in the order that are not in validatedTicketsList and not already requested
             if (!bypassTicketsWarning) {
-                const activeTickets = orderTickets.filter(t => {
+                const activeTickets = orderTickets.filter((t) => {
                     const status = (t.status || '').toLowerCase().trim();
                     return status !== 'cancelado' && status !== 'cancelada';
                 });
-                const nonRequestedTickets = activeTickets.filter(t => {
-                    const ticketId = String(t.ticket_id || '').toLowerCase().trim();
-                    const barcode = String(t.barcode || '').toLowerCase().trim();
-                    const isAlreadyReq = requestedTickets.some(rt => {
+                const nonRequestedTickets = activeTickets.filter((t) => {
+                    const ticketId = String(t.ticket_id || '')
+                        .toLowerCase()
+                        .trim();
+                    const barcode = String(t.barcode || '')
+                        .toLowerCase()
+                        .trim();
+                    const isAlreadyReq = requestedTickets.some((rt) => {
                         const cleanRt = String(rt).toLowerCase().trim();
                         return cleanRt === ticketId || cleanRt === barcode;
                     });
@@ -561,271 +666,440 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
 
     return (
         <GeolocationProvider>
-            <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-[#121212] dark:text-gray-100 font-sans flex flex-col">
+            <div className="flex min-h-screen flex-col bg-gray-50 font-sans text-gray-900 dark:bg-[#121212] dark:text-gray-100">
                 <Head title="Trámite de Reembolso - Boletea" />
                 <PublicHeader />
 
-                <main className="pt-28 pb-20 flex-grow flex items-center justify-center">
-                    <div className="container mx-auto px-4 max-w-4xl">
+                <main className="flex flex-grow items-center justify-center pt-28 pb-20">
+                    <div className="container mx-auto max-w-4xl px-4">
                         {/* Progress Header */}
-                        <div className="text-center mb-8">
-                            <span className="inline-block p-1.5 px-3 rounded-full bg-[#c90000]/10 text-[#c90000] text-xs font-bold tracking-wide uppercase mb-3">
+                        <div className="mb-8 text-center">
+                            <span className="mb-3 inline-block rounded-full bg-[#c90000]/10 p-1.5 px-3 text-xs font-bold tracking-wide text-[#c90000] uppercase">
                                 Devoluciones Oficiales
                             </span>
                             <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white">
                                 Solicitud de Reembolso
                             </h1>
-                            <p className="text-sm text-gray-500 mt-2">
-                                Complete los pasos para procesar su solicitud de forma ágil y segura.
+                            <p className="mt-2 text-sm text-gray-500">
+                                Complete los pasos para procesar su solicitud de
+                                forma ágil y segura.
                             </p>
                         </div>
 
                         {/* Card Container */}
-                        <div className="bg-white dark:bg-[#1e1e1e] p-6 md:p-8 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-neutral-800 backdrop-blur-sm">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-xl shadow-gray-200/50 backdrop-blur-sm md:p-8 dark:border-neutral-800 dark:bg-[#1e1e1e] dark:shadow-none">
                             {/* Step Indicator */}
-                            <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100 dark:border-neutral-800">
+                            <div className="mb-8 flex items-center justify-between border-b border-gray-100 pb-4 dark:border-neutral-800">
                                 <div className="flex items-center space-x-2">
-                                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step === 1 ? 'bg-[#c90000] text-white' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}>
+                                    <span
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${step === 1 ? 'bg-[#c90000] text-white' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}
+                                    >
                                         1
                                     </span>
-                                    <span className={`text-sm font-semibold ${step === 1 ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                                    <span
+                                        className={`text-sm font-semibold ${step === 1 ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
+                                    >
                                         Verificación
                                     </span>
                                 </div>
-                                <div className="h-0.5 w-12 bg-gray-100 dark:bg-neutral-800 flex-grow mx-4"></div>
+                                <div className="mx-4 h-0.5 w-12 flex-grow bg-gray-100 dark:bg-neutral-800"></div>
                                 <div className="flex items-center space-x-2">
-                                    <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step === 2 ? 'bg-[#c90000] text-white' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}>
+                                    <span
+                                        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${step === 2 ? 'bg-[#c90000] text-white' : 'bg-gray-100 text-gray-400 dark:bg-neutral-800'}`}
+                                    >
                                         2
                                     </span>
-                                    <span className={`text-sm font-semibold ${step === 2 ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
+                                    <span
+                                        className={`text-sm font-semibold ${step === 2 ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}
+                                    >
                                         Documentos
                                     </span>
                                 </div>
                             </div>
 
                             {errorMessage && (
-                                <div className="p-4 mb-6 rounded-2xl bg-red-50 text-red-600 text-sm font-medium border border-red-100 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900/50">
+                                <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-600 dark:border-red-900/50 dark:bg-red-950/20 dark:text-red-400">
                                     {errorMessage}
                                 </div>
                             )}
-
-                            
 
                             {/* STEP 1: VERIFY ORDER & EMAIL / CARD */}
                             {step === 1 && (
                                 <div>
                                     {autoRefundNotice ? (
-                                        <div className="py-8 px-6 md:px-8 text-center rounded-3xl bg-gradient-to-b from-emerald-50/90 to-emerald-100/40 dark:from-emerald-950/40 dark:to-emerald-900/20 border border-emerald-200/80 dark:border-emerald-800/50 space-y-6 shadow-xl shadow-emerald-500/5 transition animate-in fade-in zoom-in-95">
-                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-300/80 dark:border-emerald-700/60 flex items-center justify-center text-emerald-600 dark:text-emerald-300 shadow-md shadow-emerald-600/10">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" className="w-10 h-10">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" />
+                                        <div className="animate-in space-y-6 rounded-3xl border border-emerald-200/80 bg-gradient-to-b from-emerald-50/90 to-emerald-100/40 px-6 py-8 text-center shadow-xl shadow-emerald-500/5 transition zoom-in-95 fade-in md:px-8 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-emerald-900/20">
+                                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-emerald-300/80 bg-emerald-100 text-emerald-600 shadow-md shadow-emerald-600/10 dark:border-emerald-700/60 dark:bg-emerald-900/60 dark:text-emerald-300">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth="1.75"
+                                                    stroke="currentColor"
+                                                    className="h-10 w-10"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z"
+                                                    />
                                                 </svg>
                                             </div>
 
-                                            <div className="max-w-lg mx-auto space-y-3">
-                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-600 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs">
-                                                    <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                                            <div className="mx-auto max-w-lg space-y-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-extrabold tracking-wider text-white uppercase shadow-xs">
+                                                    <span className="h-2 w-2 animate-ping rounded-full bg-white"></span>
                                                     Trámite Automático Activo
                                                 </div>
 
-                                                <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-                                                    Su compra web ya está en trámite automático de reembolso
+                                                <h3 className="text-xl leading-tight font-black tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                                                    Su compra web ya está en
+                                                    trámite automático de
+                                                    reembolso
                                                 </h3>
 
-                                                <div className="inline-block px-3.5 py-1 bg-white dark:bg-neutral-900 border border-emerald-200 dark:border-emerald-800 rounded-xl font-mono text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-xs">
-                                                    Orden #{autoRefundNotice.orderNumber}
+                                                <div className="inline-block rounded-xl border border-emerald-200 bg-white px-3.5 py-1 font-mono text-xs font-bold text-emerald-800 shadow-xs dark:border-emerald-800 dark:bg-neutral-900 dark:text-emerald-300">
+                                                    Orden #
+                                                    {
+                                                        autoRefundNotice.orderNumber
+                                                    }
                                                 </div>
 
-                                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium pt-1">
-                                                    No es necesario realizar ningún trámite adicional ni subir documentos (INE, boletos o estado de cuenta). El reembolso se acreditará automáticamente en la misma cuenta o tarjeta con la que realizó su compra.
+                                                <p className="pt-1 text-xs leading-relaxed font-medium text-gray-600 md:text-sm dark:text-gray-300">
+                                                    No es necesario realizar
+                                                    ningún trámite adicional ni
+                                                    subir documentos (INE,
+                                                    boletos o estado de cuenta).
+                                                    El reembolso se acreditará
+                                                    automáticamente en la misma
+                                                    cuenta o tarjeta con la que
+                                                    realizó su compra.
                                                 </p>
 
-                                                <div className="p-4 rounded-2xl bg-white/90 dark:bg-neutral-900/90 border border-emerald-200/80 dark:border-emerald-800/60 text-left space-y-2.5 shadow-xs">
+                                                <div className="space-y-2.5 rounded-2xl border border-emerald-200/80 bg-white/90 p-4 text-left shadow-xs dark:border-emerald-800/60 dark:bg-neutral-900/90">
                                                     <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-900 dark:text-emerald-300">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-emerald-600 dark:text-emerald-400">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            strokeWidth="2"
+                                                            stroke="currentColor"
+                                                            className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                            />
                                                         </svg>
-                                                        <span>Tiempo Estimado de Acreditación</span>
+                                                        <span>
+                                                            Tiempo Estimado de
+                                                            Acreditación
+                                                        </span>
                                                     </div>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-6">
-                                                        De <strong className="font-bold text-gray-900 dark:text-white">5 a 10 días hábiles</strong>, dependiendo del tiempo de procesamiento de su banco.
+                                                    <p className="pl-6 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                                        De{' '}
+                                                        <strong className="font-bold text-gray-900 dark:text-white">
+                                                            5 a 10 días hábiles
+                                                        </strong>
+                                                        , dependiendo del tiempo
+                                                        de procesamiento de su
+                                                        banco.
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
                                                 <a
                                                     href={`https://wa.me/528711024187?text=${encodeURIComponent(`Hola, tengo una duda sobre mi reembolso automático de la orden #${autoRefundNotice.orderNumber}`)}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:w-auto"
                                                 >
-                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    <svg
+                                                        className="h-4 w-4 fill-current"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                                                     </svg>
-                                                    Contactar Soporte en WhatsApp
+                                                    Contactar Soporte en
+                                                    WhatsApp
                                                 </a>
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setAutoRefundNotice(null);
+                                                        setAutoRefundNotice(
+                                                            null,
+                                                        );
                                                         setOrderNumber('');
                                                         setErrorMessage('');
                                                         setRequiresEmail(false);
                                                         setRequiresCard(false);
                                                     }}
-                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300 font-bold text-xs transition shadow-xs"
+                                                    className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-xs font-bold text-gray-700 shadow-xs transition hover:bg-gray-100 sm:w-auto dark:border-neutral-800 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
                                                 >
                                                     Verificar Otra Orden
                                                 </button>
                                             </div>
                                         </div>
                                     ) : existingRequestNotice ? (
-                                        <div className="py-8 px-6 md:px-8 text-center rounded-3xl bg-gradient-to-b from-blue-50/90 to-indigo-100/40 dark:from-blue-950/40 dark:to-indigo-900/20 border border-blue-200/80 dark:border-blue-800/50 space-y-6 shadow-xl shadow-blue-500/5 transition animate-in fade-in zoom-in-95">
-                                            <div className="mx-auto w-20 h-20 rounded-3xl bg-blue-100 dark:bg-blue-900/60 border border-blue-300/80 dark:border-blue-700/60 flex items-center justify-center text-blue-600 dark:text-blue-300 shadow-md shadow-blue-600/10">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.75" stroke="currentColor" className="w-10 h-10">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                        <div className="animate-in space-y-6 rounded-3xl border border-blue-200/80 bg-gradient-to-b from-blue-50/90 to-indigo-100/40 px-6 py-8 text-center shadow-xl shadow-blue-500/5 transition zoom-in-95 fade-in md:px-8 dark:border-blue-800/50 dark:from-blue-950/40 dark:to-indigo-900/20">
+                                            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-blue-300/80 bg-blue-100 text-blue-600 shadow-md shadow-blue-600/10 dark:border-blue-700/60 dark:bg-blue-900/60 dark:text-blue-300">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    strokeWidth="1.75"
+                                                    stroke="currentColor"
+                                                    className="h-10 w-10"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                                                    />
                                                 </svg>
                                             </div>
 
-                                            <div className="max-w-lg mx-auto space-y-3">
-                                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-600 text-white text-[11px] font-extrabold uppercase tracking-wider shadow-xs">
-                                                    Solicitud Registrada en Proceso
+                                            <div className="mx-auto max-w-lg space-y-3">
+                                                <div className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1 text-[11px] font-extrabold tracking-wider text-white uppercase shadow-xs">
+                                                    Solicitud Registrada en
+                                                    Proceso
                                                 </div>
 
-                                                <h3 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-                                                    Esta orden ya cuenta con una solicitud de reembolso
+                                                <h3 className="text-xl leading-tight font-black tracking-tight text-gray-900 md:text-2xl dark:text-white">
+                                                    Esta orden ya cuenta con una
+                                                    solicitud de reembolso
                                                 </h3>
 
-                                                <div className="inline-block px-3.5 py-1 bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-800 rounded-xl font-mono text-xs font-bold text-blue-800 dark:text-blue-300 shadow-xs">
-                                                    Orden #{existingRequestNotice.orderNumber}
+                                                <div className="inline-block rounded-xl border border-blue-200 bg-white px-3.5 py-1 font-mono text-xs font-bold text-blue-800 shadow-xs dark:border-blue-800 dark:bg-neutral-900 dark:text-blue-300">
+                                                    Orden #
+                                                    {
+                                                        existingRequestNotice.orderNumber
+                                                    }
                                                 </div>
 
-                                                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed font-medium pt-1">
-                                                    {existingRequestNotice.message}
+                                                <p className="pt-1 text-xs leading-relaxed font-medium text-gray-600 md:text-sm dark:text-gray-300">
+                                                    {
+                                                        existingRequestNotice.message
+                                                    }
                                                 </p>
 
-                                                <div className="p-4 rounded-2xl bg-white/90 dark:bg-neutral-900/90 border border-blue-200/80 dark:border-blue-800/60 text-left space-y-2.5 shadow-xs">
+                                                <div className="space-y-2.5 rounded-2xl border border-blue-200/80 bg-white/90 p-4 text-left shadow-xs dark:border-blue-800/60 dark:bg-neutral-900/90">
                                                     <div className="flex items-center gap-2.5 text-xs font-bold text-blue-900 dark:text-blue-300">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4 text-blue-600 dark:text-blue-400">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            strokeWidth="2"
+                                                            stroke="currentColor"
+                                                            className="h-4 w-4 text-blue-600 dark:text-blue-400"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                                                            />
                                                         </svg>
-                                                        <span>¿Deseas consultar el estado de tu trámite?</span>
+                                                        <span>
+                                                            ¿Deseas consultar el
+                                                            estado de tu
+                                                            trámite?
+                                                        </span>
                                                     </div>
-                                                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium pl-6">
-                                                        Puedes dar seguimiento con el código de trámite generado al momento de tu registro o enviado a tu correo electrónico.
+                                                    <p className="pl-6 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                                        Puedes dar seguimiento
+                                                        con el código de trámite
+                                                        generado al momento de
+                                                        tu registro o enviado a
+                                                        tu correo electrónico.
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
                                                 <Link
-                                                    href={route('refund.track_form')}
-                                                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2"
+                                                    href={route(
+                                                        'refund.track_form',
+                                                    )}
+                                                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-6 py-3.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 sm:w-auto"
                                                 >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        fill="none"
+                                                        viewBox="0 0 24 24"
+                                                        strokeWidth="2"
+                                                        stroke="currentColor"
+                                                        className="h-4 w-4"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                                                        />
                                                     </svg>
-                                                    Consultar Estatus de Mi Trámite
+                                                    Consultar Estatus de Mi
+                                                    Trámite
                                                 </Link>
                                                 <a
                                                     href={`https://wa.me/528711024187?text=${encodeURIComponent(`Hola, tengo una duda sobre el estatus de mi solicitud existente para la orden #${existingRequestNotice.orderNumber}`)}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 sm:w-auto"
                                                 >
-                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    <svg
+                                                        className="h-4 w-4 fill-current"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                                                     </svg>
                                                     WhatsApp Soporte
                                                 </a>
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        setExistingRequestNotice(null);
+                                                        setExistingRequestNotice(
+                                                            null,
+                                                        );
                                                         setOrderNumber('');
                                                         setErrorMessage('');
                                                         setRequiresEmail(false);
                                                         setRequiresCard(false);
                                                     }}
-                                                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300 font-bold text-xs transition shadow-xs"
+                                                    className="w-full rounded-2xl border border-gray-200 bg-white px-5 py-3.5 text-xs font-bold text-gray-700 shadow-xs transition hover:bg-gray-100 sm:w-auto dark:border-neutral-800 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
                                                 >
                                                     Verificar Otra Orden
                                                 </button>
                                             </div>
                                         </div>
                                     ) : !events || events.length === 0 ? (
-                                        <div className="py-10 px-6 text-center rounded-3xl bg-gray-50/80 dark:bg-neutral-900/50 border border-gray-200/80 dark:border-neutral-800 space-y-6">
-                                            <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-xs">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                                        <div className="space-y-6 rounded-3xl border border-gray-200/80 bg-gray-50/80 px-6 py-10 text-center dark:border-neutral-800 dark:bg-neutral-900/50">
+                                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-200/60 bg-amber-50 text-amber-600 shadow-xs dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    className="h-8 w-8"
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                                                    />
                                                 </svg>
                                             </div>
 
-                                            <div className="max-w-md mx-auto space-y-3">
-                                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                                                    No hay eventos disponibles para trámites
+                                            <div className="mx-auto max-w-md space-y-3">
+                                                <h3 className="text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100">
+                                                    No hay eventos disponibles
+                                                    para trámites
                                                 </h3>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                                                    Por el momento no contamos con eventos habilitados para la recepción de solicitudes de reembolso.
+                                                <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                                                    Por el momento no contamos
+                                                    con eventos habilitados para
+                                                    la recepción de solicitudes
+                                                    de reembolso.
                                                 </p>
 
                                                 {/* Upcoming Event Notice Callout */}
-                                                <div className="mt-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-left flex items-start gap-3 shadow-xs">
-                                                    <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 flex-shrink-0 mt-0.5">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5h12v9H6V7z" />
+                                                <div className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50 p-4 text-left shadow-xs dark:border-amber-900/50 dark:bg-amber-950/30">
+                                                    <div className="mt-0.5 flex-shrink-0 rounded-xl bg-amber-100 p-2 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-5 w-5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5h12v9H6V7z"
+                                                            />
                                                         </svg>
                                                     </div>
                                                     <div className="space-y-0.5">
-                                                        <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 block uppercase tracking-wider">
-                                                            Próxima Apertura de Registro
+                                                        <span className="block text-[11px] font-bold tracking-wider text-amber-900 uppercase dark:text-amber-300">
+                                                            Próxima Apertura de
+                                                            Registro
                                                         </span>
-                                                        <p className="text-xs font-medium text-amber-800 dark:text-amber-200/90 leading-snug">
-                                                            Los registros para el evento <strong className="font-bold">"Juntos en Durango"</strong> darán inicio el <strong className="underline decoration-amber-400 font-bold">lunes 20 de julio</strong>.
+                                                        <p className="text-xs leading-snug font-medium text-amber-800 dark:text-amber-200/90">
+                                                            Los registros para
+                                                            el evento{' '}
+                                                            <strong className="font-bold">
+                                                                "Juntos en
+                                                                Durango"
+                                                            </strong>{' '}
+                                                            darán inicio el{' '}
+                                                            <strong className="font-bold underline decoration-amber-400">
+                                                                lunes 20 de
+                                                                julio
+                                                            </strong>
+                                                            .
                                                         </p>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+                                            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
                                                 <a
                                                     href="https://wa.me/528711024187?text=Hola%20tengo%20una%20duda%20sobre%20reembolsos"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+                                                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 text-xs font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 sm:w-auto"
                                                 >
-                                                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                                    <svg
+                                                        className="h-4 w-4 fill-current"
+                                                        viewBox="0 0 24 24"
+                                                    >
+                                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                                                     </svg>
                                                     Contactar Soporte
                                                 </a>
                                                 <Link
                                                     href="/"
-                                                    className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition text-center"
+                                                    className="w-full rounded-2xl bg-gray-100 px-5 py-3 text-center text-xs font-semibold text-gray-700 transition hover:bg-gray-200 sm:w-auto dark:bg-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-700"
                                                 >
                                                     Volver al Inicio
                                                 </Link>
                                             </div>
                                         </div>
                                     ) : !(requiresEmail || requiresCard) ? (
-                                        <form onSubmit={handleVerifyOrder} className="space-y-5">
+                                        <form
+                                            onSubmit={handleVerifyOrder}
+                                            className="space-y-5"
+                                        >
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                                    Selecciona el Evento <span className="text-red-500 ml-1">*</span>
+                                                <label className="mb-2 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                    Selecciona el Evento{' '}
+                                                    <span className="ml-1 text-red-500">
+                                                        *
+                                                    </span>
                                                 </label>
-                                                <Select value={eventId} onValueChange={(value) => setEventId(value)}>
-                                                    <SelectTrigger className="w-full h-auto p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#c90000] focus:ring-offset-0 text-sm font-medium transition shadow-xs">
+                                                <Select
+                                                    value={eventId}
+                                                    onValueChange={(value) =>
+                                                        setEventId(value)
+                                                    }
+                                                >
+                                                    <SelectTrigger className="h-auto w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm font-medium text-gray-900 shadow-xs transition focus:ring-2 focus:ring-[#c90000] focus:ring-offset-0 focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-gray-100">
                                                         <SelectValue placeholder="-- Elige un evento --" />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-2xl border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-2xl p-1.5 max-h-72">
+                                                    <SelectContent className="max-h-72 rounded-2xl border-gray-200 bg-white p-1.5 shadow-2xl dark:border-neutral-800 dark:bg-neutral-900">
                                                         {events.map((ev) => (
                                                             <SelectItem
                                                                 key={ev.id}
-                                                                value={String(ev.id)}
-                                                                className="rounded-xl py-3 px-3 text-sm font-medium cursor-pointer focus:bg-[#c90000]/10 focus:text-[#c90000] dark:focus:bg-[#c90000]/20 dark:focus:text-red-400 transition"
+                                                                value={String(
+                                                                    ev.id,
+                                                                )}
+                                                                className="cursor-pointer rounded-xl px-3 py-3 text-sm font-medium transition focus:bg-[#c90000]/10 focus:text-[#c90000] dark:focus:bg-[#c90000]/20 dark:focus:text-red-400"
                                                             >
-                                                                {ev.title} {ev.start_date ? `(${ev.start_date})` : ''}
+                                                                {ev.title}{' '}
+                                                                {ev.start_date
+                                                                    ? `(${ev.start_date})`
+                                                                    : ''}
                                                             </SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -833,62 +1107,96 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                             </div>
 
                                             <div>
-                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                                    Número de Orden <span className="text-red-500 ml-1">*</span>
+                                                <label className="mb-2 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                    Número de Orden{' '}
+                                                    <span className="ml-1 text-red-500">
+                                                        *
+                                                    </span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={orderNumber}
-                                                    onChange={(e) => setOrderNumber(e.target.value)}
+                                                    onChange={(e) =>
+                                                        setOrderNumber(
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     placeholder="Ej: 2057100"
                                                     required
-                                                    className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-950"
                                                 />
                                             </div>
 
                                             <button
                                                 type="submit"
                                                 disabled={loading}
-                                                className="w-full p-4 bg-[#c90000] hover:bg-[#a60000] text-white rounded-2xl font-bold transition shadow-lg shadow-[#c90000]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="w-full rounded-2xl bg-[#c90000] p-4 font-bold text-white shadow-lg shadow-[#c90000]/20 transition hover:bg-[#a60000] disabled:cursor-not-allowed disabled:opacity-50"
                                             >
-                                                {loading ? 'Buscando orden...' : 'Verificar Orden'}
+                                                {loading
+                                                    ? 'Buscando orden...'
+                                                    : 'Verificar Orden'}
                                             </button>
                                         </form>
                                     ) : (
-                                        <form onSubmit={handleVerifySecondary} className="space-y-5">
-                                            <div className="p-4 rounded-2xl bg-amber-50 text-amber-700 text-xs border border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50">
-                                                Esta orden se pagó mediante: <strong>{paymentMethod}</strong>. Para su seguridad, valide la información solicitada a continuación.
+                                        <form
+                                            onSubmit={handleVerifySecondary}
+                                            className="space-y-5"
+                                        >
+                                            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-400">
+                                                Esta orden se pagó mediante:{' '}
+                                                <strong>{paymentMethod}</strong>
+                                                . Para su seguridad, valide la
+                                                información solicitada a
+                                                continuación.
                                             </div>
 
                                             {requiresEmail && (
                                                 <div>
-                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                                        Correo Electrónico <span className="text-red-500 ml-1">*</span>
+                                                    <label className="mb-2 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                        Correo Electrónico{' '}
+                                                        <span className="ml-1 text-red-500">
+                                                            *
+                                                        </span>
                                                     </label>
                                                     <input
                                                         type="email"
                                                         value={email}
-                                                        onChange={(e) => setEmail(e.target.value)}
+                                                        onChange={(e) =>
+                                                            setEmail(
+                                                                e.target.value,
+                                                            )
+                                                        }
                                                         placeholder="ejemplo@correo.com"
                                                         required
-                                                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
                                                     />
                                                 </div>
                                             )}
 
                                             {requiresCard && (
                                                 <div>
-                                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                                        Últimos 4 dígitos de su Tarjeta <span className="text-red-500 ml-1">*</span>
+                                                    <label className="mb-2 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                        Últimos 4 dígitos de su
+                                                        Tarjeta{' '}
+                                                        <span className="ml-1 text-red-500">
+                                                            *
+                                                        </span>
                                                     </label>
                                                     <input
                                                         type="text"
                                                         value={cardLastFour}
-                                                        onChange={(e) => setCardLastFour(e.target.value.replace(/\D/g, ''))}
+                                                        onChange={(e) =>
+                                                            setCardLastFour(
+                                                                e.target.value.replace(
+                                                                    /\D/g,
+                                                                    '',
+                                                                ),
+                                                            )
+                                                        }
                                                         placeholder="Ej: 1234"
                                                         maxLength={4}
                                                         required
-                                                        className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
                                                     />
                                                 </div>
                                             )}
@@ -902,16 +1210,18 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                         setEmail('');
                                                         setCardLastFour('');
                                                     }}
-                                                    className="w-1/3 p-4 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition"
+                                                    className="w-1/3 rounded-2xl bg-gray-100 p-4 font-bold text-gray-700 transition hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-700"
                                                 >
                                                     Atrás
                                                 </button>
                                                 <button
                                                     type="submit"
                                                     disabled={loading}
-                                                    className="w-2/3 p-4 bg-[#c90000] hover:bg-[#a60000] text-white rounded-2xl font-bold transition shadow-lg shadow-[#c90000]/20 disabled:opacity-50"
+                                                    className="w-2/3 rounded-2xl bg-[#c90000] p-4 font-bold text-white shadow-lg shadow-[#c90000]/20 transition hover:bg-[#a60000] disabled:opacity-50"
                                                 >
-                                                    {loading ? 'Verificando...' : 'Confirmar Datos'}
+                                                    {loading
+                                                        ? 'Verificando...'
+                                                        : 'Confirmar Datos'}
                                                 </button>
                                             </div>
                                         </form>
@@ -919,252 +1229,411 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                 </div>
                             )}
 
-                            <div className="mt-6 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 text-sm text-blue-800 dark:text-blue-300 space-y-2">
-                                <p><strong>Importante:</strong> Para hacer válido el reembolso, la información solicitada debe ser precisa y todos los campos son obligatorios.</p>
-                                <p>Boletea Tickets puede hacer contacto vía correo en caso de que exista una aclaración con los datos proporcionados.</p>
-                                <p>Los tiempos de devolución pueden tomar entre <strong>15 y 30 días hábiles</strong> una vez teniendo la información necesaria.</p>
-                                <p>Para aclaraciones WhatsApp <strong>871 102 4187</strong>.</p>
+                            <div className="mt-6 space-y-2 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800 dark:border-blue-800/30 dark:bg-blue-900/20 dark:text-blue-300">
+                                <p>
+                                    <strong>Importante:</strong> Para hacer
+                                    válido el reembolso, la información
+                                    solicitada debe ser precisa y todos los
+                                    campos son obligatorios.
+                                </p>
+                                <p>
+                                    Boletea Tickets puede hacer contacto vía
+                                    correo en caso de que exista una aclaración
+                                    con los datos proporcionados.
+                                </p>
+                                <p>
+                                    Los tiempos de devolución pueden tomar entre{' '}
+                                    <strong>15 y 30 días hábiles</strong> una
+                                    vez teniendo la información necesaria.
+                                </p>
+                                <p>
+                                    Para aclaraciones WhatsApp{' '}
+                                    <strong>871 102 4187</strong>.
+                                </p>
                             </div>
 
                             {/* STEP 2: DOCUMENTS UPLOAD & BANK INFO */}
                             {step === 2 && (
-                                <form onSubmit={handleSubmitRefund} className="space-y-6">
-                                    <div className="p-4 mt-2 mb-2 rounded-2xl bg-[#c90000]/5 text-sm dark:bg-[#c90000]/10 border border-[#c90000]/10">
+                                <form
+                                    onSubmit={handleSubmitRefund}
+                                    className="space-y-6"
+                                >
+                                    <div className="mt-2 mb-2 rounded-2xl border border-[#c90000]/10 bg-[#c90000]/5 p-4 text-sm dark:bg-[#c90000]/10">
                                         <p className="text-gray-700 dark:text-gray-300">
-                                            Orden: <strong>#{orderNumber}</strong> ({
-                                                (() => {
-                                                    const method = String(paymentMethod || '').toLowerCase();
-                                                    if (method === 'creditcard') {
-                                                        return 'Tarjeta de Crédito/Débito';
-                                                    }
-                                                    if (method === 'box office payment') {
-                                                        return requiresCard ? 'Tarjeta de Crédito/Débito' : 'Efectivo';
-                                                    }
+                                            Orden:{' '}
+                                            <strong>#{orderNumber}</strong> (
+                                            {(() => {
+                                                const method = String(
+                                                    paymentMethod || '',
+                                                ).toLowerCase();
+                                                if (method === 'creditcard') {
                                                     return 'Tarjeta de Crédito/Débito';
-                                                })()
-                                            })
+                                                }
+                                                if (
+                                                    method ===
+                                                    'box office payment'
+                                                ) {
+                                                    return requiresCard
+                                                        ? 'Tarjeta de Crédito/Débito'
+                                                        : 'Efectivo';
+                                                }
+                                                return 'Tarjeta de Crédito/Débito';
+                                            })()}
+                                            )
                                         </p>
                                         {buyerName && (
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="mt-1 text-xs text-gray-500">
                                                 Titular en sistema: {buyerName}
                                             </p>
                                         )}
                                     </div>
 
                                     {requiresTickets && (
-                                        <div className="bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-5">
-                                            <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 text-sm">Validación de Boletos</h4>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                                                Por favor ingrese el IDE de los boletos físicos de esta orden que desea reembolsar y adjunte la fotografía correspondiente de cada uno.
+                                        <div className="rounded-lg border border-gray-200 bg-gray-50 p-5 dark:border-neutral-800 dark:bg-neutral-900">
+                                            <h4 className="mb-3 text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                                Validación de Boletos
+                                            </h4>
+                                            <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                                                Por favor ingrese el IDE de los
+                                                boletos físicos de esta orden
+                                                que desea reembolsar y adjunte
+                                                la fotografía correspondiente de
+                                                cada uno.
                                             </p>
                                         </div>
                                     )}
 
                                     {/* Información del Beneficiario Desglosada */}
-                                    <div className="p-5 rounded-2xl bg-gray-50/50 dark:bg-neutral-900/30 border border-gray-200 dark:border-neutral-800 space-y-4">
+                                    <div className="space-y-4 rounded-2xl border border-gray-200 bg-gray-50/50 p-5 dark:border-neutral-800 dark:bg-neutral-900/30">
                                         <div>
-                                            <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                            <h4 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
                                                 Información del Beneficiario
                                             </h4>
-                                            <p className="text-[11px] text-gray-400 mt-0.5">
-                                                Ingrese su nombre y apellidos tal como aparecen en su identificación oficial (INE / Pasaporte).
+                                            <p className="mt-0.5 text-[11px] text-gray-400">
+                                                Ingrese su nombre y apellidos
+                                                tal como aparecen en su
+                                                identificación oficial (INE /
+                                                Pasaporte).
                                             </p>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                    Primer Nombre <span className="text-red-500 ml-0.5">*</span>
+                                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                                                    Primer Nombre{' '}
+                                                    <span className="ml-0.5 text-red-500">
+                                                        *
+                                                    </span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={firstName}
-                                                    onChange={(e) => setFirstName(e.target.value.toUpperCase())}
+                                                    onChange={(e) =>
+                                                        setFirstName(
+                                                            e.target.value.toUpperCase(),
+                                                        )
+                                                    }
                                                     required
                                                     placeholder="Ej: JUAN"
-                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-950"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                    Segundo Nombre <span className="text-gray-400 font-normal">(Opcional)</span>
+                                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                                                    Segundo Nombre{' '}
+                                                    <span className="font-normal text-gray-400">
+                                                        (Opcional)
+                                                    </span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={middleName}
-                                                    onChange={(e) => setMiddleName(e.target.value.toUpperCase())}
+                                                    onChange={(e) =>
+                                                        setMiddleName(
+                                                            e.target.value.toUpperCase(),
+                                                        )
+                                                    }
                                                     placeholder="Ej: CARLOS"
-                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                    className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-950"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                    Apellido Paterno <span className="text-red-500 ml-0.5">*</span>
+                                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                                                    Apellido Paterno{' '}
+                                                    <span className="ml-0.5 text-red-500">
+                                                        *
+                                                    </span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={lastNamePaternal}
-                                                    onChange={(e) => setLastNamePaternal(e.target.value.toUpperCase())}
+                                                    onChange={(e) =>
+                                                        setLastNamePaternal(
+                                                            e.target.value.toUpperCase(),
+                                                        )
+                                                    }
                                                     required
                                                     placeholder="Ej: PEREZ"
-                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-955 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                    className="dark:bg-neutral-955 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                    Apellido Materno <span className="text-red-500 ml-0.5">*</span>
+                                                <label className="mb-1 block text-[11px] font-bold tracking-wider text-gray-500 uppercase">
+                                                    Apellido Materno{' '}
+                                                    <span className="ml-0.5 text-red-500">
+                                                        *
+                                                    </span>
                                                 </label>
                                                 <input
                                                     type="text"
                                                     value={lastNameMaternal}
-                                                    onChange={(e) => setLastNameMaternal(e.target.value.toUpperCase())}
+                                                    onChange={(e) =>
+                                                        setLastNameMaternal(
+                                                            e.target.value.toUpperCase(),
+                                                        )
+                                                    }
                                                     required
                                                     placeholder="Ej: GOMEZ"
-                                                    className="w-full p-3 rounded-xl bg-white dark:bg-neutral-955 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] text-sm transition"
+                                                    className="dark:bg-neutral-955 w-full rounded-xl border border-gray-200 bg-white p-3 text-sm transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800"
                                                 />
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
+                                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                Correo Electrónico de Contacto <span className="text-red-500 ml-1">*</span>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                Correo Electrónico de Contacto{' '}
+                                                <span className="ml-1 text-red-500">
+                                                    *
+                                                </span>
                                             </label>
-                                            <p className="text-[11px] text-gray-400 mb-2">
-                                                Aquí recibirá las notificaciones del estatus de su reembolso.
+                                            <p className="mb-2 text-[11px] text-gray-400">
+                                                Aquí recibirá las notificaciones
+                                                del estatus de su reembolso.
                                             </p>
                                             <input
                                                 type="email"
                                                 value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
+                                                onChange={(e) =>
+                                                    setEmail(e.target.value)
+                                                }
                                                 required
                                                 placeholder="correo@ejemplo.com"
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                CLABE Interbancaria (18 dígitos) <span className="text-red-500 ml-1">*</span>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                CLABE Interbancaria (18 dígitos){' '}
+                                                <span className="ml-1 text-red-500">
+                                                    *
+                                                </span>
                                             </label>
-                                            <p className="text-[11px] text-gray-400 mb-2">
-                                                Asegúrese de que la cuenta esté a nombre del titular del reembolso.
+                                            <p className="mb-2 text-[11px] text-gray-400">
+                                                Asegúrese de que la cuenta esté
+                                                a nombre del titular del
+                                                reembolso.
                                             </p>
                                             <input
                                                 type="text"
                                                 value={clabe}
                                                 onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '');
+                                                    const val =
+                                                        e.target.value.replace(
+                                                            /\D/g,
+                                                            '',
+                                                        );
                                                     setClabe(val);
                                                     if (val.length >= 3) {
-                                                        const prefix = val.substring(0, 3);
-                                                        const matchedBank = banks.find(b => b.code === prefix);
+                                                        const prefix =
+                                                            val.substring(0, 3);
+                                                        const matchedBank =
+                                                            banks.find(
+                                                                (b) =>
+                                                                    b.code ===
+                                                                    prefix,
+                                                            );
                                                         if (matchedBank) {
-                                                            if (matchedBank.enabled) {
-                                                                setBankName(matchedBank.name);
-                                                                setClabeError('');
+                                                            if (
+                                                                matchedBank.enabled
+                                                            ) {
+                                                                setBankName(
+                                                                    matchedBank.name,
+                                                                );
+                                                                setClabeError(
+                                                                    '',
+                                                                );
                                                             } else {
                                                                 setBankName('');
-                                                                setClabeError(`El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`);
+                                                                setClabeError(
+                                                                    `El banco "${matchedBank.name}" no está habilitado para recibir reembolsos.`,
+                                                                );
                                                             }
                                                         } else {
-                                                            setClabeError('Prefijo de CLABE no reconocido.');
+                                                            setClabeError(
+                                                                'Prefijo de CLABE no reconocido.',
+                                                            );
                                                         }
                                                     } else {
                                                         setClabeError('');
                                                     }
                                                 }}
-                                                onCopy={(e) => e.preventDefault()}
-                                                onPaste={(e) => e.preventDefault()}
-                                                onCut={(e) => e.preventDefault()}
-                                                onDrag={(e) => e.preventDefault()}
-                                                onDrop={(e) => e.preventDefault()}
+                                                onCopy={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onPaste={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onCut={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onDrag={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onDrop={(e) =>
+                                                    e.preventDefault()
+                                                }
                                                 maxLength={18}
                                                 required
                                                 placeholder="012345678901234567"
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
                                             />
                                             {clabeError && (
-                                                <p className="text-red-500 text-xs mt-1.5 font-semibold">
+                                                <p className="mt-1.5 text-xs font-semibold text-red-500">
                                                     {clabeError}
                                                 </p>
                                             )}
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                Confirmar CLABE Interbancaria (18 dígitos) <span className="text-red-500 ml-1">*</span>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                Confirmar CLABE Interbancaria
+                                                (18 dígitos){' '}
+                                                <span className="ml-1 text-red-500">
+                                                    *
+                                                </span>
                                             </label>
-                                            <p className="text-[11px] text-gray-400 mb-2">
-                                                Escriba nuevamente su CLABE interbancaria para confirmación.
+                                            <p className="mb-2 text-[11px] text-gray-400">
+                                                Escriba nuevamente su CLABE
+                                                interbancaria para confirmación.
                                             </p>
                                             <input
                                                 type="text"
                                                 value={confirmClabe}
-                                                onChange={(e) => setConfirmClabe(e.target.value.replace(/\D/g, ''))}
-                                                onCopy={(e) => e.preventDefault()}
-                                                onPaste={(e) => e.preventDefault()}
-                                                onCut={(e) => e.preventDefault()}
-                                                onDrag={(e) => e.preventDefault()}
-                                                onDrop={(e) => e.preventDefault()}
+                                                onChange={(e) =>
+                                                    setConfirmClabe(
+                                                        e.target.value.replace(
+                                                            /\D/g,
+                                                            '',
+                                                        ),
+                                                    )
+                                                }
+                                                onCopy={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onPaste={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onCut={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onDrag={(e) =>
+                                                    e.preventDefault()
+                                                }
+                                                onDrop={(e) =>
+                                                    e.preventDefault()
+                                                }
                                                 maxLength={18}
                                                 required
                                                 placeholder="012345678901234567"
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
                                             />
                                         </div>
 
                                         <div>
-                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                                Nombre del Banco <span className="text-red-500 ml-1">*</span>
+                                            <label className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                                Nombre del Banco{' '}
+                                                <span className="ml-1 text-red-500">
+                                                    *
+                                                </span>
                                             </label>
-                                            <p className="text-[11px] text-gray-400 mb-2">
-                                                Seleccione la institución financiera de su cuenta.
+                                            <p className="mb-2 text-[11px] text-gray-400">
+                                                Seleccione la institución
+                                                financiera de su cuenta.
                                             </p>
                                             <select
                                                 value={bankName}
-                                                onChange={(e) => setBankName(e.target.value)}
+                                                onChange={(e) =>
+                                                    setBankName(e.target.value)
+                                                }
                                                 required
-                                                className="w-full p-4 rounded-2xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition text-sm text-gray-900 dark:text-white"
+                                                className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-900 transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
                                             >
-                                                <option value="">Seleccione un banco...</option>
-                                                {banks.filter(b => b.enabled).map(b => (
-                                                    <option key={b.code} value={b.name}>
-                                                        {b.name}
-                                                    </option>
-                                                ))}
+                                                <option value="">
+                                                    Seleccione un banco...
+                                                </option>
+                                                {banks
+                                                    .filter((b) => b.enabled)
+                                                    .map((b) => (
+                                                        <option
+                                                            key={b.code}
+                                                            value={b.name}
+                                                        >
+                                                            {b.name}
+                                                        </option>
+                                                    ))}
                                             </select>
                                         </div>
                                     </div>
 
                                     {/* Cash tickets verification (Individual Ticket IDs) */}
                                     {!requiresEmail && (
-                                        <div 
+                                        <div
                                             id="ticket-validation-container"
-                                            className={`p-4 rounded-2xl border bg-gray-50/50 dark:bg-neutral-900/50 space-y-4 transition-all duration-500 ${
-                                                highlightTicketInput 
-                                                    ? 'border-red-500 dark:border-red-500 ring-4 ring-red-500/20 dark:ring-red-500/30 scale-[1.02] shadow-lg shadow-red-500/10' 
+                                            className={`space-y-4 rounded-2xl border bg-gray-50/50 p-4 transition-all duration-500 dark:bg-neutral-900/50 ${
+                                                highlightTicketInput
+                                                    ? 'scale-[1.02] border-red-500 shadow-lg ring-4 shadow-red-500/10 ring-red-500/20 dark:border-red-500 dark:ring-red-500/30'
                                                     : 'border-gray-200 dark:border-neutral-800'
                                             }`}
                                         >
                                             <div>
-                                                <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                                    Validación de Boletos Físicos
+                                                <h3 className="text-xs font-bold tracking-wider text-gray-700 uppercase dark:text-gray-300">
+                                                    Validación de Boletos
+                                                    Físicos
                                                 </h3>
-                                                <p className="text-[11px] text-gray-400 mt-1">
-                                                    Ingrese el IDE de cada boleto uno por uno para certificar que pertenecen a esta orden.
+                                                <p className="mt-1 text-[11px] text-gray-400">
+                                                    Ingrese el IDE de cada
+                                                    boleto uno por uno para
+                                                    certificar que pertenecen a
+                                                    esta orden.
                                                 </p>
                                                 {ticketSampleImage && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setShowSampleModal(true)}
-                                                        className="text-xs text-[#c90000] dark:text-red-400 hover:underline font-semibold mt-1.5 flex items-center gap-1"
+                                                        onClick={() =>
+                                                            setShowSampleModal(
+                                                                true,
+                                                            )
+                                                        }
+                                                        className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-[#c90000] hover:underline dark:text-red-400"
                                                     >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            className="h-3.5 w-3.5"
+                                                            fill="none"
+                                                            viewBox="0 0 24 24"
+                                                            stroke="currentColor"
+                                                        >
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                            />
                                                         </svg>
-                                                        ¿Dónde encuentro el IDE de mi boleto?
+                                                        ¿Dónde encuentro el IDE
+                                                        de mi boleto?
                                                     </button>
                                                 )}
                                             </div>
@@ -1179,61 +1648,126 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                                 <input
                                                     type="text"
                                                     value={barcodeInput}
-                                                    onChange={(e) => setBarcodeInput(e.target.value)}
+                                                    onChange={(e) =>
+                                                        setBarcodeInput(
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     placeholder="Ej: 0999976175"
-                                                    className="flex-grow p-3 text-sm rounded-xl bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 focus:outline-none focus:ring-2 focus:ring-[#c90000] transition"
+                                                    className="flex-grow rounded-xl border border-gray-200 bg-white p-3 text-sm transition focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-950"
                                                 />
                                                 <button
                                                     type="button"
                                                     disabled={ticketLoading}
-                                                    onClick={handleVerifyIndividualTicket}
-                                                    className="p-3 px-4 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 text-xs font-bold rounded-xl transition"
+                                                    onClick={
+                                                        handleVerifyIndividualTicket
+                                                    }
+                                                    className="rounded-xl bg-gray-900 p-3 px-4 text-xs font-bold text-white transition hover:bg-black dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
                                                 >
-                                                    {ticketLoading ? 'Validando...' : 'Agregar'}
+                                                    {ticketLoading
+                                                        ? 'Validando...'
+                                                        : 'Agregar'}
                                                 </button>
                                             </div>
 
                                             {/* List of validated tickets */}
-                                            {validatedTicketsList.length > 0 && (
+                                            {validatedTicketsList.length >
+                                                0 && (
                                                 <div className="space-y-2 pt-2">
-                                                    <p className="text-[11px] font-semibold text-gray-500 uppercase">Boletos Validados ({validatedTicketsList.length}):</p>
-                                                    <div className="max-h-64 overflow-y-auto space-y-2 bg-white dark:bg-neutral-950 p-2 rounded-xl border border-gray-150 dark:border-neutral-850">
-                                                        {validatedTicketsList.map((t, idx) => (
-                                                            <div key={idx} className="flex flex-col text-xs border-b border-gray-50 dark:border-neutral-800 pb-2 last:border-0 pl-1 space-y-2">
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <span className="font-semibold block">{t.area} - Asiento {t.seat}</span>
-                                                                        <span className="font-mono text-[10px] text-gray-400">IDE: {t.ticket_id || t.barcode}</span>
+                                                    <p className="text-[11px] font-semibold text-gray-500 uppercase">
+                                                        Boletos Validados (
+                                                        {
+                                                            validatedTicketsList.length
+                                                        }
+                                                        ):
+                                                    </p>
+                                                    <div className="border-gray-150 dark:border-neutral-850 max-h-64 space-y-2 overflow-y-auto rounded-xl border bg-white p-2 dark:bg-neutral-950">
+                                                        {validatedTicketsList.map(
+                                                            (t, idx) => (
+                                                                <div
+                                                                    key={idx}
+                                                                    className="flex flex-col space-y-2 border-b border-gray-50 pb-2 pl-1 text-xs last:border-0 dark:border-neutral-800"
+                                                                >
+                                                                    <div className="flex items-start justify-between">
+                                                                        <div>
+                                                                            <span className="block font-semibold">
+                                                                                {
+                                                                                    t.area
+                                                                                }{' '}
+                                                                                -
+                                                                                Asiento{' '}
+                                                                                {
+                                                                                    t.seat
+                                                                                }
+                                                                            </span>
+                                                                            <span className="font-mono text-[10px] text-gray-400">
+                                                                                IDE:{' '}
+                                                                                {t.ticket_id ||
+                                                                                    t.barcode}
+                                                                            </span>
+                                                                        </div>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                handleRemoveTicket(
+                                                                                    t.barcode,
+                                                                                )
+                                                                            }
+                                                                            className="mt-1 mr-1 p-1 text-red-500 hover:text-red-700"
+                                                                        >
+                                                                            <svg
+                                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                                className="h-4 w-4"
+                                                                                fill="none"
+                                                                                viewBox="0 0 24 24"
+                                                                                stroke="currentColor"
+                                                                            >
+                                                                                <path
+                                                                                    strokeLinecap="round"
+                                                                                    strokeLinejoin="round"
+                                                                                    strokeWidth="2"
+                                                                                    d="M6 18L18 6M6 6l12 12"
+                                                                                />
+                                                                            </svg>
+                                                                        </button>
                                                                     </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => handleRemoveTicket(t.barcode)}
-                                                                        className="text-red-500 hover:text-red-700 p-1 mr-1 mt-1"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                                        </svg>
-                                                                    </button>
+                                                                    <div className="rounded-lg border border-gray-100 bg-gray-50 p-2 dark:border-neutral-800 dark:bg-neutral-900">
+                                                                        <label className="mb-1 block text-[10px] font-bold text-gray-500 uppercase">
+                                                                            Foto
+                                                                            del
+                                                                            Boleto{' '}
+                                                                            <span className="text-red-500">
+                                                                                *
+                                                                            </span>
+                                                                        </label>
+                                                                        <input
+                                                                            type="file"
+                                                                            accept="image/*,application/pdf"
+                                                                            required
+                                                                            onChange={(
+                                                                                e,
+                                                                            ) =>
+                                                                                handleTicketPhotoInput(
+                                                                                    e,
+                                                                                    t.barcode,
+                                                                                )
+                                                                            }
+                                                                            className="w-full text-[10px] text-gray-500 transition file:mr-2 file:rounded-md file:border-0 file:bg-gray-200 file:px-2 file:py-1 file:text-[10px] file:font-semibold file:text-gray-700 hover:file:bg-gray-300 dark:file:bg-neutral-800 dark:file:text-gray-300"
+                                                                        />
+                                                                        {t.photoFile && (
+                                                                            <span className="mt-1 block text-[10px] text-green-600">
+                                                                                ✓{' '}
+                                                                                {
+                                                                                    t
+                                                                                        .photoFile
+                                                                                        .name
+                                                                                }
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                                <div className="bg-gray-50 dark:bg-neutral-900 rounded-lg p-2 border border-gray-100 dark:border-neutral-800">
-                                                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                                                        Foto del Boleto <span className="text-red-500">*</span>
-                                                                    </label>
-                                                                    <input
-                                                                        type="file"
-                                                                        accept="image/*,application/pdf"
-                                                                        required
-                                                                        onChange={(e) => handleTicketPhotoInput(e, t.barcode)}
-                                                                        className="w-full text-[10px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-semibold file:bg-gray-200 file:text-gray-700 dark:file:bg-neutral-800 dark:file:text-gray-300 hover:file:bg-gray-300 transition"
-                                                                    />
-                                                                    {t.photoFile && (
-                                                                        <span className="text-[10px] text-green-600 block mt-1">
-                                                                            ✓ {t.photoFile.name}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        ))}
+                                                            ),
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}
@@ -1242,38 +1776,78 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
 
                                     {/* INE File */}
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                                            Identificación Oficial (INE/Pasaporte) <span className="text-red-500 ml-1">*</span>
+                                        <label className="mb-1 block text-xs font-bold tracking-wider text-gray-500 uppercase">
+                                            Identificación Oficial
+                                            (INE/Pasaporte){' '}
+                                            <span className="ml-1 text-red-500">
+                                                *
+                                            </span>
                                         </label>
-                                        <p className="text-[11px] text-gray-400 mb-2">
-                                            Adjuntar imagen clara o archivo PDF (Max 10MB).
+                                        <p className="mb-2 text-[11px] text-gray-400">
+                                            Adjuntar imagen clara o archivo PDF
+                                            (Max 10MB).
                                         </p>
                                         <input
                                             type="file"
                                             accept="image/*,application/pdf"
                                             required
-                                            onChange={(e) => handleFileInput(e, setIneFile)}
-                                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-gray-100 file:text-gray-700 dark:file:bg-neutral-800 dark:file:text-gray-300 hover:file:bg-gray-200 transition"
+                                            onChange={(e) =>
+                                                handleFileInput(e, setIneFile)
+                                            }
+                                            className="w-full text-sm text-gray-500 transition file:mr-4 file:rounded-xl file:border-0 file:bg-gray-100 file:px-4 file:py-2.5 file:text-xs file:font-semibold file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-neutral-800 dark:file:text-gray-300"
                                         />
                                         {ineFile && (
-                                            <span className="text-[11px] text-green-600 block mt-1">
-                                                ✓ Listo: {ineFile.name} (~{(ineFile.size / 1024).toFixed(0)} KB)
+                                            <span className="mt-1 block text-[11px] text-green-600">
+                                                ✓ Listo: {ineFile.name} (~
+                                                {(ineFile.size / 1024).toFixed(
+                                                    0,
+                                                )}{' '}
+                                                KB)
                                             </span>
                                         )}
                                     </div>
 
                                     {/* Legal disclaimer checkbox */}
-                                    <div className="flex items-start space-x-3 p-4 border border-gray-150 dark:border-neutral-800 rounded-2xl bg-gray-50/50 dark:bg-neutral-900/50">
+                                    <div className="border-gray-150 flex items-start space-x-3 rounded-2xl border bg-gray-50/50 p-4 dark:border-neutral-800 dark:bg-neutral-900/50">
                                         <input
                                             type="checkbox"
                                             id="acceptedTerms"
                                             checked={acceptedTerms}
-                                            onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                            onChange={(e) =>
+                                                setAcceptedTerms(
+                                                    e.target.checked,
+                                                )
+                                            }
                                             required
-                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-[#c90000] focus:ring-[#c90000] cursor-pointer"
+                                            className="mt-1 h-4 w-4 cursor-pointer rounded border-gray-300 text-[#c90000] focus:ring-[#c90000]"
                                         />
-                                        <label htmlFor="acceptedTerms" className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed select-none cursor-pointer">
-                                            Bajo protesta de decir verdad, <strong className="font-semibold text-gray-700 dark:text-gray-300">manifiesto mi conformidad</strong> y ratifico que todos los datos proporcionados en este formulario son verdaderos, vigentes y corresponden a la operación especificada. Acepto tener pleno conocimiento de las <strong className="font-semibold text-gray-700 dark:text-gray-300">responsabilidades civiles y legales</strong> en las que podría incurrir en caso de proporcionar información falsa, inexacta o con dolo. Autorizo el uso de estos datos <strong className="font-semibold text-gray-700 dark:text-gray-300">únicamente para el trámite de devolución</strong> a la cuenta bancaria indicada.
+                                        <label
+                                            htmlFor="acceptedTerms"
+                                            className="cursor-pointer text-xs leading-relaxed text-gray-500 select-none dark:text-gray-400"
+                                        >
+                                            Bajo protesta de decir verdad,{' '}
+                                            <strong className="font-semibold text-gray-700 dark:text-gray-300">
+                                                manifiesto mi conformidad
+                                            </strong>{' '}
+                                            y ratifico que todos los datos
+                                            proporcionados en este formulario
+                                            son verdaderos, vigentes y
+                                            corresponden a la operación
+                                            especificada. Acepto tener pleno
+                                            conocimiento de las{' '}
+                                            <strong className="font-semibold text-gray-700 dark:text-gray-300">
+                                                responsabilidades civiles y
+                                                legales
+                                            </strong>{' '}
+                                            en las que podría incurrir en caso
+                                            de proporcionar información falsa,
+                                            inexacta o con dolo. Autorizo el uso
+                                            de estos datos{' '}
+                                            <strong className="font-semibold text-gray-700 dark:text-gray-300">
+                                                únicamente para el trámite de
+                                                devolución
+                                            </strong>{' '}
+                                            a la cuenta bancaria indicada.
                                         </label>
                                     </div>
 
@@ -1282,16 +1856,24 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
                                             type="button"
                                             disabled={loading || isCompresing}
                                             onClick={() => setStep(1)}
-                                            className="w-1/3 p-4 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold transition disabled:opacity-50"
+                                            className="w-1/3 rounded-2xl bg-gray-100 p-4 font-bold text-gray-700 transition hover:bg-gray-200 disabled:opacity-50 dark:bg-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-700"
                                         >
                                             Atrás
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={loading || isCompresing || !acceptedTerms}
-                                            className="w-2/3 p-4 bg-[#c90000] hover:bg-[#a60000] text-white rounded-2xl font-bold transition shadow-lg shadow-[#c90000]/20 disabled:opacity-50"
+                                            disabled={
+                                                loading ||
+                                                isCompresing ||
+                                                !acceptedTerms
+                                            }
+                                            className="w-2/3 rounded-2xl bg-[#c90000] p-4 font-bold text-white shadow-lg shadow-[#c90000]/20 transition hover:bg-[#a60000] disabled:opacity-50"
                                         >
-                                            {isCompresing ? 'Comprimiendo...' : loading ? 'Enviando...' : 'Enviar Solicitud'}
+                                            {isCompresing
+                                                ? 'Comprimiendo...'
+                                                : loading
+                                                  ? 'Enviando...'
+                                                  : 'Enviar Solicitud'}
                                         </button>
                                     </div>
                                 </form>
@@ -1305,77 +1887,120 @@ export default function RefundForm({ events, ticketSampleImage, banks = [] }: Pr
 
                 {/* Ticket ID Help Modal */}
                 {showSampleModal && ticketSampleImage && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-250">
-                        <div 
-                            className="bg-white dark:bg-neutral-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative animate-in zoom-in-95 duration-250"
+                    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-250 fade-in">
+                        <div
+                            className="relative w-full max-w-lg animate-in rounded-3xl bg-white p-6 shadow-2xl duration-250 zoom-in-95 dark:bg-neutral-900"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Ubicación del IDE de Boleto</h3>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                    Ubicación del IDE de Boleto
+                                </h3>
                                 <button
                                     type="button"
                                     onClick={() => setShowSampleModal(false)}
-                                    className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full text-gray-400 hover:text-gray-600 transition"
+                                    className="rounded-full p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-neutral-800"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-5 w-5"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
                                     </svg>
                                 </button>
                             </div>
-                            <div className="border rounded-2xl overflow-hidden bg-gray-50 dark:bg-neutral-950 flex justify-center items-center p-2 mb-4">
+                            <div className="mb-4 flex items-center justify-center overflow-hidden rounded-2xl border bg-gray-50 p-2 dark:bg-neutral-950">
                                 <img
                                     src={ticketSampleImage}
                                     alt="Guía de ubicación de IDE"
-                                    className="max-h-[60vh] object-contain rounded-xl"
+                                    className="max-h-[60vh] rounded-xl object-contain"
                                 />
                             </div>
-                            <p className="text-xs text-gray-500 text-center leading-relaxed">
-                                Utiliza el código numérico señalado como IDE en la imagen de muestra para validar tus boletos.
+                            <p className="text-center text-xs leading-relaxed text-gray-500">
+                                Utiliza el código numérico señalado como IDE en
+                                la imagen de muestra para validar tus boletos.
                             </p>
                         </div>
                     </div>
                 )}
                 {/* Tickets Warning/Confirmation Modal */}
                 {showTicketsWarningModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div 
-                            className="bg-white dark:bg-neutral-900 rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-gray-100 dark:border-neutral-800 animate-in zoom-in-95 duration-200"
+                    <div className="fixed inset-0 z-50 flex animate-in items-center justify-center bg-black/60 p-4 backdrop-blur-sm duration-200 fade-in">
+                        <div
+                            className="relative w-full max-w-md animate-in rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl duration-200 zoom-in-95 md:p-8 dark:border-neutral-800 dark:bg-neutral-900"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="text-center space-y-4">
-                                <div className="mx-auto w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-md">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-8 h-8 animate-bounce">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            <div className="space-y-4 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-amber-200/60 bg-amber-50 text-amber-600 shadow-md dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-400">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth="2"
+                                        stroke="currentColor"
+                                        className="h-8 w-8 animate-bounce"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
+                                        />
                                     </svg>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
+                                    <h3 className="text-xl font-black tracking-tight text-gray-900 dark:text-white">
                                         ¿Tienes más boletos en esta orden?
                                     </h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                                        Quedan boletos disponibles para reembolso en esta orden que aún no has agregado a esta solicitud.
+                                    <p className="text-sm leading-relaxed font-medium text-gray-500 dark:text-gray-400">
+                                        Quedan boletos disponibles para
+                                        reembolso en esta orden que aún no has
+                                        agregado a esta solicitud.
                                     </p>
-                                    <div className="p-3 bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl text-xs text-amber-800 dark:text-amber-300 font-medium text-left leading-normal">
-                                        <strong>Nota importante:</strong> Te recomendamos agregar todos tus boletos en esta misma solicitud. Una vez que se complete el trámite de esta orden, el sistema ya no permitirá ingresar nuevas solicitudes de reembolso para ella.
+                                    <div className="rounded-2xl border border-amber-100 bg-amber-50/60 p-3 text-left text-xs leading-normal font-medium text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300">
+                                        <strong>Nota importante:</strong> Te
+                                        recomendamos agregar todos tus boletos
+                                        en esta misma solicitud. Una vez que se
+                                        complete el trámite de esta orden, el
+                                        sistema ya no permitirá ingresar nuevas
+                                        solicitudes de reembolso para ella.
                                     </div>
                                 </div>
 
-                                <div className="pt-4 flex flex-col gap-2.5">
+                                <div className="flex flex-col gap-2.5 pt-4">
                                     <button
                                         type="button"
                                         onClick={handleAddMoreTickets}
-                                        className="w-full py-3.5 bg-gradient-to-r from-[#c90000] to-[#b30000] hover:from-[#e60000] hover:to-[#c90000] text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-[#c90000]/20 flex items-center justify-center gap-2 transform active:scale-95 cursor-pointer"
+                                        className="flex w-full transform cursor-pointer items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#c90000] to-[#b30000] py-3.5 text-xs font-bold tracking-wider text-white uppercase shadow-lg shadow-[#c90000]/20 transition hover:from-[#e60000] hover:to-[#c90000] active:scale-95"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            strokeWidth="2"
+                                            stroke="currentColor"
+                                            className="h-4 w-4"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                d="M12 4.5v15m7.5-7.5h-15"
+                                            />
                                         </svg>
                                         Agregar el otro boleto
                                     </button>
                                     <button
                                         type="button"
                                         onClick={handleConfirmOnlySubmit}
-                                        className="w-full py-3 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-300 rounded-2xl font-bold text-xs transition cursor-pointer"
+                                        className="w-full cursor-pointer rounded-2xl bg-gray-100 py-3 text-xs font-bold text-gray-700 transition hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:hover:bg-neutral-700"
                                     >
                                         Sí, continuar con la solicitud actual
                                     </button>

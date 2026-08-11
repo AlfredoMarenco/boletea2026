@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Edit, Trash } from 'lucide-react';
 
 interface Category {
@@ -26,14 +26,16 @@ export default function Index({ categories }: { categories: Category[] }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: route('admin.dashboard') },
-            { title: 'Categorias', href: route('admin.categories.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Dashboard', href: route('admin.dashboard') },
+                { title: 'Categorias', href: route('admin.categories.index') },
+            ]}
+        >
             <Head title="Categorias" />
 
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Categorias
                     </h1>
@@ -50,29 +52,56 @@ export default function Index({ categories }: { categories: Category[] }) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nombre</TableHead>
-                                <TableHead className="text-center">Eventos con esta categoria</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="text-center">
+                                    Eventos con esta categoria
+                                </TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {categories.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                                    <TableCell
+                                        colSpan={3}
+                                        className="py-10 text-center text-muted-foreground"
+                                    >
                                         No hay categorias registradas.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 categories.map((category) => (
                                     <TableRow key={category.id}>
-                                        <TableCell className="font-medium">{category.name}</TableCell>
-                                        <TableCell className="text-center font-medium">{category.external_events_count}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('admin.categories.edit', category.id)}>
+                                        <TableCell className="font-medium">
+                                            {category.name}
+                                        </TableCell>
+                                        <TableCell className="text-center font-medium">
+                                            {category.external_events_count}
+                                        </TableCell>
+                                        <TableCell className="space-x-2 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={route(
+                                                        'admin.categories.edit',
+                                                        category.id,
+                                                    )}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(category.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                    handleDelete(category.id)
+                                                }
+                                                className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                            >
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </TableCell>

@@ -1,5 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents, LayersControl } from 'react-leaflet';
+import {
+    MapContainer,
+    TileLayer,
+    Marker,
+    useMapEvents,
+    LayersControl,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -17,12 +23,14 @@ let DefaultIcon = L.icon({
 
 // Red Icon
 let RedIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconUrl:
+        'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+    shadowUrl:
+        'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
     iconSize: [25, 41],
     iconAnchor: [12, 41],
     popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+    shadowSize: [41, 41],
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
@@ -40,28 +48,45 @@ interface LocationPickerProps {
     searchQuery?: string;
 }
 
-function LocationMarker({ position, setPosition, onLocationChange, onAddressFound, readonly, clickToGoogleMaps }: {
-    position: { lat: number, lng: number } | null,
-    setPosition: (pos: { lat: number, lng: number }) => void,
-    onLocationChange?: (lat: number, lng: number) => void,
-    onAddressFound?: (address: string) => void,
-    readonly?: boolean,
-    clickToGoogleMaps?: boolean
+function LocationMarker({
+    position,
+    setPosition,
+    onLocationChange,
+    onAddressFound,
+    readonly,
+    clickToGoogleMaps,
+}: {
+    position: { lat: number; lng: number } | null;
+    setPosition: (pos: { lat: number; lng: number }) => void;
+    onLocationChange?: (lat: number, lng: number) => void;
+    onAddressFound?: (address: string) => void;
+    readonly?: boolean;
+    clickToGoogleMaps?: boolean;
 }) {
     const fetchAddress = async (lat: number, lng: number) => {
         if (!onAddressFound || readonly) return;
 
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
-                headers: {
-                    'User-Agent': 'Boletea2026/1.0'
-                }
-            });
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+                {
+                    headers: {
+                        'User-Agent': 'Boletea2026/1.0',
+                    },
+                },
+            );
             const data = await response.json();
             if (data && data.display_name) {
                 // Enhance address with place name if available
                 let address = data.display_name;
-                const placeName = data.address.amenity || data.address.shop || data.address.tourism || data.address.historic || data.address.leisure || data.address.office || data.address.building;
+                const placeName =
+                    data.address.amenity ||
+                    data.address.shop ||
+                    data.address.tourism ||
+                    data.address.historic ||
+                    data.address.leisure ||
+                    data.address.office ||
+                    data.address.building;
 
                 if (placeName) {
                     // Sometimes display_name already includes it, but ensuring it's prominent or structured if needed
@@ -72,14 +97,17 @@ function LocationMarker({ position, setPosition, onLocationChange, onAddressFoun
                 onAddressFound(data.display_name);
             }
         } catch (error) {
-            console.error("Error fetching address:", error);
+            console.error('Error fetching address:', error);
         }
     };
 
     const map = useMapEvents({
         click(e) {
             if (clickToGoogleMaps && position) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${position.lat},${position.lng}`, '_blank');
+                window.open(
+                    `https://www.google.com/maps/search/?api=1&query=${position.lat},${position.lng}`,
+                    '_blank',
+                );
                 return;
             }
 
@@ -96,7 +124,7 @@ function LocationMarker({ position, setPosition, onLocationChange, onAddressFoun
                 // Actually, fetchAddress is guarded by `if (!onAddressFound || readonly) return;`.
                 // So in readonly mode we DON'T fetch address.
                 return;
-            };
+            }
 
             setPosition(e.latlng);
             if (onLocationChange) onLocationChange(e.latlng.lat, e.latlng.lng);
@@ -106,28 +134,39 @@ function LocationMarker({ position, setPosition, onLocationChange, onAddressFoun
         },
     });
 
-    const markerRef = useRef<L.Marker>(null)
+    const markerRef = useRef<L.Marker>(null);
 
     const eventHandlers = useMemo(
         () => ({
             click() {
                 if (clickToGoogleMaps && position) {
-                    window.open(`https://www.google.com/maps/search/?api=1&query=${position.lat},${position.lng}`, '_blank');
+                    window.open(
+                        `https://www.google.com/maps/search/?api=1&query=${position.lat},${position.lng}`,
+                        '_blank',
+                    );
                 }
             },
             dragend() {
                 if (readonly) return;
-                const marker = markerRef.current
+                const marker = markerRef.current;
                 if (marker != null) {
                     const latlng = marker.getLatLng();
                     setPosition(latlng);
-                    if (onLocationChange) onLocationChange(latlng.lat, latlng.lng);
+                    if (onLocationChange)
+                        onLocationChange(latlng.lat, latlng.lng);
                     fetchAddress(latlng.lat, latlng.lng);
                 }
             },
         }),
-        [onLocationChange, setPosition, onAddressFound, readonly, clickToGoogleMaps, position],
-    )
+        [
+            onLocationChange,
+            setPosition,
+            onAddressFound,
+            readonly,
+            clickToGoogleMaps,
+            position,
+        ],
+    );
 
     return position === null ? null : (
         <Marker
@@ -141,13 +180,20 @@ function LocationMarker({ position, setPosition, onLocationChange, onAddressFoun
 }
 
 // Separate component to handle map updates from props (like searchQuery)
-function MapUpdater({ center, zoom, searchQuery, onLocationChange, onAddressFound, setPosition }: {
-    center: { lat: number, lng: number },
-    zoom: number,
-    searchQuery?: string,
-    onLocationChange?: (lat: number, lng: number) => void,
-    onAddressFound?: (address: string) => void,
-    setPosition: (pos: { lat: number, lng: number }) => void
+function MapUpdater({
+    center,
+    zoom,
+    searchQuery,
+    onLocationChange,
+    onAddressFound,
+    setPosition,
+}: {
+    center: { lat: number; lng: number };
+    zoom: number;
+    searchQuery?: string;
+    onLocationChange?: (lat: number, lng: number) => void;
+    onAddressFound?: (address: string) => void;
+    setPosition: (pos: { lat: number; lng: number }) => void;
 }) {
     const map = useMapEvents({});
 
@@ -159,11 +205,14 @@ function MapUpdater({ center, zoom, searchQuery, onLocationChange, onAddressFoun
         if (searchQuery) {
             const searchAddress = async () => {
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`, {
-                        headers: {
-                            'User-Agent': 'Boletea2026/1.0'
-                        }
-                    });
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+                        {
+                            headers: {
+                                'User-Agent': 'Boletea2026/1.0',
+                            },
+                        },
+                    );
                     const data = await response.json();
                     if (data && data.length > 0) {
                         const result = data[0];
@@ -178,7 +227,7 @@ function MapUpdater({ center, zoom, searchQuery, onLocationChange, onAddressFoun
                         map.flyTo(newPos, 16); // Zoom in on result
                     }
                 } catch (error) {
-                    console.error("Error searching address:", error);
+                    console.error('Error searching address:', error);
                 }
             };
 
@@ -191,16 +240,30 @@ function MapUpdater({ center, zoom, searchQuery, onLocationChange, onAddressFoun
     return null;
 }
 
-export default function LocationPicker({ initialLatitude, initialLongitude, onLocationChange, onAddressFound, readonly = false, clickToGoogleMaps = false, hideControls = false, zoom = 13, useGoogleTiles = false, searchQuery }: LocationPickerProps) {
+export default function LocationPicker({
+    initialLatitude,
+    initialLongitude,
+    onLocationChange,
+    onAddressFound,
+    readonly = false,
+    clickToGoogleMaps = false,
+    hideControls = false,
+    zoom = 13,
+    useGoogleTiles = false,
+    searchQuery,
+}: LocationPickerProps) {
     // Default center (e.g., Mexico City or user's location)
     // If no initial props, default to Mexico City
     const defaultCenter = { lat: 19.4326, lng: -99.1332 };
 
-    const [position, setPosition] = useState<{ lat: number, lng: number } | null>(() => {
+    const [position, setPosition] = useState<{
+        lat: number;
+        lng: number;
+    } | null>(() => {
         const lat = initialLatitude ? Number(initialLatitude) : null;
         const lng = initialLongitude ? Number(initialLongitude) : null;
 
-        return (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng))
+        return lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)
             ? { lat, lng }
             : null;
     });
@@ -208,7 +271,9 @@ export default function LocationPicker({ initialLatitude, initialLongitude, onLo
     const center = position || defaultCenter;
 
     return (
-        <div className={`w-full rounded-md overflow-hidden border border-gray-300 z-0 relative ${readonly ? 'h-[200px]' : 'h-[400px]'} ${clickToGoogleMaps ? 'cursor-pointer' : ''}`}>
+        <div
+            className={`relative z-0 w-full overflow-hidden rounded-md border border-gray-300 ${readonly ? 'h-[200px]' : 'h-[400px]'} ${clickToGoogleMaps ? 'cursor-pointer' : ''}`}
+        >
             <MapContainer
                 center={center}
                 zoom={zoom}
@@ -216,12 +281,17 @@ export default function LocationPicker({ initialLatitude, initialLongitude, onLo
                 dragging={!readonly}
                 doubleClickZoom={!readonly}
                 zoomControl={!hideControls}
-                style={{ height: '100%', width: '100%', zIndex: 0, cursor: clickToGoogleMaps ? 'pointer' : 'grab' }}
+                style={{
+                    height: '100%',
+                    width: '100%',
+                    zIndex: 0,
+                    cursor: clickToGoogleMaps ? 'pointer' : 'grab',
+                }}
             >
                 {hideControls ? (
                     useGoogleTiles ? (
                         <TileLayer
-                            attribution='&copy; Google Maps'
+                            attribution="&copy; Google Maps"
                             url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                             maxZoom={20}
                         />
@@ -235,7 +305,7 @@ export default function LocationPicker({ initialLatitude, initialLongitude, onLo
                     <LayersControl position="topright">
                         <LayersControl.BaseLayer checked name="Google Maps">
                             <TileLayer
-                                attribution='&copy; Google Maps'
+                                attribution="&copy; Google Maps"
                                 url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
                                 maxZoom={20}
                             />
@@ -260,7 +330,7 @@ export default function LocationPicker({ initialLatitude, initialLongitude, onLo
                         </LayersControl.BaseLayer>
                         <LayersControl.BaseLayer name="Satellite">
                             <TileLayer
-                                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                                attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
                                 url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
                             />
                         </LayersControl.BaseLayer>
@@ -286,7 +356,7 @@ export default function LocationPicker({ initialLatitude, initialLongitude, onLo
                 />
             </MapContainer>
             {!readonly && (
-                <div className="absolute bottom-2 left-2 bg-white/80 p-2 rounded text-xs text-gray-700 pointer-events-none z-[1000]">
+                <div className="pointer-events-none absolute bottom-2 left-2 z-[1000] rounded bg-white/80 p-2 text-xs text-gray-700">
                     {position
                         ? `Lat: ${position.lat.toFixed(5)}, Lng: ${position.lng.toFixed(5)}`
                         : 'Haz click para seleccionar ubicación'}

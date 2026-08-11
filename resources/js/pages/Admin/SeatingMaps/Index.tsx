@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Pencil, Trash2, Layout } from 'lucide-react';
 
 interface SeatingMap {
@@ -33,30 +33,37 @@ export default function Index({ seatingMaps }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Mapas de Asientos', href: route('admin.seating-maps.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                {
+                    title: 'Mapas de Asientos',
+                    href: route('admin.seating-maps.index'),
+                },
+            ]}
+        >
             <Head title="Mapas de Asientos" />
 
-            <div className="p-6 max-w-6xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
+            <div className="mx-auto max-w-6xl p-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold">Plantillas de Mapas</h1>
                     <Button asChild>
                         <Link href={route('admin.seating-maps.create')}>
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="mr-2 h-4 w-4" />
                             Nuevo Mapa
                         </Link>
                     </Button>
                 </div>
 
-                <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+                <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nombre del Mapa</TableHead>
                                 <TableHead>Recinto (Venue)</TableHead>
                                 <TableHead>Estado</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -65,31 +72,46 @@ export default function Index({ seatingMaps }: Props) {
                                     <TableRow key={map.id}>
                                         <TableCell className="font-medium">
                                             <div className="flex items-center">
-                                                <Layout className="h-4 w-4 mr-2 text-blue-500" />
+                                                <Layout className="mr-2 h-4 w-4 text-blue-500" />
                                                 {map.name}
                                             </div>
                                         </TableCell>
                                         <TableCell>{map.venue.name}</TableCell>
                                         <TableCell>
                                             {map.is_active ? (
-                                                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activo</span>
+                                                <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+                                                    Activo
+                                                </span>
                                             ) : (
-                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">Inactivo</span>
+                                                <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-700">
+                                                    Inactivo
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="sm" asChild>
-                                                    <Link href={route('admin.seating-maps.edit', map.id)}>
-                                                        <Pencil className="h-4 w-4 mr-1" />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={route(
+                                                            'admin.seating-maps.edit',
+                                                            map.id,
+                                                        )}
+                                                    >
+                                                        <Pencil className="mr-1 h-4 w-4" />
                                                         Editar Layout
                                                     </Link>
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleDelete(map.id)}
+                                                    className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                                    onClick={() =>
+                                                        handleDelete(map.id)
+                                                    }
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -99,7 +121,10 @@ export default function Index({ seatingMaps }: Props) {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">
+                                    <TableCell
+                                        colSpan={4}
+                                        className="h-24 text-center"
+                                    >
                                         No hay mapas registrados.
                                     </TableCell>
                                 </TableRow>

@@ -18,6 +18,12 @@ class SeatInventory extends Model
         'section',
         'row',
         'number',
+        'reserved_expires_at',
+        'session_id',
+    ];
+
+    protected $casts = [
+        'reserved_expires_at' => 'datetime',
     ];
 
     public function eventMap()

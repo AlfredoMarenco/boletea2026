@@ -31,17 +31,22 @@ export default function Edit({ user }: Props) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Usuarios', href: route('admin.users.index') },
-            { title: 'Editar Usuario', href: route('admin.users.edit', user.id) }
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Usuarios', href: route('admin.users.index') },
+                {
+                    title: 'Editar Usuario',
+                    href: route('admin.users.edit', user.id),
+                },
+            ]}
+        >
             <Head title="Editar Usuario" />
 
-            <div className="p-6 max-w-2xl mx-auto">
+            <div className="mx-auto max-w-2xl p-6">
                 <div className="mb-6">
                     <Link
                         href={route('admin.users.index')}
-                        className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2"
+                        className="mb-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
                     >
                         <ChevronLeft className="h-4 w-4" />
                         Volver a Usuarios
@@ -51,14 +56,16 @@ export default function Edit({ user }: Props) {
                     </h1>
                 </div>
 
-                <div className="bg-white rounded-md shadow p-6 dark:bg-background border border-gray-200 dark:border-border">
+                <div className="rounded-md border border-gray-200 bg-white p-6 shadow dark:border-border dark:bg-background">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre</Label>
                             <Input
                                 id="name"
                                 value={data.name}
-                                onChange={(e) => setData('name', e.target.value)}
+                                onChange={(e) =>
+                                    setData('name', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.name} />
@@ -70,46 +77,63 @@ export default function Edit({ user }: Props) {
                                 id="email"
                                 type="email"
                                 value={data.email}
-                                onChange={(e) => setData('email', e.target.value)}
+                                onChange={(e) =>
+                                    setData('email', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.email} />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <div className="space-y-2">
-                                <Label htmlFor="password">Contraseña (Opcional)</Label>
+                                <Label htmlFor="password">
+                                    Contraseña (Opcional)
+                                </Label>
                                 <Input
                                     id="password"
                                     type="password"
                                     value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('password', e.target.value)
+                                    }
                                     placeholder="Dejar en blanco para mantener actual"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="password_confirmation">Confirmar Contraseña</Label>
+                                <Label htmlFor="password_confirmation">
+                                    Confirmar Contraseña
+                                </Label>
                                 <Input
                                     id="password_confirmation"
                                     type="password"
                                     value={data.password_confirmation}
-                                    onChange={(e) => setData('password_confirmation', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'password_confirmation',
+                                            e.target.value,
+                                        )
+                                    }
                                     placeholder="Repetir nueva contraseña"
                                 />
-                                <InputError message={errors.password_confirmation} />
+                                <InputError
+                                    message={errors.password_confirmation}
+                                />
                             </div>
                         </div>
 
-                        <div className="pt-4 flex justify-end gap-2">
+                        <div className="flex justify-end gap-2 pt-4">
                             <Button variant="outline" type="button" asChild>
                                 <Link href={route('admin.users.index')}>
                                     Cancelar
                                 </Link>
                             </Button>
                             <Button type="submit" disabled={processing}>
-                                {processing ? 'Guardando...' : 'Actualizar Usuario'}
+                                {processing
+                                    ? 'Guardando...'
+                                    : 'Actualizar Usuario'}
                             </Button>
                         </div>
                     </form>

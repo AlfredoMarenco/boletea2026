@@ -9,7 +9,7 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import { Plus, Edit, Trash } from 'lucide-react';
 
 interface State {
@@ -31,14 +31,16 @@ export default function Index({ cities }: { cities: City[] }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Dashboard', href: route('admin.dashboard') },
-            { title: 'Ciudades', href: route('admin.cities.index') },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Dashboard', href: route('admin.dashboard') },
+                { title: 'Ciudades', href: route('admin.cities.index') },
+            ]}
+        >
             <Head title="Ciudades" />
 
             <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Ciudades
                     </h1>
@@ -56,28 +58,53 @@ export default function Index({ cities }: { cities: City[] }) {
                             <TableRow>
                                 <TableHead>Nombre</TableHead>
                                 <TableHead>Estado</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead className="text-right">
+                                    Acciones
+                                </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {cities.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center py-10 text-muted-foreground">
+                                    <TableCell
+                                        colSpan={3}
+                                        className="py-10 text-center text-muted-foreground"
+                                    >
                                         No hay ciudades registradas.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 cities.map((city) => (
                                     <TableRow key={city.id}>
-                                        <TableCell className="font-medium">{city.name}</TableCell>
-                                        <TableCell>{city.state?.name}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link href={route('admin.cities.edit', city.id)}>
+                                        <TableCell className="font-medium">
+                                            {city.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            {city.state?.name}
+                                        </TableCell>
+                                        <TableCell className="space-x-2 text-right">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                asChild
+                                            >
+                                                <Link
+                                                    href={route(
+                                                        'admin.cities.edit',
+                                                        city.id,
+                                                    )}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(city.id)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() =>
+                                                    handleDelete(city.id)
+                                                }
+                                                className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                            >
                                                 <Trash className="h-4 w-4" />
                                             </Button>
                                         </TableCell>

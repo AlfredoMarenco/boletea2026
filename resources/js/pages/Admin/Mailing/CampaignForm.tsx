@@ -21,15 +21,16 @@ interface Props {
 }
 
 export default function CampaignForm({ audiences, defaultMessage }: Props) {
-    const { flash } = usePage<{ flash: { success?: string; error?: string } }>().props;
+    const { flash } = usePage<{ flash: { success?: string; error?: string } }>()
+        .props;
 
     const { data, setData, processing, errors } = useForm({
-        name:                '',
-        subject:             'Código de vestimenta – Gala con Causa',
-        message:             defaultMessage,
+        name: '',
+        subject: 'Código de vestimenta – Gala con Causa',
+        message: defaultMessage,
         mailing_audience_id: '',
-        event_name:          'Gala con Causa',
-        image:               null as File | null,
+        event_name: 'Gala con Causa',
+        image: null as File | null,
     });
 
     const [preview, setPreview] = useState<string | null>(null);
@@ -72,167 +73,255 @@ export default function CampaignForm({ audiences, defaultMessage }: Props) {
             .replace(/\[Nombre del Destinatario\]/g, 'Juan Pérez');
     };
 
-    const selectedAudience = audiences.find(a => a.id.toString() === data.mailing_audience_id);
+    const selectedAudience = audiences.find(
+        (a) => a.id.toString() === data.mailing_audience_id,
+    );
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Mailing', href: route('admin.mailing.campaigns.index') },
-            { title: 'Campañas', href: route('admin.mailing.campaigns.index') },
-            { title: 'Nueva Campaña', href: '#' },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                {
+                    title: 'Mailing',
+                    href: route('admin.mailing.campaigns.index'),
+                },
+                {
+                    title: 'Campañas',
+                    href: route('admin.mailing.campaigns.index'),
+                },
+                { title: 'Nueva Campaña', href: '#' },
+            ]}
+        >
             <Head title="Nueva Campaña de Mailing" />
 
-            <div className="p-6 max-w-full mx-auto">
-
+            <div className="mx-auto max-w-full p-6">
                 {flash?.error && (
-                    <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 p-4 text-red-800 dark:text-red-300 text-sm">
+                    <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-700 dark:bg-red-900/20 dark:text-red-300">
                         {flash.error}
                     </div>
                 )}
 
                 <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Nueva Campaña</h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {selectedAudience 
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                        Nueva Campaña
+                    </h1>
+                    <p className="mt-1 text-sm text-gray-500">
+                        {selectedAudience
                             ? `Esta campaña se enviará a ${selectedAudience.contacts_count} contactos de la lista "${selectedAudience.name}".`
                             : 'Selecciona una audiencia para comenzar.'}
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                    
                     {/* Panel de Configuración (Superior - Full Width) */}
-                    <div className="bg-white dark:bg-background border border-gray-200 dark:border-border rounded-lg p-6 shadow-sm">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-border dark:bg-background">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                             <div>
-                                <Label htmlFor="f-list">Audiencia Destino (Obligatorio)</Label>
-                                <select 
+                                <Label htmlFor="f-list">
+                                    Audiencia Destino (Obligatorio)
+                                </Label>
+                                <select
                                     id="f-list"
                                     value={data.mailing_audience_id}
-                                    onChange={e => setData('mailing_audience_id', e.target.value)}
-                                    className="w-full mt-1 bg-white dark:bg-background border border-gray-200 dark:border-border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                                    onChange={(e) =>
+                                        setData(
+                                            'mailing_audience_id',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 dark:border-border dark:bg-background"
                                     required
                                 >
-                                    <option value="">Selecciona quién recibirá este correo...</option>
-                                    {audiences.map(a => (
-                                        <option key={a.id} value={a.id}>{a.name} ({a.contacts_count} contactos)</option>
+                                    <option value="">
+                                        Selecciona quién recibirá este correo...
+                                    </option>
+                                    {audiences.map((a) => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.name} ({a.contacts_count}{' '}
+                                            contactos)
+                                        </option>
                                     ))}
                                 </select>
-                                {errors.mailing_audience_id && <p className="text-red-500 text-xs mt-1">{errors.mailing_audience_id}</p>}
+                                {errors.mailing_audience_id && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.mailing_audience_id}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
-                                <Label htmlFor="f-name">Nombre interno de la campaña</Label>
+                                <Label htmlFor="f-name">
+                                    Nombre interno de la campaña
+                                </Label>
                                 <Input
                                     id="f-name"
                                     value={data.name}
-                                    onChange={e => setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
                                     placeholder="Ej: Dress Code  Gala Abril 2026"
                                     className="mt-1"
                                     required
                                 />
-                                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                                {errors.name && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.name}
+                                    </p>
+                                )}
                             </div>
 
                             <div>
-                                <Label htmlFor="f-subject">Asunto del correo</Label>
+                                <Label htmlFor="f-subject">
+                                    Asunto del correo
+                                </Label>
                                 <Input
                                     id="f-subject"
                                     value={data.subject}
-                                    onChange={e => setData('subject', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('subject', e.target.value)
+                                    }
                                     placeholder="Asunto que verá el destinatario"
                                     className="mt-1"
                                     required
                                 />
-                                {errors.subject && <p className="text-red-500 text-xs mt-1">{errors.subject}</p>}
+                                {errors.subject && (
+                                    <p className="mt-1 text-xs text-red-500">
+                                        {errors.subject}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-dashed border-gray-100 dark:border-border/50">
+                        <div className="mt-4 grid grid-cols-1 gap-6 border-t border-dashed border-gray-100 pt-4 md:grid-cols-2 dark:border-border/50">
                             <div>
-                                <Label htmlFor="f-event">Nombre del evento (Visual)</Label>
+                                <Label htmlFor="f-event">
+                                    Nombre del evento (Visual)
+                                </Label>
                                 <Input
                                     id="f-event"
                                     value={data.event_name}
-                                    onChange={e => setData('event_name', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('event_name', e.target.value)
+                                    }
                                     placeholder="Ej: Gala con Causa"
                                     className="mt-1"
                                 />
                             </div>
 
                             <div>
-                                <Label htmlFor="f-image">Imagen adjunta (opcional)</Label>
+                                <Label htmlFor="f-image">
+                                    Imagen adjunta (opcional)
+                                </Label>
                                 <input
                                     ref={fileRef}
                                     id="f-image"
                                     type="file"
                                     accept="image/jpeg,image/png,image/webp"
                                     onChange={handleImageChange}
-                                    className="block w-full mt-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:opacity-90"
+                                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:opacity-90"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex gap-3 pt-6 mt-2 border-t border-border justify-end">
+                        <div className="mt-2 flex justify-end gap-3 border-t border-border pt-6">
                             <Button asChild variant="outline">
-                                <Link href={route('admin.mailing.campaigns.index')}>Cancelar</Link>
+                                <Link
+                                    href={route(
+                                        'admin.mailing.campaigns.index',
+                                    )}
+                                >
+                                    Cancelar
+                                </Link>
                             </Button>
-                            <Button type="submit" disabled={processing} className="px-8 font-semibold">
-                                {processing ? 'Guardando...' : 'Crear campaña y ver resumen'}
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="px-8 font-semibold"
+                            >
+                                {processing
+                                    ? 'Guardando...'
+                                    : 'Crear campaña y ver resumen'}
                             </Button>
                         </div>
                     </div>
 
                     {/* Panel de Editor/Preview (Gigante) */}
-                    <div className="bg-white dark:bg-background border border-gray-200 dark:border-border rounded-lg shadow-sm flex flex-col min-h-[800px]">
-                        <Tabs defaultValue="editor" className="w-full flex flex-col flex-1">
-                            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-gray-50 dark:bg-muted/30">
+                    <div className="flex min-h-[800px] flex-col rounded-lg border border-gray-200 bg-white shadow-sm dark:border-border dark:bg-background">
+                        <Tabs
+                            defaultValue="editor"
+                            className="flex w-full flex-1 flex-col"
+                        >
+                            <div className="flex items-center justify-between border-b border-border bg-gray-50 px-4 py-2 dark:bg-muted/30">
                                 <TabsList className="grid w-[300px] grid-cols-2">
-                                    <TabsTrigger value="editor" className="flex items-center gap-2">
-                                        <Code className="w-4 h-4" /> Código HTML
+                                    <TabsTrigger
+                                        value="editor"
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Code className="h-4 w-4" /> Código HTML
                                     </TabsTrigger>
-                                    <TabsTrigger value="preview" className="flex items-center gap-2">
-                                        <Mail className="w-4 h-4" /> Vista Previa
+                                    <TabsTrigger
+                                        value="preview"
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Mail className="h-4 w-4" /> Vista
+                                        Previa
                                     </TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="preview" className="mt-0">
-                                    <div className="flex bg-muted rounded-md p-1 gap-1">
-                                        <button 
+                                    <div className="flex gap-1 rounded-md bg-muted p-1">
+                                        <button
                                             type="button"
-                                            onClick={() => setViewMode('desktop')}
-                                            className={`p-1 rounded ${viewMode === 'desktop' ? 'bg-white shadow-sm' : ''}`}
+                                            onClick={() =>
+                                                setViewMode('desktop')
+                                            }
+                                            className={`rounded p-1 ${viewMode === 'desktop' ? 'bg-white shadow-sm' : ''}`}
                                         >
-                                            <Monitor className="w-4 h-4" />
+                                            <Monitor className="h-4 w-4" />
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
-                                            onClick={() => setViewMode('mobile')}
-                                            className={`p-1 rounded ${viewMode === 'mobile' ? 'bg-white shadow-sm' : ''}`}
+                                            onClick={() =>
+                                                setViewMode('mobile')
+                                            }
+                                            className={`rounded p-1 ${viewMode === 'mobile' ? 'bg-white shadow-sm' : ''}`}
                                         >
-                                            <Smartphone className="w-4 h-4" />
+                                            <Smartphone className="h-4 w-4" />
                                         </button>
                                     </div>
                                 </TabsContent>
                             </div>
 
-                            <TabsContent value="editor" className="flex-1 m-0 p-0 relative">
+                            <TabsContent
+                                value="editor"
+                                className="relative m-0 flex-1 p-0"
+                            >
                                 <Textarea
                                     id="f-message"
                                     value={data.message}
-                                    onChange={e => setData('message', e.target.value)}
-                                    className="w-full h-full min-h-[500px] border-0 rounded-none font-mono text-sm resize-none focus-visible:ring-0 p-4"
+                                    onChange={(e) =>
+                                        setData('message', e.target.value)
+                                    }
+                                    className="h-full min-h-[500px] w-full resize-none rounded-none border-0 p-4 font-mono text-sm focus-visible:ring-0"
                                     placeholder="Pega aquí tu código HTML..."
                                 />
-                                {errors.message && <p className="text-red-500 text-xs absolute bottom-4 left-4">{errors.message}</p>}
+                                {errors.message && (
+                                    <p className="absolute bottom-4 left-4 text-xs text-red-500">
+                                        {errors.message}
+                                    </p>
+                                )}
                             </TabsContent>
 
-                            <TabsContent value="preview" className="flex-1 m-0 p-0 bg-gray-50 dark:bg-gray-950 flex justify-center overflow-auto">
-                                <div className={`transition-all duration-300 ${viewMode === 'desktop' ? 'w-full h-full' : 'w-[375px] h-[667px] mt-8 bg-white shadow-2xl rounded-xl border border-border overflow-hidden'}`}>
+                            <TabsContent
+                                value="preview"
+                                className="m-0 flex flex-1 justify-center overflow-auto bg-gray-50 p-0 dark:bg-gray-950"
+                            >
+                                <div
+                                    className={`transition-all duration-300 ${viewMode === 'desktop' ? 'h-full w-full' : 'mt-8 h-[667px] w-[375px] overflow-hidden rounded-xl border border-border bg-white shadow-2xl'}`}
+                                >
                                     <iframe
                                         title="Preview"
                                         srcDoc={getPreviewHtml()}
-                                        className="w-full h-full min-h-[800px] border-0"
+                                        className="h-full min-h-[800px] w-full border-0"
                                         sandbox="allow-popups allow-popups-to-escape-sandbox"
                                     />
                                 </div>

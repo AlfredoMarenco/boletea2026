@@ -8,9 +8,13 @@ import {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
-    SidebarMenuAction
+    SidebarMenuAction,
 } from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { ChevronRight } from 'lucide-react';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
@@ -24,7 +28,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
             <SidebarMenu>
                 {items.map((item) => {
                     const hasSubItems = item.items && item.items.length > 0;
-                    const isActive = item.href ? isCurrentUrl(item.href) : item.items?.some(sub => sub.href && isCurrentUrl(sub.href));
+                    const isActive = item.href
+                        ? isCurrentUrl(item.href)
+                        : item.items?.some(
+                              (sub) => sub.href && isCurrentUrl(sub.href),
+                          );
 
                     if (!hasSubItems) {
                         return (
@@ -44,7 +52,12 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                     }
 
                     return (
-                        <Collapsible key={item.title} asChild defaultOpen={isActive} className="group/collapsible">
+                        <Collapsible
+                            key={item.title}
+                            asChild
+                            defaultOpen={isActive}
+                            className="group/collapsible"
+                        >
                             <SidebarMenuItem>
                                 <CollapsibleTrigger asChild>
                                     <SidebarMenuButton tooltip={item.title}>
@@ -56,10 +69,27 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <CollapsibleContent>
                                     <SidebarMenuSub>
                                         {item.items?.map((subItem) => (
-                                            <SidebarMenuSubItem key={subItem.title}>
-                                                <SidebarMenuSubButton asChild isActive={subItem.href ? isCurrentUrl(subItem.href) : false}>
-                                                    <Link href={subItem.href || '#'}>
-                                                        <span>{subItem.title}</span>
+                                            <SidebarMenuSubItem
+                                                key={subItem.title}
+                                            >
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={
+                                                        subItem.href
+                                                            ? isCurrentUrl(
+                                                                  subItem.href,
+                                                              )
+                                                            : false
+                                                    }
+                                                >
+                                                    <Link
+                                                        href={
+                                                            subItem.href || '#'
+                                                        }
+                                                    >
+                                                        <span>
+                                                            {subItem.title}
+                                                        </span>
                                                     </Link>
                                                 </SidebarMenuSubButton>
                                             </SidebarMenuSubItem>

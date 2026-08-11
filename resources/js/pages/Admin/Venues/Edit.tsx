@@ -33,14 +33,16 @@ export default function Edit({ venue }: { venue: Venue }) {
     };
 
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'Recintos', href: route('admin.venues.index') },
-            { title: 'Editar', href: '#' },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'Recintos', href: route('admin.venues.index') },
+                { title: 'Editar', href: '#' },
+            ]}
+        >
             <Head title="Editar Recinto" />
 
-            <div className="p-6 max-w-4xl mx-auto">
-                <div className="flex items-center gap-4 mb-6">
+            <div className="mx-auto max-w-4xl p-6">
+                <div className="mb-6 flex items-center gap-4">
                     <Button variant="ghost" size="icon" asChild>
                         <Link href={route('admin.venues.index')}>
                             <ArrowLeft className="h-5 w-5" />
@@ -49,37 +51,50 @@ export default function Edit({ venue }: { venue: Venue }) {
                     <h1 className="text-2xl font-bold">Editar Recinto</h1>
                 </div>
 
-                <form onSubmit={submit} className="space-y-8 bg-card p-6 rounded-xl border shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form
+                    onSubmit={submit}
+                    className="space-y-8 rounded-xl border bg-card p-6 shadow-sm"
+                >
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nombre</Label>
                             <Input
                                 id="name"
                                 value={data.name}
-                                onChange={e => {
+                                onChange={(e) => {
                                     setData('name', e.target.value);
                                     setSearchQuery(e.target.value);
                                 }}
                             />
-                            {errors.name && <span className="text-red-500 text-sm">{errors.name}</span>}
+                            {errors.name && (
+                                <span className="text-sm text-red-500">
+                                    {errors.name}
+                                </span>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="address">Dirección</Label>
                             <Input
                                 id="address"
                                 value={data.address}
-                                onChange={e => setData('address', e.target.value)}
+                                onChange={(e) =>
+                                    setData('address', e.target.value)
+                                }
                             />
-                            {errors.address && <span className="text-red-500 text-sm">{errors.address}</span>}
+                            {errors.address && (
+                                <span className="text-sm text-red-500">
+                                    {errors.address}
+                                </span>
+                            )}
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <Label>Ubicación en Mapa</Label>
-                        <div className="flex gap-2 mb-2">
+                        <div className="mb-2 flex gap-2">
                             <Input
                                 value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Buscar ubicación..."
                                 className="flex-1"
                             />
@@ -88,7 +103,7 @@ export default function Edit({ venue }: { venue: Venue }) {
                                 variant="secondary"
                                 onClick={() => setMapSearchQuery(searchQuery)}
                             >
-                                <MapPin className="h-4 w-4 mr-2" />
+                                <MapPin className="mr-2 h-4 w-4" />
                                 Buscar
                             </Button>
                         </div>
@@ -97,12 +112,16 @@ export default function Edit({ venue }: { venue: Venue }) {
                             initialLongitude={venue.longitude || undefined}
                             searchQuery={mapSearchQuery}
                             onLocationChange={(lat, lng) => {
-                                setData(data => ({ ...data, latitude: lat, longitude: lng }));
+                                setData((data) => ({
+                                    ...data,
+                                    latitude: lat,
+                                    longitude: lng,
+                                }));
                             }}
                         />
                     </div>
 
-                    <div className="flex items-center justify-end pt-4 border-t">
+                    <div className="flex items-center justify-end border-t pt-4">
                         <Button type="submit" disabled={processing}>
                             {processing ? 'Guardando...' : 'Actualizar Recinto'}
                         </Button>

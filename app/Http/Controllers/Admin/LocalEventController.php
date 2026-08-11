@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\SeatingMap;
+use App\Models\SeatInventory;
 use App\Models\Venue;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -94,7 +96,7 @@ class LocalEventController extends Controller
 
         if ($request->hasFile('image')) {
             if ($event->image_path) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($event->image_path);
+                Storage::disk('public')->delete($event->image_path);
             }
             $validated['image_path'] = $request->file('image')->store('events', 'public');
         }
@@ -182,15 +184,28 @@ class LocalEventController extends Controller
         $inventories = [];
         $now = now();
 
+        // Get existing seats that are not in available status (sold, reserved, blocked)
+        $existingNonAvailableUuids = SeatInventory::where('event_map_id', $eventMap->id)
+            ->where('status', '!=', 'available')
+            ->pluck('seat_uuid')
+            ->toArray();
+
         // 1. Generate Numbered Seats from Map Nodes
         foreach ($nodes as $node) {
             if (isset($node['type']) && $node['type'] === 'seat') {
+                $uuid = $node['id'] ?? $node['permanent_uuid'] ?? (string) Str::uuid();
+
+                // If the seat is already sold, reserved, or blocked, preserve it
+                if (in_array($uuid, $existingNonAvailableUuids)) {
+                    continue;
+                }
+
                 $sectionName = $node['section'] ?? 'General';
                 $priceModel = $prices->get($sectionName);
 
                 $inventories[] = [
                     'event_map_id' => $eventMap->id,
-                    'seat_uuid' => $node['id'] ?? $node['permanent_uuid'] ?? (string) \Illuminate\Support\Str::uuid(),
+                    'seat_uuid' => $uuid,
                     'status' => 'available',
                     'price' => $priceModel ? $priceModel->price : 0,
                     'category' => $sectionName,
@@ -204,13 +219,13 @@ class LocalEventController extends Controller
         }
 
         // Clear existing available inventory and insert the new one
-        \App\Models\SeatInventory::where('event_map_id', $eventMap->id)
+        SeatInventory::where('event_map_id', $eventMap->id)
             ->where('status', 'available')
             ->delete();
 
         // Chunk insert to prevent memory limit issues with thousands of seats
         foreach (array_chunk($inventories, 500) as $chunk) {
-            \App\Models\SeatInventory::insert($chunk);
+            SeatInventory::insert($chunk);
         }
 
         $event->update(['status' => 'published']);

@@ -1,4 +1,3 @@
-
 export interface Performance {
     PerformanceID: number;
     PerformanceName: string;
@@ -29,7 +28,10 @@ export interface ExternalEvent {
     redirect_external?: boolean;
     show_calendar?: boolean;
     calendar_description?: string | null;
-    performance_descriptions?: Record<string, { title?: string; subtitle?: string; order?: number } | string> | null;
+    performance_descriptions?: Record<
+        string,
+        { title?: string; subtitle?: string; order?: number } | string
+    > | null;
     venue?: {
         name: string;
         city?: string;

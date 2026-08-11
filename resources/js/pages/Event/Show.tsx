@@ -4,14 +4,25 @@ import { useState, useMemo, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, MapPin, Ticket } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import PublicHeader from '@/components/public-header';
 import { Calendar } from '@/components/ui/calendar';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Countdown from '@/components/Countdown';
 import ViewerCounter from '@/components/ViewerCounter';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import PublicFooter from '@/components/public-footer';
 import {
     Carousel,
@@ -19,8 +30,8 @@ import {
     CarouselItem,
     CarouselNext,
     CarouselPrevious,
-} from "@/components/ui/carousel"
-import Autoplay from "embla-carousel-autoplay"
+} from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
 import EventCard from '@/components/EventCard';
 
 // ExternalEvent imported from '@/types/event'
@@ -42,32 +53,54 @@ interface Props {
     relatedEvents?: ExternalEvent[];
 }
 
-export default function Show({ event, salesCentersDetails = [], relatedEvents = [] }: Props) {
+export default function Show({
+    event,
+    salesCentersDetails = [],
+    relatedEvents = [],
+}: Props) {
     // Normalize performances from raw_data
     const performances: Performance[] = Array.isArray(event.raw_data)
         ? event.raw_data
-        : (event.raw_data ? [event.raw_data as Performance] : []);
+        : event.raw_data
+          ? [event.raw_data as Performance]
+          : [];
 
-    const [selectedPerformanceId, setSelectedPerformanceId] = useState<string | undefined>(
-        performances.length === 1 ? performances[0].PerformanceID.toString() : undefined
+    const [selectedPerformanceId, setSelectedPerformanceId] = useState<
+        string | undefined
+    >(
+        performances.length === 1
+            ? performances[0].PerformanceID.toString()
+            : undefined,
     );
 
     const visibleCdvPrices = useMemo(() => {
         const prices = (event as any).cdv_prices;
         if (!prices || !Array.isArray(prices)) return [];
         return prices
-            .filter((p: any) => p.show === true || String(p.show) === 'true' || String(p.show) === '1')
-            .sort((a: any, b: any) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+            .filter(
+                (p: any) =>
+                    p.show === true ||
+                    String(p.show) === 'true' ||
+                    String(p.show) === '1',
+            )
+            .sort(
+                (a: any, b: any) =>
+                    (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0),
+            );
     }, [event]);
 
-    const [isPricesExpanded, setIsPricesExpanded] = useState(() => visibleCdvPrices.length <= 4 && visibleCdvPrices.length > 0);
+    const [isPricesExpanded, setIsPricesExpanded] = useState(
+        () => visibleCdvPrices.length <= 4 && visibleCdvPrices.length > 0,
+    );
 
     // Calendar Logic
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+        undefined,
+    );
 
     const performanceDates = useMemo(() => {
         const dates = new Set<string>();
-        performances.forEach(p => {
+        performances.forEach((p) => {
             dates.add(format(new Date(p.PerformanceDateTime), 'yyyy-MM-dd'));
         });
         return dates;
@@ -75,12 +108,24 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
     const availablePerformancesForDate = useMemo(() => {
         if (!selectedDate) return [];
-        return performances.filter(p => isSameDay(new Date(p.PerformanceDateTime), selectedDate)).sort((a, b) => new Date(a.PerformanceDateTime).getTime() - new Date(b.PerformanceDateTime).getTime());
+        return performances
+            .filter((p) =>
+                isSameDay(new Date(p.PerformanceDateTime), selectedDate),
+            )
+            .sort(
+                (a, b) =>
+                    new Date(a.PerformanceDateTime).getTime() -
+                    new Date(b.PerformanceDateTime).getTime(),
+            );
     }, [selectedDate, performances]);
 
-    const selectedPerformance = useMemo(() =>
-        performances.find(p => p.PerformanceID.toString() === selectedPerformanceId),
-        [selectedPerformanceId, performances]);
+    const selectedPerformance = useMemo(
+        () =>
+            performances.find(
+                (p) => p.PerformanceID.toString() === selectedPerformanceId,
+            ),
+        [selectedPerformanceId, performances],
+    );
 
     const displayDate = useMemo(() => {
         if (performances.length > 0) {
@@ -94,12 +139,16 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
     // Sales Open State Logic
     const [isSalesOpen, setIsSalesOpen] = useState(
-        !event.sales_start_date || new Date(event.sales_start_date) <= new Date()
+        !event.sales_start_date ||
+            new Date(event.sales_start_date) <= new Date(),
     );
 
     // Initial check on mount just in case
     useEffect(() => {
-        if (event.sales_start_date && new Date(event.sales_start_date) <= new Date()) {
+        if (
+            event.sales_start_date &&
+            new Date(event.sales_start_date) <= new Date()
+        ) {
             setIsSalesOpen(true);
         }
     }, [event.sales_start_date]);
@@ -109,14 +158,20 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
         window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${selectedPerformanceId}`;
     };
 
-    const isGridMode = !!(event.show_linked_events && event.linked_events && event.linked_events.length > 0);
+    const isGridMode = !!(
+        event.show_linked_events &&
+        event.linked_events &&
+        event.linked_events.length > 0
+    );
 
     const getPurchaseLink = (ev: ExternalEvent) => {
         if (ev.performance_url) return ev.performance_url;
         const evPerformances: Performance[] = Array.isArray(ev.raw_data)
             ? ev.raw_data
-            : (ev.raw_data ? [ev.raw_data as Performance] : []);
-        
+            : ev.raw_data
+              ? [ev.raw_data as Performance]
+              : [];
+
         if (evPerformances.length > 0) {
             return `https://boletea.com.mx/ordertickets.asp?p=${evPerformances[0].PerformanceID}`;
         }
@@ -124,23 +179,61 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
     };
 
     return (
-        <div className="min-h-screen bg-white text-gray-900 dark:bg-background dark:text-gray-100 font-sans">
+        <div className="min-h-screen bg-white font-sans text-gray-900 dark:bg-background dark:text-gray-100">
             <Head>
                 <title>{`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`}</title>
-                <meta name="description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
-                <meta property="og:title" content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`} />
-                <meta property="og:description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
-                {event.image_path && <meta property="og:image" content={event.image_path} />}
+                <meta
+                    name="description"
+                    content={
+                        event.description
+                            ? event.description
+                                  .replace(/<[^>]*>?/gm, '')
+                                  .substring(0, 160) + '...'
+                            : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`
+                    }
+                />
+                <meta
+                    property="og:title"
+                    content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`}
+                />
+                <meta
+                    property="og:description"
+                    content={
+                        event.description
+                            ? event.description
+                                  .replace(/<[^>]*>?/gm, '')
+                                  .substring(0, 160) + '...'
+                            : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`
+                    }
+                />
+                {event.image_path && (
+                    <meta property="og:image" content={event.image_path} />
+                )}
                 <meta property="og:type" content="article" />
                 <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`} />
-                <meta name="twitter:description" content={event.description ? event.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + '...' : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`} />
-                {event.image_path && <meta name="twitter:image" content={event.image_path} />}
-                
+                <meta
+                    name="twitter:title"
+                    content={`${event.title.replace(/^[A-Z0-9]+\s+/, '')} - Boletea`}
+                />
+                <meta
+                    name="twitter:description"
+                    content={
+                        event.description
+                            ? event.description
+                                  .replace(/<[^>]*>?/gm, '')
+                                  .substring(0, 160) + '...'
+                            : `Boletos para ${event.title.replace(/^[A-Z0-9]+\s+/, '')} en Boletea.`
+                    }
+                />
+                {event.image_path && (
+                    <meta name="twitter:image" content={event.image_path} />
+                )}
+
                 {event.meta_pixel_id && (
                     <>
-                        <script dangerouslySetInnerHTML={{
-                            __html: `
+                        <script
+                            dangerouslySetInnerHTML={{
+                                __html: `
                                 !function(f,b,e,v,n,t,s)
                                 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
                                 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -151,11 +244,14 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 'https://connect.facebook.net/en_US/fbevents.js');
                                 fbq('init', '${event.meta_pixel_id}');
                                 fbq('track', 'PageView');
-                            `
-                        }} />
-                        <noscript dangerouslySetInnerHTML={{
-                            __html: `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${event.meta_pixel_id}&ev=PageView&noscript=1" />`
-                        }} />
+                            `,
+                            }}
+                        />
+                        <noscript
+                            dangerouslySetInnerHTML={{
+                                __html: `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${event.meta_pixel_id}&ev=PageView&noscript=1" />`,
+                            }}
+                        />
                     </>
                 )}
             </Head>
@@ -165,13 +261,16 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
             <main className="pt-20">
                 {event.status === 'draft' && (
-                    <div className="bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-600 dark:text-yellow-400 py-3 px-6 text-center text-sm font-semibold flex items-center justify-center gap-2">
-                        <span className="flex h-2 w-2 rounded-full bg-yellow-500 animate-ping" />
-                        <span>Vista previa: Este evento está en modo Borrador y solo es visible para usuarios autenticados.</span>
+                    <div className="flex items-center justify-center gap-2 border-b border-yellow-500/20 bg-yellow-500/10 px-6 py-3 text-center text-sm font-semibold text-yellow-600 dark:text-yellow-400">
+                        <span className="flex h-2 w-2 animate-ping rounded-full bg-yellow-500" />
+                        <span>
+                            Vista previa: Este evento está en modo Borrador y
+                            solo es visible para usuarios autenticados.
+                        </span>
                     </div>
                 )}
                 {/* Hero / Header Section */}
-                <div className="relative min-h-[50vh] flex flex-col justify-end w-full overflow-hidden bg-gray-900">
+                <div className="relative flex min-h-[50vh] w-full flex-col justify-end overflow-hidden bg-gray-900">
                     {/* Background Image with Overlay */}
                     <div className="absolute inset-0 z-0">
                         {event.image_path ? (
@@ -186,26 +285,30 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/50 to-transparent" />
                     </div>
 
-                    <div className="container relative z-10 mx-auto flex h-full flex-col justify-end px-6 pb-8 md:pb-12 lg:pb-16">
-                        <div className="flex flex-col md:flex-row items-end justify-between gap-6">
+                    <div className="relative z-10 container mx-auto flex h-full flex-col justify-end px-6 pb-8 md:pb-12 lg:pb-16">
+                        <div className="flex flex-col items-end justify-between gap-6 md:flex-row">
                             <div className="flex flex-col items-start gap-4 md:max-w-4xl">
                                 {event.category && (
-                                    <Badge className="bg-[#c90000] text-white hover:bg-[#a00000] border-none text-xs px-2.5 py-0.5">
+                                    <Badge className="border-none bg-[#c90000] px-2.5 py-0.5 text-xs text-white hover:bg-[#a00000]">
                                         {event.category}
                                     </Badge>
                                 )}
-                                <h1 className="text-3xl font-black leading-tight tracking-tight text-white md:text-5xl lg:text-6xl xl:text-7xl">
+                                <h1 className="text-3xl leading-tight font-black tracking-tight text-white md:text-5xl lg:text-6xl xl:text-7xl">
                                     {event.title.replace(/^[A-Z0-9]+\s+/, '')}
                                 </h1>
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-3">
                                         {displayDate && !isGridMode && (
-                                            <div className="flex flex-col items-center justify-center bg-white rounded-xl p-2 min-w-[60px] shadow-lg">
-                                                <span className="text-xs font-bold text-gray-500 uppercase tracking-widest leading-none">
-                                                    {format(displayDate, 'MMM', { locale: es }).replace('.', '')}
+                                            <div className="flex min-w-[60px] flex-col items-center justify-center rounded-xl bg-white p-2 shadow-lg">
+                                                <span className="text-xs leading-none font-bold tracking-widest text-gray-500 uppercase">
+                                                    {format(
+                                                        displayDate,
+                                                        'MMM',
+                                                        { locale: es },
+                                                    ).replace('.', '')}
                                                 </span>
-                                                <span className="text-2xl font-extrabold text-[#c90000] leading-none">
+                                                <span className="text-2xl leading-none font-extrabold text-[#c90000]">
                                                     {format(displayDate, 'dd')}
                                                 </span>
                                             </div>
@@ -214,9 +317,19 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                         <div className="flex flex-col text-white">
                                             <div className="flex items-center gap-2 text-lg font-bold">
                                                 <MapPin className="size-5 text-[#c90000]" />
-                                                <span>{event.venue?.name || event.city_location?.name || 'Ubicación por confirmar'}</span>
+                                                <span>
+                                                    {event.venue?.name ||
+                                                        event.city_location
+                                                            ?.name ||
+                                                        'Ubicación por confirmar'}
+                                                </span>
                                             </div>
-                                            <span className="text-sm text-gray-300 ml-7">{event.city_location?.name}{event.state ? `, ${event.state.name}` : ''}</span>
+                                            <span className="ml-7 text-sm text-gray-300">
+                                                {event.city_location?.name}
+                                                {event.state
+                                                    ? `, ${event.state.name}`
+                                                    : ''}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -224,11 +337,11 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                             {/* Secondary Image (Poster) */}
                             {event.secondary_image_path && (
-                                <div className="hidden md:block shrink-0 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+                                <div className="hidden shrink-0 animate-in delay-300 duration-700 fade-in slide-in-from-bottom-8 md:block">
                                     <img
                                         src={event.secondary_image_path}
                                         alt={`Poster ${event.title}`}
-                                        className="h-auto w-56 rounded-lg border-[4px] border-white/10 object-cover mt-10 shadow-xl backdrop-blur-sm lg:w-72"
+                                        className="mt-10 h-auto w-56 rounded-lg border-[4px] border-white/10 object-cover shadow-xl backdrop-blur-sm lg:w-72"
                                     />
                                 </div>
                             )}
@@ -236,79 +349,104 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                     </div>
                 </div>
 
-                <div className={`container mx-auto flex flex-col ${isGridMode ? 'lg:grid-cols-1' : 'lg:grid lg:grid-cols-3'} gap-8 px-6 py-8 lg:gap-10 lg:py-10 lg:items-start`}>
+                <div
+                    className={`container mx-auto flex flex-col ${isGridMode ? 'lg:grid-cols-1' : 'lg:grid lg:grid-cols-3'} gap-8 px-6 py-8 lg:items-start lg:gap-10 lg:py-10`}
+                >
                     {/* Main Content (Acerca del Evento o Grid) */}
-                    <div className={`flex flex-col gap-8 ${isGridMode ? 'lg:col-span-1' : 'lg:col-span-2'} lg:gap-10 order-2 lg:order-1`}>
+                    <div
+                        className={`flex flex-col gap-8 ${isGridMode ? 'lg:col-span-1' : 'lg:col-span-2'} order-2 lg:order-1 lg:gap-10`}
+                    >
                         {/* Description */}
-                        {(event.description && event.description !== 'Sin descripción disponible.') && (
-                            <section>
-                                <h2 className="mb-4 text-2xl font-bold lg:text-3xl">Acerca del evento</h2>
-                                <div
-                                    className="prose prose-sm dark:prose-invert text-gray-600 dark:text-muted-foreground max-w-none break-words overflow-x-auto"
-                                    dangerouslySetInnerHTML={{
-                                        __html: (event.description ? (() => {
-                                            try {
-                                                const txt = document.createElement('textarea');
-                                                txt.innerHTML = event.description;
-                                                return txt.value;
-                                            } catch (e) {
-                                                return event.description;
-                                            }
-                                        })() : 'Sin descripción disponible.')
-                                    }}
-                                />
-                            </section>
-                        )}
+                        {event.description &&
+                            event.description !==
+                                'Sin descripción disponible.' && (
+                                <section>
+                                    <h2 className="mb-4 text-2xl font-bold lg:text-3xl">
+                                        Acerca del evento
+                                    </h2>
+                                    <div
+                                        className="prose prose-sm max-w-none overflow-x-auto break-words text-gray-600 dark:text-muted-foreground dark:prose-invert"
+                                        dangerouslySetInnerHTML={{
+                                            __html: event.description
+                                                ? (() => {
+                                                      try {
+                                                          const txt =
+                                                              document.createElement(
+                                                                  'textarea',
+                                                              );
+                                                          txt.innerHTML =
+                                                              event.description;
+                                                          return txt.value;
+                                                      } catch (e) {
+                                                          return event.description;
+                                                      }
+                                                  })()
+                                                : 'Sin descripción disponible.',
+                                        }}
+                                    />
+                                </section>
+                            )}
 
                         {/* Linked Events Grid */}
                         {isGridMode && (
-                            <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <h2 className="mb-6 text-2xl font-bold lg:text-3xl flex items-center gap-2">
-                                    <div className="h-8 w-1.5 bg-[#c90000] rounded-full" />
+                            <section className="animate-in duration-700 fade-in slide-in-from-bottom-4">
+                                <h2 className="mb-6 flex items-center gap-2 text-2xl font-bold lg:text-3xl">
+                                    <div className="h-8 w-1.5 rounded-full bg-[#c90000]" />
                                     Eventos Disponibles
                                 </h2>
 
-                                 {/* Option G: Fixed Compact Sidebar Layout */}
-                                 <div className="mx-auto mb-6 flex w-full max-w-2xl items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-card">
-                                     {/* Left: Status / Countdown */}
-                                     <div className="flex flex-1 items-center gap-6">
-                                         {!isSalesOpen && event.sales_start_date ? (
-                                             <div className="flex items-center gap-4">
-                                                 <div className="flex flex-col">
-                                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-[#c90000]">Venta próximamente</h4>
-                                                     <h3 className="text-base font-black tracking-tight text-gray-900 dark:text-white">Apertura</h3>
-                                                 </div>
-                                                 <div className="scale-90 transform-gpu translate-y-0.5">
-                                                     <Countdown
-                                                         targetDate={event.sales_start_date}
-                                                         onComplete={() => setIsSalesOpen(true)}
-                                                     />
-                                                 </div>
-                                             </div>
-                                         ) : (
-                                             <div className="flex items-center gap-4">
-                                                 <div className="flex flex-col">
-                                                     <h3 className="text-xl font-black tracking-tight text-gray-900 dark:text-white md:text-2xl">
+                                {/* Option G: Fixed Compact Sidebar Layout */}
+                                <div className="mx-auto mb-6 flex w-full max-w-2xl items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-sm dark:border-white/5 dark:bg-card">
+                                    {/* Left: Status / Countdown */}
+                                    <div className="flex flex-1 items-center gap-6">
+                                        {!isSalesOpen &&
+                                        event.sales_start_date ? (
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex flex-col">
+                                                    <h4 className="text-[9px] font-black tracking-widest text-[#c90000] uppercase">
+                                                        Venta próximamente
+                                                    </h4>
+                                                    <h3 className="text-base font-black tracking-tight text-gray-900 dark:text-white">
+                                                        Apertura
+                                                    </h3>
+                                                </div>
+                                                <div className="translate-y-0.5 scale-90 transform-gpu">
+                                                    <Countdown
+                                                        targetDate={
+                                                            event.sales_start_date
+                                                        }
+                                                        onComplete={() =>
+                                                            setIsSalesOpen(true)
+                                                        }
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex flex-col">
+                                                    <h3 className="text-xl font-black tracking-tight text-gray-900 md:text-2xl dark:text-white">
                                                         Venta Disponible
-                                                     </h3>
-                                                     <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">¡Adquiere tus boletos ahora mismo!</p>
-                                                 </div>
-                                             </div>
-                                         )}
-                                     </div>
+                                                    </h3>
+                                                    <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                                                        ¡Adquiere tus boletos
+                                                        ahora mismo!
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
 
-                                     {/* Right: Social Proof */}
-                                     <div className="flex shrink-0 items-center border-l border-gray-50 pl-4 ml-2 dark:border-white/5">
-                                         <ViewerCounter eventId={event.id} />
-                                     </div>
-                                 </div>
+                                    {/* Right: Social Proof */}
+                                    <div className="ml-2 flex shrink-0 items-center border-l border-gray-50 pl-4 dark:border-white/5">
+                                        <ViewerCounter eventId={event.id} />
+                                    </div>
+                                </div>
 
-
-                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-8">
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 xl:grid-cols-4">
                                     {event.linked_events.map((linkedEvent) => (
-                                        <EventCard 
-                                            key={linkedEvent.id} 
-                                            event={linkedEvent} 
+                                        <EventCard
+                                            key={linkedEvent.id}
+                                            event={linkedEvent}
                                             disabled={!isSalesOpen}
                                             forceExternal={true}
                                         />
@@ -318,344 +456,604 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                         )}
 
                         {/* CDV Prices */}
-                        {isSalesOpen && visibleCdvPrices.length > 0 && !isGridMode && (
-                            <section className="relative rounded-2xl border border-[#c90000]/20 bg-white/50 dark:bg-[#1a1c20]/50 p-6 shadow-lg shadow-[#c90000]/5 overflow-hidden transition-all duration-300">
-                                {/* Pulse Glow Effect Background */}
-                                <div className="absolute inset-0 bg-[#c90000]/5 animate-pulse pointer-events-none"></div>
+                        {isSalesOpen &&
+                            visibleCdvPrices.length > 0 &&
+                            !isGridMode && (
+                                <section className="relative overflow-hidden rounded-2xl border border-[#c90000]/20 bg-white/50 p-6 shadow-lg shadow-[#c90000]/5 transition-all duration-300 dark:bg-[#1a1c20]/50">
+                                    {/* Pulse Glow Effect Background */}
+                                    <div className="pointer-events-none absolute inset-0 animate-pulse bg-[#c90000]/5"></div>
 
-                                <button 
-                                    onClick={() => setIsPricesExpanded(!isPricesExpanded)}
-                                    className="relative z-10 w-full flex items-center justify-between group outline-none"
-                                >
-                                    <div className="flex items-center gap-2 sm:gap-3">
-                                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000] group-hover:scale-110 transition-transform">
-                                            <Ticket className="size-4 sm:size-5" />
+                                    <button
+                                        onClick={() =>
+                                            setIsPricesExpanded(
+                                                !isPricesExpanded,
+                                            )
+                                        }
+                                        className="group relative z-10 flex w-full items-center justify-between outline-none"
+                                    >
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000] transition-transform group-hover:scale-110 sm:h-10 sm:w-10">
+                                                <Ticket className="size-4 sm:size-5" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-gray-900 sm:text-xl lg:text-3xl dark:text-white">
+                                                Zonas y Precios
+                                            </h3>
+                                            {!isPricesExpanded && (
+                                                <Badge className="ml-1.5 animate-pulse border-none bg-[#c90000] text-[10px] text-white hover:bg-[#a00000] sm:ml-2 sm:text-xs">
+                                                    Ver{' '}
+                                                    {visibleCdvPrices.length}{' '}
+                                                    precios
+                                                </Badge>
+                                            )}
                                         </div>
-                                        <h3 className="text-lg sm:text-xl font-bold lg:text-3xl text-gray-900 dark:text-white">Zonas y Precios</h3>
-                                        {!isPricesExpanded && (
-                                            <Badge className="ml-1.5 sm:ml-2 text-[10px] sm:text-xs bg-[#c90000] text-white hover:bg-[#a00000] animate-pulse border-none">
-                                                Ver {visibleCdvPrices.length} precios
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <div className="text-gray-400 group-hover:text-[#c90000] transition-colors rounded-full bg-gray-100 p-2 dark:bg-white/5">
-                                        <svg className={`w-6 h-6 transform transition-transform duration-300 ${isPricesExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </div>
-                                </button>
-                                
-                                <div className={`relative z-10 grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out ${isPricesExpanded ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
-                                    <div className="overflow-hidden">
-                                        <div className="flex flex-col gap-3 max-h-[320px] overflow-y-auto overflow-x-hidden pr-3 pb-2 rounded-b-xl" style={{ scrollbarWidth: 'thin' }}>
-                                            {visibleCdvPrices.map((price: any) => (
-                                                <div 
-                                                    key={price.id} 
-                                                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 sm:p-4 rounded-xl border border-gray-200/60 bg-white dark:bg-[#1a1c20] dark:border-white/10 hover:border-[#c90000]/30 hover:shadow-md transition-all ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'opacity-60 saturate-0 hover:shadow-none pointer-events-none' : 'hover:-translate-y-0.5'}`}
-                                                >
-                                                    <div className="flex items-center gap-2.5 sm:gap-3">
-                                                        <Ticket className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'text-gray-400 dark:text-gray-600' : 'text-[#c90000]'}`} />
-                                                        <span className={`font-bold text-sm sm:text-base text-gray-800 dark:text-gray-200 leading-tight ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'line-through decoration-gray-400 dark:decoration-gray-600' : ''}`}>
-                                                            {price.name}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-end sm:items-center justify-between sm:justify-end gap-3 w-full sm:w-auto mt-2.5 sm:mt-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-gray-100 dark:border-white/5">
-                                                        {(price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1') && (
-                                                            <Badge variant="secondary" className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-none whitespace-nowrap text-[10px] sm:text-xs">
-                                                                Agotado
-                                                            </Badge>
-                                                        )}
-                                                        <div className="flex flex-col items-end leading-none ml-auto">
-                                                            <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-gray-400 dark:text-gray-500 mb-0.5">
-                                                                desde
-                                                            </span>
-                                                            <span className={`text-lg sm:text-xl font-black ${(price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1') ? 'text-gray-500 dark:text-gray-500 line-through decoration-gray-400' : 'text-[#c90000] dark:text-red-500'}`}>
-                                                                {(parseFloat(price.price) || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })}
-                                                            </span>
+                                        <div className="rounded-full bg-gray-100 p-2 text-gray-400 transition-colors group-hover:text-[#c90000] dark:bg-white/5">
+                                            <svg
+                                                className={`h-6 w-6 transform transition-transform duration-300 ${isPricesExpanded ? 'rotate-180' : ''}`}
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M19 9l-7 7-7-7"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </button>
+
+                                    <div
+                                        className={`relative z-10 grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out ${isPricesExpanded ? 'mt-6 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0'}`}
+                                    >
+                                        <div className="overflow-hidden">
+                                            <div
+                                                className="flex max-h-[320px] flex-col gap-3 overflow-x-hidden overflow-y-auto rounded-b-xl pr-3 pb-2"
+                                                style={{
+                                                    scrollbarWidth: 'thin',
+                                                }}
+                                            >
+                                                {visibleCdvPrices.map(
+                                                    (price: any) => (
+                                                        <div
+                                                            key={price.id}
+                                                            className={`flex flex-col justify-between rounded-xl border border-gray-200/60 bg-white p-3.5 transition-all hover:border-[#c90000]/30 hover:shadow-md sm:flex-row sm:items-center sm:p-4 dark:border-white/10 dark:bg-[#1a1c20] ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'pointer-events-none opacity-60 saturate-0 hover:shadow-none' : 'hover:-translate-y-0.5'}`}
+                                                        >
+                                                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                                                <Ticket
+                                                                    className={`h-4 w-4 shrink-0 sm:h-5 sm:w-5 ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'text-gray-400 dark:text-gray-600' : 'text-[#c90000]'}`}
+                                                                />
+                                                                <span
+                                                                    className={`text-sm leading-tight font-bold text-gray-800 sm:text-base dark:text-gray-200 ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'line-through decoration-gray-400 dark:decoration-gray-600' : ''}`}
+                                                                >
+                                                                    {price.name}
+                                                                </span>
+                                                            </div>
+                                                            <div className="mt-2.5 flex w-full items-end justify-between gap-3 border-t border-gray-100 pt-2.5 sm:mt-0 sm:w-auto sm:items-center sm:justify-end sm:border-t-0 sm:pt-0 dark:border-white/5">
+                                                                {(price.sold_out ===
+                                                                    true ||
+                                                                    String(
+                                                                        price.sold_out,
+                                                                    ) ===
+                                                                        'true' ||
+                                                                    String(
+                                                                        price.sold_out,
+                                                                    ) ===
+                                                                        '1') && (
+                                                                    <Badge
+                                                                        variant="secondary"
+                                                                        className="border-none bg-gray-100 text-[10px] whitespace-nowrap text-gray-600 sm:text-xs dark:bg-gray-800 dark:text-gray-400"
+                                                                    >
+                                                                        Agotado
+                                                                    </Badge>
+                                                                )}
+                                                                <div className="ml-auto flex flex-col items-end leading-none">
+                                                                    <span className="mb-0.5 text-[9px] font-bold tracking-widest text-gray-400 uppercase sm:text-[10px] dark:text-gray-500">
+                                                                        desde
+                                                                    </span>
+                                                                    <span
+                                                                        className={`text-lg font-black sm:text-xl ${price.sold_out === true || String(price.sold_out) === 'true' || String(price.sold_out) === '1' ? 'text-gray-500 line-through decoration-gray-400 dark:text-gray-500' : 'text-[#c90000] dark:text-red-500'}`}
+                                                                    >
+                                                                        {(
+                                                                            parseFloat(
+                                                                                price.price,
+                                                                            ) ||
+                                                                            0
+                                                                        ).toLocaleString(
+                                                                            'es-MX',
+                                                                            {
+                                                                                style: 'currency',
+                                                                                currency:
+                                                                                    'MXN',
+                                                                            },
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                    ),
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </section>
-                        )}
-
-
+                                </section>
+                            )}
 
                         {/* Desktop Sales Centers (Hidden on mobile) */}
-                        {salesCentersDetails && salesCentersDetails.length > 0 && (
-                            <section className="hidden lg:block">
-                                <h3 className="mb-4 text-2xl font-bold lg:text-3xl">Puntos de venta autorizados</h3>
-                                <div className="flex flex-wrap gap-6 items-center">
-                                    {salesCentersDetails.map((center, index) => (
-                                        <Tooltip key={`desktop-sc-${index}`}>
-                                            <TooltipTrigger asChild>
-                                                <a
-                                                    href={center.google_map_url || '#'}
-                                                    target={center.google_map_url ? "_blank" : "_self"}
-                                                    rel="noopener noreferrer"
-                                                    className={`
-                                                        group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-200/60 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#1a1c20] dark:hover:border-white/30
-                                                        ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/40'}
-                                                    `}
+                        {salesCentersDetails &&
+                            salesCentersDetails.length > 0 && (
+                                <section className="hidden lg:block">
+                                    <h3 className="mb-4 text-2xl font-bold lg:text-3xl">
+                                        Puntos de venta autorizados
+                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-6">
+                                        {salesCentersDetails.map(
+                                            (center, index) => (
+                                                <Tooltip
+                                                    key={`desktop-sc-${index}`}
                                                 >
-                                                    {center.is_legacy ? (
-                                                        <div className="flex flex-col items-center gap-2 text-center">
-                                                            <MapPin className="size-6 text-gray-400 group-hover:text-[#c90000] transition-colors" />
-                                                            <span className="text-xs font-bold leading-tight text-gray-700 dark:text-muted-foreground line-clamp-2">
+                                                    <TooltipTrigger asChild>
+                                                        <a
+                                                            href={
+                                                                center.google_map_url ||
+                                                                '#'
+                                                            }
+                                                            target={
+                                                                center.google_map_url
+                                                                    ? '_blank'
+                                                                    : '_self'
+                                                            }
+                                                            rel="noopener noreferrer"
+                                                            className={`group relative flex h-24 w-40 items-center justify-center rounded-xl border border-gray-200/60 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_12px_30px_rgba(0,0,0,0.08)] dark:border-white/10 dark:bg-[#1a1c20] dark:hover:border-white/30 ${!center.google_map_url ? 'cursor-default' : 'cursor-pointer hover:border-[#c90000]/40'} `}
+                                                        >
+                                                            {center.is_legacy ? (
+                                                                <div className="flex flex-col items-center gap-2 text-center">
+                                                                    <MapPin className="size-6 text-gray-400 transition-colors group-hover:text-[#c90000]" />
+                                                                    <span className="line-clamp-2 text-xs leading-tight font-bold text-gray-700 dark:text-muted-foreground">
+                                                                        {
+                                                                            center.name
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            ) : center.logo_path ? (
+                                                                <img
+                                                                    src={
+                                                                        center.logo_path
+                                                                    }
+                                                                    alt={
+                                                                        center.name
+                                                                    }
+                                                                    className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105"
+                                                                />
+                                                            ) : (
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    <MapPin className="size-6 text-[#c90000]" />
+                                                                    <span className="line-clamp-2 text-center text-xs font-bold">
+                                                                        {
+                                                                            center.name
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </a>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="z-50 max-w-xs rounded-xl border border-gray-200 bg-white p-4 text-gray-900 shadow-xl dark:border-white/10 dark:bg-[#1a1c20] dark:text-gray-100">
+                                                        <div className="space-y-2">
+                                                            <p className="text-base font-bold text-[#c90000] dark:text-red-500">
                                                                 {center.name}
-                                                            </span>
+                                                            </p>
+                                                            {center.address && (
+                                                                <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                                                                    <MapPin className="mt-0.5 size-4 shrink-0" />
+                                                                    <span>
+                                                                        {
+                                                                            center.address
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {center.opening_hours &&
+                                                                Array.isArray(
+                                                                    center.opening_hours,
+                                                                ) &&
+                                                                center
+                                                                    .opening_hours
+                                                                    .length >
+                                                                    0 && (
+                                                                    <div className="mt-3 border-t border-gray-100 pt-3 dark:border-white/10">
+                                                                        <p className="mb-2 text-xs font-bold tracking-wider text-gray-500 uppercase dark:text-gray-400">
+                                                                            Horario
+                                                                        </p>
+                                                                        <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-300">
+                                                                            {center.opening_hours.map(
+                                                                                (
+                                                                                    h,
+                                                                                    i,
+                                                                                ) => (
+                                                                                    <li
+                                                                                        key={
+                                                                                            i
+                                                                                        }
+                                                                                        className="flex items-center gap-1.5"
+                                                                                    >
+                                                                                        <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+                                                                                        {
+                                                                                            h
+                                                                                        }
+                                                                                    </li>
+                                                                                ),
+                                                                            )}
+                                                                        </ul>
+                                                                    </div>
+                                                                )}
                                                         </div>
-                                                    ) : (center.logo_path ? (
-                                                        <img
-                                                            src={center.logo_path}
-                                                            alt={center.name}
-                                                            className="h-full w-full object-contain p-2 group-hover:scale-105 transition-transform"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex flex-col items-center gap-2">
-                                                            <MapPin className="size-6 text-[#c90000]" />
-                                                            <span className="text-xs font-bold text-center line-clamp-2">{center.name}</span>
-                                                        </div>
-                                                    ))}
-                                                </a>
-                                            </TooltipTrigger>
-                                            <TooltipContent className="max-w-xs p-4 bg-white dark:bg-[#1a1c20] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-white/10 shadow-xl z-50 rounded-xl">
-                                                <div className="space-y-2">
-                                                    <p className="font-bold text-base text-[#c90000] dark:text-red-500">{center.name}</p>
-                                                    {center.address && (
-                                                        <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
-                                                            <MapPin className="size-4 shrink-0 mt-0.5" />
-                                                            <span>{center.address}</span>
-                                                        </div>
-                                                    )}
-                                                    {center.opening_hours && Array.isArray(center.opening_hours) && center.opening_hours.length > 0 && (
-                                                        <div className="pt-3 border-t border-gray-100 dark:border-white/10 mt-3">
-                                                            <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500 dark:text-gray-400">Horario</p>
-                                                            <ul className="text-xs space-y-1.5 text-gray-600 dark:text-gray-300">
-                                                                {center.opening_hours.map((h, i) => <li key={i} className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />{h}</li>)}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            ),
+                                        )}
+                                    </div>
+                                </section>
+                            )}
                     </div>
 
                     {/* Booking Sidebar / Recuadro de Reserva */}
                     {!isGridMode && (
                         <div className="relative order-1 lg:order-2">
                             <div className="sticky top-24 flex flex-col gap-6">
-                                {(!isSalesOpen && event.sales_start_date) || performances.length <= 1 || event.show_calendar !== false ? (
-                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
-                                    <h3 className="mb-6 text-xl font-bold">Reserva tus Boletos</h3>
+                                {(!isSalesOpen && event.sales_start_date) ||
+                                performances.length <= 1 ||
+                                event.show_calendar !== false ? (
+                                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
+                                        <h3 className="mb-6 text-xl font-bold">
+                                            Reserva tus Boletos
+                                        </h3>
 
-                                    {/* SALES START DATE CHECK */}
-                                    {!isSalesOpen && event.sales_start_date ? (
-                                        <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4">
-                                            <div className="rounded-xl bg-[#c90000]/5 p-6 border border-[#c90000]/10">
-                                                <h4 className="text-lg font-bold text-[#c90000] mb-2">Próximamente a la venta</h4>
-                                                <p className="text-sm text-gray-600 dark:text-muted-foreground mb-4">
-                                                    La venta de boletos comenzará el:
-                                                </p>
-                                                <p className="text-xl font-bold text-gray-900 dark:text-white mb-6">
-                                                    {format(new Date(event.sales_start_date), "d 'de' MMMM 'a las' h:mm a", { locale: es })}
-                                                </p>
+                                        {/* SALES START DATE CHECK */}
+                                        {!isSalesOpen &&
+                                        event.sales_start_date ? (
+                                            <div className="animate-in space-y-6 text-center fade-in slide-in-from-bottom-4">
+                                                <div className="rounded-xl border border-[#c90000]/10 bg-[#c90000]/5 p-6">
+                                                    <h4 className="mb-2 text-lg font-bold text-[#c90000]">
+                                                        Próximamente a la venta
+                                                    </h4>
+                                                    <p className="mb-4 text-sm text-gray-600 dark:text-muted-foreground">
+                                                        La venta de boletos
+                                                        comenzará el:
+                                                    </p>
+                                                    <p className="mb-6 text-xl font-bold text-gray-900 dark:text-white">
+                                                        {format(
+                                                            new Date(
+                                                                event.sales_start_date,
+                                                            ),
+                                                            "d 'de' MMMM 'a las' h:mm a",
+                                                            { locale: es },
+                                                        )}
+                                                    </p>
 
-                                                <div className="flex justify-center w-full">
-                                                    <Countdown
-                                                        targetDate={event.sales_start_date}
-                                                        onComplete={() => setIsSalesOpen(true)}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <Button disabled className="w-full h-12 text-lg font-bold bg-gray-200 text-gray-400 dark:bg-card dark:text-gray-600">
-                                                Próximamente
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6">
-                                            {performances.length > 1 ? (
-                                                <div className="space-y-6">
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                            Selecciona una fecha
-                                                        </label>
-                                                        <div className="flex justify-center">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={selectedDate}
-                                                                onSelect={setSelectedDate}
-                                                                disabled={(date) => {
-                                                                    const dateString = format(date, 'yyyy-MM-dd');
-                                                                    return !performanceDates.has(dateString);
-                                                                }}
-                                                                defaultMonth={performances.length > 0 ? new Date(performances[0].PerformanceDateTime) : undefined}
-                                                                className="rounded-xl border border-gray-100 bg-white shadow-sm dark:bg-card dark:border-border"
-                                                                locale={es}
-                                                            />
-                                                        </div>
+                                                    <div className="flex w-full justify-center">
+                                                        <Countdown
+                                                            targetDate={
+                                                                event.sales_start_date
+                                                            }
+                                                            onComplete={() =>
+                                                                setIsSalesOpen(
+                                                                    true,
+                                                                )
+                                                            }
+                                                        />
                                                     </div>
-
-                                                    {selectedDate && (
-                                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                </div>
+                                                <Button
+                                                    disabled
+                                                    className="h-12 w-full bg-gray-200 text-lg font-bold text-gray-400 dark:bg-card dark:text-gray-600"
+                                                >
+                                                    Próximamente
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-6">
+                                                {performances.length > 1 ? (
+                                                    <div className="space-y-6">
+                                                        <div className="space-y-2">
                                                             <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                                Horarios disponibles
+                                                                Selecciona una
+                                                                fecha
                                                             </label>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {availablePerformancesForDate.map((perf) => (
-                                                                    <button
-                                                                        key={perf.PerformanceID}
-                                                                        onClick={() => setSelectedPerformanceId(perf.PerformanceID.toString())}
-                                                                        className={`
-                                                                        px-4 py-2 text-sm font-medium rounded-md border transition-all
-                                                                        ${selectedPerformanceId === perf.PerformanceID.toString()
-                                                                                ? 'bg-[#c90000] text-white border-[#c90000] shadow-md'
-                                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#c90000] hover:text-[#c90000] dark:bg-background dark:text-muted-foreground dark:border-border'
-                                                                            }
-                                                                    `}
-                                                                    >
-                                                                        {format(new Date(perf.PerformanceDateTime), 'h:mm a')}
-                                                                    </button>
-                                                                ))}
+                                                            <div className="flex justify-center">
+                                                                <Calendar
+                                                                    mode="single"
+                                                                    selected={
+                                                                        selectedDate
+                                                                    }
+                                                                    onSelect={
+                                                                        setSelectedDate
+                                                                    }
+                                                                    disabled={(
+                                                                        date,
+                                                                    ) => {
+                                                                        const dateString =
+                                                                            format(
+                                                                                date,
+                                                                                'yyyy-MM-dd',
+                                                                            );
+                                                                        return !performanceDates.has(
+                                                                            dateString,
+                                                                        );
+                                                                    }}
+                                                                    defaultMonth={
+                                                                        performances.length >
+                                                                        0
+                                                                            ? new Date(
+                                                                                  performances[0]
+                                                                                      .PerformanceDateTime,
+                                                                              )
+                                                                            : undefined
+                                                                    }
+                                                                    className="rounded-xl border border-gray-100 bg-white shadow-sm dark:border-border dark:bg-card"
+                                                                    locale={es}
+                                                                />
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            ) : performances.length === 1 ? (
-                                                <div className="space-y-3">
-                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                        Fecha y Hora del Evento
-                                                    </label>
-                                                    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
-                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
-                                                            <CalendarIcon className="size-6" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-gray-900 dark:text-white capitalize">
-                                                                {format(new Date(performances[0].PerformanceDateTime), "EEEE d 'de' MMMM", { locale: es })}
-                                                            </p>
-                                                            <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                                Horario: {format(new Date(performances[0].PerformanceDateTime), "h:mm a")}
-                                                            </p>
-                                                        </div>
+
+                                                        {selectedDate && (
+                                                            <div className="animate-in space-y-3 fade-in slide-in-from-top-2">
+                                                                <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                                    Horarios
+                                                                    disponibles
+                                                                </label>
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    {availablePerformancesForDate.map(
+                                                                        (
+                                                                            perf,
+                                                                        ) => (
+                                                                            <button
+                                                                                key={
+                                                                                    perf.PerformanceID
+                                                                                }
+                                                                                onClick={() =>
+                                                                                    setSelectedPerformanceId(
+                                                                                        perf.PerformanceID.toString(),
+                                                                                    )
+                                                                                }
+                                                                                className={`rounded-md border px-4 py-2 text-sm font-medium transition-all ${
+                                                                                    selectedPerformanceId ===
+                                                                                    perf.PerformanceID.toString()
+                                                                                        ? 'border-[#c90000] bg-[#c90000] text-white shadow-md'
+                                                                                        : 'border-gray-200 bg-white text-gray-700 hover:border-[#c90000] hover:text-[#c90000] dark:border-border dark:bg-background dark:text-muted-foreground'
+                                                                                } `}
+                                                                            >
+                                                                                {format(
+                                                                                    new Date(
+                                                                                        perf.PerformanceDateTime,
+                                                                                    ),
+                                                                                    'h:mm a',
+                                                                                )}
+                                                                            </button>
+                                                                        ),
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            ) : event.start_date ? (
-                                                <div className="space-y-3">
-                                                    <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
-                                                        Fecha del Evento
-                                                    </label>
-                                                    <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
-                                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
-                                                            <CalendarIcon className="size-6" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-gray-900 dark:text-white capitalize">
-                                                                {format(new Date(event.start_date), "EEEE d 'de' MMMM yyyy", { locale: es })}
-                                                            </p>
-                                                            {event.start_date.includes(':') && (
-                                                                <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                                    Horario: {format(new Date(event.start_date), "h:mm a")}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="p-4 text-center text-gray-500">
-                                                    No hay funciones disponibles actualmente.
-                                                </div>
-                                            )}
-
-                                            <Button
-                                                className="w-full h-12 text-lg font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-lg shadow-red-600/20"
-                                                onClick={handleBuy}
-                                                disabled={!selectedPerformanceId}
-                                            >
-                                                <Ticket className="mr-2 h-5 w-5" />
-                                                {event.button_text || 'Comprar Boletos'}
-                                            </Button>
-
-                                            <ViewerCounter eventId={event.id} />
-
-                                            <p className="text-xs text-center text-gray-400">
-                                                Pagos procesados de forma segura
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
-                                    <h3 className="mb-6 text-xl font-bold text-[#c90000] dark:text-red-500">
-                                        Reserva tus Boletos
-                                    </h3>
-                                    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                                        {[...performances]
-                                            .sort((a, b) => {
-                                                const descA = event.performance_descriptions?.[a.PerformanceID] as any;
-                                                const descB = event.performance_descriptions?.[b.PerformanceID] as any;
-                                                const orderA = typeof descA === 'object' ? (descA?.order ?? 999) : 999;
-                                                const orderB = typeof descB === 'object' ? (descB?.order ?? 999) : 999;
-                                                return orderA - orderB;
-                                            })
-                                            .map((perf) => {
-                                                const desc = event.performance_descriptions?.[perf.PerformanceID] as any;
-                                                const titleStr = typeof desc === 'string' ? desc : (desc?.title || event.button_text || 'Comprar Boletos');
-                                                const subtitleStr = typeof desc === 'object' && desc?.subtitle ? desc.subtitle : format(new Date(perf.PerformanceDateTime), "EEEE d 'de' MMMM yyyy", { locale: es });
-
-                                                return (
-                                                    <div key={perf.PerformanceID} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50 dark:border-border/50 dark:bg-white/5 transition-all hover:border-[#c90000]/30 hover:shadow-md">
-                                                        <div className="flex items-center gap-4">
+                                                ) : performances.length ===
+                                                  1 ? (
+                                                    <div className="space-y-3">
+                                                        <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                            Fecha y Hora del
+                                                            Evento
+                                                        </label>
+                                                        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
                                                             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
                                                                 <CalendarIcon className="size-6" />
                                                             </div>
                                                             <div>
-                                                                <p className="font-bold text-gray-900 dark:text-white capitalize">
-                                                                    {subtitleStr}
+                                                                <p className="font-bold text-gray-900 capitalize dark:text-white">
+                                                                    {format(
+                                                                        new Date(
+                                                                            performances[0]
+                                                                                .PerformanceDateTime,
+                                                                        ),
+                                                                        "EEEE d 'de' MMMM",
+                                                                        {
+                                                                            locale: es,
+                                                                        },
+                                                                    )}
                                                                 </p>
                                                                 <p className="text-sm text-gray-500 dark:text-muted-foreground">
-                                                                    Horario: {format(new Date(perf.PerformanceDateTime), "h:mm a")}
+                                                                    Horario:{' '}
+                                                                    {format(
+                                                                        new Date(
+                                                                            performances[0]
+                                                                                .PerformanceDateTime,
+                                                                        ),
+                                                                        'h:mm a',
+                                                                    )}
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                        
-                                                        <Button
-                                                            className="w-full sm:w-auto h-12 px-6 font-bold bg-[#c90000] hover:bg-[#a00000] text-white shadow-md shadow-red-600/20"
-                                                            onClick={() => {
-                                                                window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${perf.PerformanceID}`;
-                                                            }}
-                                                        >
-                                                            <Ticket className="mr-2 h-5 w-5" />
-                                                            {titleStr}
-                                                        </Button>
                                                     </div>
-                                                );
-                                            })}
+                                                ) : event.start_date ? (
+                                                    <div className="space-y-3">
+                                                        <label className="text-sm font-medium text-gray-700 dark:text-muted-foreground">
+                                                            Fecha del Evento
+                                                        </label>
+                                                        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-border dark:bg-white/5">
+                                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                                <CalendarIcon className="size-6" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="font-bold text-gray-900 capitalize dark:text-white">
+                                                                    {format(
+                                                                        new Date(
+                                                                            event.start_date,
+                                                                        ),
+                                                                        "EEEE d 'de' MMMM yyyy",
+                                                                        {
+                                                                            locale: es,
+                                                                        },
+                                                                    )}
+                                                                </p>
+                                                                {event.start_date.includes(
+                                                                    ':',
+                                                                ) && (
+                                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                                        Horario:{' '}
+                                                                        {format(
+                                                                            new Date(
+                                                                                event.start_date,
+                                                                            ),
+                                                                            'h:mm a',
+                                                                        )}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-4 text-center text-gray-500">
+                                                        No hay funciones
+                                                        disponibles actualmente.
+                                                    </div>
+                                                )}
+
+                                                <Button
+                                                    className="h-12 w-full bg-[#c90000] text-lg font-bold text-white shadow-lg shadow-red-600/20 hover:bg-[#a00000]"
+                                                    onClick={handleBuy}
+                                                    disabled={
+                                                        !selectedPerformanceId
+                                                    }
+                                                >
+                                                    <Ticket className="mr-2 h-5 w-5" />
+                                                    {event.button_text ||
+                                                        'Comprar Boletos'}
+                                                </Button>
+
+                                                <ViewerCounter
+                                                    eventId={event.id}
+                                                />
+
+                                                <p className="text-center text-xs text-gray-400">
+                                                    Pagos procesados de forma
+                                                    segura
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
-                                    <ViewerCounter eventId={event.id} />
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl dark:border-border dark:bg-card">
+                                        <h3 className="mb-6 text-xl font-bold text-[#c90000] dark:text-red-500">
+                                            Reserva tus Boletos
+                                        </h3>
+                                        <div className="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 max-h-[600px] space-y-4 overflow-y-auto pr-2">
+                                            {[...performances]
+                                                .sort((a, b) => {
+                                                    const descA = event
+                                                        .performance_descriptions?.[
+                                                        a.PerformanceID
+                                                    ] as any;
+                                                    const descB = event
+                                                        .performance_descriptions?.[
+                                                        b.PerformanceID
+                                                    ] as any;
+                                                    const orderA =
+                                                        typeof descA ===
+                                                        'object'
+                                                            ? (descA?.order ??
+                                                              999)
+                                                            : 999;
+                                                    const orderB =
+                                                        typeof descB ===
+                                                        'object'
+                                                            ? (descB?.order ??
+                                                              999)
+                                                            : 999;
+                                                    return orderA - orderB;
+                                                })
+                                                .map((perf) => {
+                                                    const desc = event
+                                                        .performance_descriptions?.[
+                                                        perf.PerformanceID
+                                                    ] as any;
+                                                    const titleStr =
+                                                        typeof desc === 'string'
+                                                            ? desc
+                                                            : desc?.title ||
+                                                              event.button_text ||
+                                                              'Comprar Boletos';
+                                                    const subtitleStr =
+                                                        typeof desc ===
+                                                            'object' &&
+                                                        desc?.subtitle
+                                                            ? desc.subtitle
+                                                            : format(
+                                                                  new Date(
+                                                                      perf.PerformanceDateTime,
+                                                                  ),
+                                                                  "EEEE d 'de' MMMM yyyy",
+                                                                  {
+                                                                      locale: es,
+                                                                  },
+                                                              );
+
+                                                    return (
+                                                        <div
+                                                            key={
+                                                                perf.PerformanceID
+                                                            }
+                                                            className="flex flex-col justify-between gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4 transition-all hover:border-[#c90000]/30 hover:shadow-md sm:flex-row sm:items-center dark:border-border/50 dark:bg-white/5"
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#c90000]/10 text-[#c90000]">
+                                                                    <CalendarIcon className="size-6" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-gray-900 capitalize dark:text-white">
+                                                                        {
+                                                                            subtitleStr
+                                                                        }
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-500 dark:text-muted-foreground">
+                                                                        Horario:{' '}
+                                                                        {format(
+                                                                            new Date(
+                                                                                perf.PerformanceDateTime,
+                                                                            ),
+                                                                            'h:mm a',
+                                                                        )}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+
+                                                            <Button
+                                                                className="h-12 w-full bg-[#c90000] px-6 font-bold text-white shadow-md shadow-red-600/20 hover:bg-[#a00000] sm:w-auto"
+                                                                onClick={() => {
+                                                                    window.location.href = `https://boletea.com.mx/ordertickets.asp?p=${perf.PerformanceID}`;
+                                                                }}
+                                                            >
+                                                                <Ticket className="mr-2 h-5 w-5" />
+                                                                {titleStr}
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                })}
+                                        </div>
+                                        <ViewerCounter eventId={event.id} />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
                     )}
 
                     {/* Mobile Sales Centers Carousel (Hidden on desktop) */}
                     {salesCentersDetails && salesCentersDetails.length > 0 && (
-                        <section className="block lg:hidden w-full overflow-hidden pt-2 pb-2 order-3">
-                            <h3 className="mb-6 text-xl font-bold flex items-center gap-2">
-                                <MapPin className="w-5 h-5 text-[#c90000]" />
+                        <section className="order-3 block w-full overflow-hidden pt-2 pb-2 lg:hidden">
+                            <h3 className="mb-6 flex items-center gap-2 text-xl font-bold">
+                                <MapPin className="h-5 w-5 text-[#c90000]" />
                                 Puntos de venta autorizados
                             </h3>
                             <Carousel
                                 opts={{
-                                    align: "start",
+                                    align: 'start',
                                     loop: true,
                                 }}
                                 plugins={[
@@ -666,46 +1064,63 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                                 className="w-full"
                             >
                                 <CarouselContent className="-ml-3">
-                                    {salesCentersDetails.map((center, index) => (
-                                        <CarouselItem key={`mobile-sc-${index}`} className="pl-3 basis-[65%] sm:basis-[45%]">
-                                            <a
-                                                href={center.google_map_url || '#'}
-                                                target={center.google_map_url ? "_blank" : "_self"}
-                                                rel="noopener noreferrer"
-                                                className={`
-                                                    group relative flex flex-col items-center justify-center rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition-all dark:border-white/10 dark:bg-[#1a1c20] h-[140px] w-full
-                                                    ${!center.google_map_url ? 'cursor-default' : 'active:scale-95 hover:border-[#c90000]/30 dark:hover:border-white/30'}
-                                                `}
+                                    {salesCentersDetails.map(
+                                        (center, index) => (
+                                            <CarouselItem
+                                                key={`mobile-sc-${index}`}
+                                                className="basis-[65%] pl-3 sm:basis-[45%]"
                                             >
-                                                {center.is_legacy ? (
-                                                    <div className="flex flex-col items-center gap-3 text-center">
-                                                        <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
-                                                        <span className="text-sm font-bold leading-tight text-gray-800 dark:text-gray-200 line-clamp-2">
-                                                            {center.name}
-                                                        </span>
-                                                    </div>
-                                                ) : (center.logo_path ? (
-                                                    <div className="h-full flex items-center justify-center p-1 w-full relative">
-                                                        <img
-                                                            src={center.logo_path}
-                                                            alt={center.name}
-                                                            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex flex-col items-center gap-3 text-center">
-                                                        <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
-                                                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200 line-clamp-2">{center.name}</span>
-                                                    </div>
-                                                ))}
-                                                {center.address && (
-                                                    <div className="absolute bottom-3 left-0 w-full text-center px-2">
-                                                        <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 line-clamp-1">{center.address}</span>
-                                                    </div>
-                                                )}
-                                            </a>
-                                        </CarouselItem>
-                                    ))}
+                                                <a
+                                                    href={
+                                                        center.google_map_url ||
+                                                        '#'
+                                                    }
+                                                    target={
+                                                        center.google_map_url
+                                                            ? '_blank'
+                                                            : '_self'
+                                                    }
+                                                    rel="noopener noreferrer"
+                                                    className={`group relative flex h-[140px] w-full flex-col items-center justify-center rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm transition-all dark:border-white/10 dark:bg-[#1a1c20] ${!center.google_map_url ? 'cursor-default' : 'hover:border-[#c90000]/30 active:scale-95 dark:hover:border-white/30'} `}
+                                                >
+                                                    {center.is_legacy ? (
+                                                        <div className="flex flex-col items-center gap-3 text-center">
+                                                            <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
+                                                            <span className="line-clamp-2 text-sm leading-tight font-bold text-gray-800 dark:text-gray-200">
+                                                                {center.name}
+                                                            </span>
+                                                        </div>
+                                                    ) : center.logo_path ? (
+                                                        <div className="relative flex h-full w-full items-center justify-center p-1">
+                                                            <img
+                                                                src={
+                                                                    center.logo_path
+                                                                }
+                                                                alt={
+                                                                    center.name
+                                                                }
+                                                                className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col items-center gap-3 text-center">
+                                                            <MapPin className="size-8 text-[#c90000] drop-shadow-sm transition-transform group-hover:scale-110" />
+                                                            <span className="line-clamp-2 text-sm font-bold text-gray-800 dark:text-gray-200">
+                                                                {center.name}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {center.address && (
+                                                        <div className="absolute bottom-3 left-0 w-full px-2 text-center">
+                                                            <span className="line-clamp-1 text-[10px] font-bold text-gray-400 uppercase dark:text-gray-500">
+                                                                {center.address}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </a>
+                                            </CarouselItem>
+                                        ),
+                                    )}
                                 </CarouselContent>
                             </Carousel>
                         </section>
@@ -714,15 +1129,15 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
 
                 {/* Related Events Section (Mobile Slider / Desktop Grid) */}
                 {relatedEvents && relatedEvents.length > 0 && !isGridMode && (
-                    <section className="bg-gray-50 py-12 dark:bg-card border-t border-gray-200 dark:border-border">
+                    <section className="border-t border-gray-200 bg-gray-50 py-12 dark:border-border dark:bg-card">
                         <div className="container mx-auto px-6">
-                            <h3 className="mb-8 text-2xl font-bold lg:text-3xl text-gray-900 dark:text-white">
+                            <h3 className="mb-8 text-2xl font-bold text-gray-900 lg:text-3xl dark:text-white">
                                 Eventos que te podrían interesar
                             </h3>
 
                             <Carousel
                                 opts={{
-                                    align: "start",
+                                    align: 'start',
                                     loop: true,
                                 }}
                                 plugins={[
@@ -734,7 +1149,10 @@ export default function Show({ event, salesCentersDetails = [], relatedEvents = 
                             >
                                 <CarouselContent className="-ml-4 md:-ml-6">
                                     {relatedEvents.map((relatedEvent) => (
-                                        <CarouselItem key={relatedEvent.id} className="pl-4 md:pl-6 md:basis-1/3 lg:basis-1/4">
+                                        <CarouselItem
+                                            key={relatedEvent.id}
+                                            className="pl-4 md:basis-1/3 md:pl-6 lg:basis-1/4"
+                                        >
                                             <EventCard event={relatedEvent} />
                                         </CarouselItem>
                                     ))}
