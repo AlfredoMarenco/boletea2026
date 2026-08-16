@@ -28,6 +28,8 @@ import {
     Plus,
     Users,
     LayoutList,
+    ArrowUp,
+    ArrowDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SeatingLayout, SeatingNode } from './types';
@@ -236,13 +238,14 @@ const Inspector: React.FC<InspectorProps> = ({
         rowLabelEnabled: true,
         rowLabelType: 'ABC',
         rowLabelStart: 'A',
-        rowLabelSkip: 'I,O,Q',
+        rowLabelSkip: '',
         rowLabelPosition: 'both',
         rowLabelOverride: '',
         rowLabelDisplayType: 'Row',
         seatLabelType: '123',
         seatLabelStart: 1,
         seatLabelDirection: 'LR',
+        rowLabelDirection: 'TB',
         category_id: null,
         capacity: 100,
     });
@@ -256,6 +259,10 @@ const Inspector: React.FC<InspectorProps> = ({
         .map((n) => n.id)
         .sort()
         .join(',');
+
+    const uniqueRows = Array.from(new Set(selectedNodes.filter(n => n.row_uuid).map(n => n.row_uuid)));
+    const isSingleRow = uniqueRows.length === 1;
+    const isMultipleRows = uniqueRows.length > 1;
 
     useEffect(() => {
         if (selectedNodes.length > 0) {
@@ -332,8 +339,49 @@ const Inspector: React.FC<InspectorProps> = ({
                 totalSeats:
                     totalRowSeats || totalTableSeats || totalSelectedSeats || 0,
                 curve: getCommon('curvature', 0),
-                seatSpacing: getCommon('seatSpacing', 35),
-                seatLabelDirection: getCommon('seatLabelDirection', 'LR'),
+                seatSpacing: getCommon('spacing', getCommon('seatSpacing', 35)),
+                rowSpacing: (() => {
+                    if (rowUuids.length > 1) {
+                        const rowsList = rowUuids.map(uuid => {
+                            const rowNodes = layout?.nodes?.filter(n => n.row_uuid === uuid && n.type === 'seat') || [];
+                            if (rowNodes.length === 0) return null;
+                            const sorted = [...rowNodes].sort((a, b) => (a.number || 0) - (b.number || 0));
+                            return {
+                                uuid,
+                                startNode: sorted[0],
+                                lastNode: sorted[sorted.length - 1]
+                            };
+                        }).filter((r): r is { uuid: string; startNode: any; lastNode: any } => !!r && !!r.startNode && !!r.lastNode);
+
+                        if (rowsList.length > 1) {
+                            const refRow = rowsList[0];
+                            const dxRaw = refRow.lastNode.x - refRow.startNode.x;
+                            const dyRaw = refRow.lastNode.y - refRow.startNode.y;
+                            const rowAngle = Math.atan2(dyRaw, dxRaw);
+                            const normalAngle = rowAngle + Math.PI / 2;
+
+                            const sorted = [...rowsList].sort((a, b) => {
+                                const projA = a.startNode.x * Math.cos(normalAngle) + a.startNode.y * Math.sin(normalAngle);
+                                const projB = b.startNode.x * Math.cos(normalAngle) + b.startNode.y * Math.sin(normalAngle);
+                                return projA - projB;
+                            });
+
+                            let totalDist = 0;
+                            for (let i = 1; i < sorted.length; i++) {
+                                const projA = sorted[i-1].startNode.x * Math.cos(normalAngle) + sorted[i-1].startNode.y * Math.sin(normalAngle);
+                                const projB = sorted[i].startNode.x * Math.cos(normalAngle) + sorted[i].startNode.y * Math.sin(normalAngle);
+                                totalDist += Math.abs(projB - projA);
+                            }
+                            return Math.round(totalDist / (sorted.length - 1));
+                        }
+                    }
+                    return layout?.config?.rowSpacing || 40;
+                })(),
+                seatLabelDirection: getCommon('seat_label_direction', getCommon('seatLabelDirection', 'LR')),
+                rowLabelDirection: getCommon('row_label_direction', 'TB'),
+                rowLabelType: getCommon('row_label_type', ''),
+                rowLabelStart: getCommon('row_label_start', 'A'),
+                rowLabelSkip: getCommon('row_label_skip', ''),
                 rowLabelEnabled: getCommon('row_label_enabled', true),
                 rowLabelPosition: getCommon('row_label_position', 'both'),
                 rowLabelOverride: getCommon('row_label_override', ''),
@@ -359,6 +407,18 @@ const Inspector: React.FC<InspectorProps> = ({
     const handleImmediateChange = (field: string, value: any) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
         onUpdate({ [field]: value });
+    };
+
+    const handleRowLabelUpdate = (updates: any) => {
+        const merged = {
+            rowLabelType: formData.rowLabelType,
+            rowLabelStart: formData.rowLabelStart,
+            rowLabelSkip: formData.rowLabelSkip,
+            rowLabelDirection: formData.rowLabelDirection,
+            ...updates
+        };
+        setFormData(prev => ({ ...prev, ...merged }));
+        onUpdate(merged);
     };
 
     const handlePendingChange = (field: string, value: any) => {
@@ -1190,24 +1250,41 @@ const Inspector: React.FC<InspectorProps> = ({
                                     className="h-7 bg-muted/20 text-center font-mono text-xs"
                                 />
                             </PropertyRow>
-                            <PropertyRow label="Espaciado">
-                                <div className="flex items-center gap-1">
-                                    <Input
-                                        type="number"
-                                        value={formData.seatSpacing}
-                                        onChange={(e) =>
-                                            handlePendingChange(
-                                                'seatSpacing',
-                                                parseInt(e.target.value),
-                                            )
-                                        }
-                                        onBlur={handleStructuralBlur}
+                            {Array.from(new Set(selectedNodes.filter(n => n.row_uuid).map(n => n.row_uuid))).length > 1 && (
+                                <PropertyRow label="Espacio Filas">
+                                    <DraggableNumberInput
+                                        value={formData.rowSpacing || 40}
+                                        min={(formData.radius || 10) * 2 + 1}
+                                        max={200}
+                                        step={1}
+                                        speed={0.5}
+                                        onChange={(val: number) => handleImmediateChange('rowSpacing', val)}
                                         className="h-7 bg-muted/20 text-center font-mono text-xs"
                                     />
-                                    <span className="text-[10px] text-muted-foreground">
-                                        px
-                                    </span>
-                                </div>
+                                </PropertyRow>
+                            )}
+                            <PropertyRow label="Espaciado" info="Distancia entre asientos en píxeles">
+                                <DraggableNumberInput
+                                    value={formData.seatSpacing || 35}
+                                    min={(formData.radius || 10) * 2 + 1}
+                                    max={200}
+                                    step={0.1}
+                                    speed={0.1}
+                                    onChange={(val: number) => handleImmediateChange('seatSpacing', val)}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs"
+                                />
+                            </PropertyRow>
+
+                            <PropertyRow label="Tamaño Asiento" info="Radio del asiento en píxeles">
+                                <DraggableNumberInput
+                                    value={formData.radius || 10}
+                                    min={4}
+                                    max={100}
+                                    step={0.1}
+                                    speed={0.1}
+                                    onChange={(val: number) => handleImmediateChange('radius', val)}
+                                    className="h-7 bg-muted/20 text-center font-mono text-xs"
+                                />
                             </PropertyRow>
                         </div>
                     )}
@@ -1228,12 +1305,15 @@ const Inspector: React.FC<InspectorProps> = ({
                                 type="button"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    // Reset row labeling to defaults
                                     const defaults = {
                                         rowLabelEnabled: true,
                                         rowLabelPosition: 'both',
                                         rowLabelOverride: '',
                                         rowLabelDisplayType: 'Row',
+                                        rowLabelType: 'ABC',
+                                        rowLabelStart: 'A',
+                                        rowLabelSkip: '',
+                                        rowLabelDirection: 'TB',
                                     };
                                     onUpdate(defaults);
                                 }}
@@ -1249,230 +1329,239 @@ const Inspector: React.FC<InspectorProps> = ({
                                 <Checkbox
                                     checked={formData.rowLabelEnabled ?? false}
                                     onCheckedChange={(val) =>
-                                        handlePendingChange(
-                                            'rowLabelEnabled',
-                                            val,
-                                        )
+                                        handleImmediateChange('rowLabelEnabled', val)
                                     }
                                 />
                             </PropertyRow>
 
-                            <PropertyRow label="Etiquetas">
-                                <select
-                                    value={formData.rowLabelType}
-                                    onChange={(e) => {
-                                        const type = e.target.value;
-                                        const defaultStart =
-                                            type === 'ABC' ? 'A' : '1';
-                                        handleImmediateChange(
-                                            'rowLabelType',
-                                            type,
-                                        );
-                                        handleImmediateChange(
-                                            'row',
-                                            defaultStart,
-                                        );
-                                        handleImmediateChange(
-                                            'rowLabelStart',
-                                            defaultStart,
-                                        );
-                                    }}
-                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
-                                >
-                                    <option value="ABC">
-                                        Letras (A, B, C...)
-                                    </option>
-                                    <option value="123">
-                                        Números (1, 2, 3...)
-                                    </option>
-                                </select>
-                            </PropertyRow>
-
-                            <PropertyRow
-                                label="Sobreescribir Etiqueta"
-                                info="Nombre personalizado que oculta la letra de la fila (ej: 'VIP 1')"
-                            >
-                                <div className="flex gap-1">
+                            {isSingleRow ? (
+                                <PropertyRow label="Etiqueta" info="Letra o número de esta fila (ej: 'VIP', 'A')">
                                     <Input
-                                        value={formData.rowLabelOverride}
-                                        onChange={(e) =>
-                                            handlePendingChange(
-                                                'rowLabelOverride',
-                                                e.target.value,
-                                            )
-                                        }
+                                        value={formData.rowLabelOverride || formData.row || ''}
+                                        onChange={(e) => {
+                                            handlePendingChange('rowLabelOverride', e.target.value);
+                                            handlePendingChange('row', e.target.value);
+                                        }}
                                         onBlur={handleStructuralBlur}
                                         className="h-7 bg-muted/20 text-xs"
-                                        placeholder="Automático"
+                                        placeholder="Ej: A, VIP..."
                                     />
+                                </PropertyRow>
+                            ) : (
+                                <>
+                                    <PropertyRow label="Etiquetas">
+                                        <select
+                                            value={formData.rowLabelType}
+                                            onChange={(e) => {
+                                                const type = e.target.value;
+                                                const defaultStart = type === 'ABC' ? 'A' : '1';
+                                                handleRowLabelUpdate({ rowLabelType: type, rowLabelStart: defaultStart });
+                                            }}
+                                            className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                        >
+                                            <option value="">-Selecciona una opción-</option>
+                                            <option value="ABC">A, B, C...</option>
+                                            <option value="123">1, 2, 3...</option>
+                                        </select>
+                                    </PropertyRow>
+
+                                    <PropertyRow label="Empieza en" info="Letra o número inicial de la secuencia">
+                                        <div className="flex items-center gap-1">
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-7 w-7 text-muted-foreground"
+                                                onClick={() => {
+                                                    const cur = formData.rowLabelStart || 'A';
+                                                    if (formData.rowLabelType === '123') {
+                                                        const num = parseInt(cur) || 1;
+                                                        handleRowLabelUpdate({ rowLabelStart: Math.max(1, num - 1).toString() });
+                                                    } else {
+                                                        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                                                        let idx = 0;
+                                                        for (let i = 0; i < cur.length; i++) {
+                                                            const charPos = alphabet.indexOf(cur[i].toUpperCase());
+                                                            if (charPos !== -1) idx = idx * 26 + (charPos + 1);
+                                                        }
+                                                        let n = Math.max(0, (idx - 1) - 1);
+                                                        let label = '';
+                                                        while (n >= 0) {
+                                                            label = alphabet[n % 26] + label;
+                                                            n = Math.floor(n / 26) - 1;
+                                                        }
+                                                        handleRowLabelUpdate({ rowLabelStart: label || 'A' });
+                                                    }
+                                                }}
+                                            >
+                                                <ChevronRight className="h-4 w-4 rotate-180" />
+                                            </Button>
+                                            <Input
+                                                value={formData.rowLabelStart || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, rowLabelStart: e.target.value }))}
+                                                onBlur={(e) => handleRowLabelUpdate({ rowLabelStart: e.target.value })}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') handleRowLabelUpdate({ rowLabelStart: formData.rowLabelStart });
+                                                }}
+                                                className="h-7 flex-1 bg-muted/20 text-center font-mono text-xs font-bold"
+                                            />
+                                            <Button 
+                                                variant="outline" 
+                                                size="icon" 
+                                                className="h-7 w-7 text-muted-foreground"
+                                                onClick={() => {
+                                                    const cur = formData.rowLabelStart || 'A';
+                                                    if (formData.rowLabelType === '123') {
+                                                        const num = parseInt(cur) || 1;
+                                                        handleRowLabelUpdate({ rowLabelStart: (num + 1).toString() });
+                                                    } else {
+                                                        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                                                        let idx = 0;
+                                                        for (let i = 0; i < cur.length; i++) {
+                                                            const charPos = alphabet.indexOf(cur[i].toUpperCase());
+                                                            if (charPos !== -1) idx = idx * 26 + (charPos + 1);
+                                                        }
+                                                        let n = (idx - 1) + 1;
+                                                        let label = '';
+                                                        while (n >= 0) {
+                                                            label = alphabet[n % 26] + label;
+                                                            n = Math.floor(n / 26) - 1;
+                                                        }
+                                                        handleRowLabelUpdate({ rowLabelStart: label || 'A' });
+                                                    }
+                                                }}
+                                            >
+                                                <ChevronRight className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </PropertyRow>
+                                </>
+                            )}
+
+                            <PropertyRow label="Saltar" info="Letras a omitir en la secuencia (separadas por comas)">
+                                <div className="flex gap-1">
+                                    {['I', 'O', 'Q'].map(char => {
+                                        const currentSkips = (formData.rowLabelSkip || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+                                        const isSkipped = currentSkips.includes(char);
+                                        return (
+                                            <Button
+                                                key={char}
+                                                type="button"
+                                                variant={isSkipped ? "default" : "outline"}
+                                                size="sm"
+                                                className={cn("h-7 flex-1 text-[10px]", isSkipped && "bg-blue-600 hover:bg-blue-700")}
+                                                onClick={() => {
+                                                    const newSkips = isSkipped 
+                                                        ? currentSkips.filter((c: string) => c !== char) 
+                                                        : [...currentSkips, char];
+                                                    handleRowLabelUpdate({ rowLabelSkip: newSkips.join(',') });
+                                                }}
+                                            >
+                                                {char}
+                                            </Button>
+                                        );
+                                    })}
                                 </div>
                             </PropertyRow>
 
-                            <PropertyRow
-                                label="Identificador Fila"
-                                info="La letra o número real de esta fila (A, B, 1, 2...)"
-                            >
-                                <div className="flex items-center gap-1">
+                            {isMultipleRows && (
+                                <PropertyRow label="Dirección">
                                     <Button
                                         variant="outline"
-                                        size="icon"
-                                        className="h-6 w-6"
+                                        size="sm"
+                                        className="h-7 w-12 p-0"
                                         onClick={() => {
-                                            // Implementation for prev label if numeric
+                                            const newDir = formData.rowLabelDirection === 'TB' ? 'BT' : 'TB';
+                                            handleRowLabelUpdate({ rowLabelDirection: newDir });
                                         }}
+                                        title={formData.rowLabelDirection === 'TB' ? 'Arriba hacia abajo' : 'Abajo hacia arriba'}
                                     >
-                                        <ArrowUpDown className="h-3 w-3 rotate-90 opacity-30" />
+                                        <ArrowUpDown className={cn("h-4 w-4 text-muted-foreground transition-transform", formData.rowLabelDirection === 'BT' && "rotate-180")} />
                                     </Button>
-                                    <Input
-                                        value={formData.row}
-                                        onChange={(e) => {
-                                            handlePendingChange(
-                                                'row',
-                                                e.target.value,
-                                            );
-                                            handlePendingChange(
-                                                'rowLabelStart',
-                                                e.target.value,
-                                            );
-                                        }}
-                                        onBlur={handleStructuralBlur}
-                                        className="h-7 flex-1 bg-muted/20 text-center font-mono text-xs"
-                                    />
-                                    <Button
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-6 w-6"
-                                    >
-                                        <ArrowUpDown className="h-3 w-3 -rotate-90 opacity-30" />
-                                    </Button>
-                                </div>
-                            </PropertyRow>
-
-                            <PropertyRow label="Fila empieza">
-                                <Input
-                                    value={formData.rowLabelStart || ''}
-                                    onChange={(e) =>
-                                        handlePendingChange(
-                                            'rowLabelStart',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={handleStructuralBlur}
-                                    className="h-7 bg-muted/20 text-center font-mono text-xs font-bold"
-                                />
-                            </PropertyRow>
-
-                            <PropertyRow label="Saltar">
-                                <Input
-                                    value={formData.rowLabelSkip}
-                                    onChange={(e) =>
-                                        handleImmediateChange(
-                                            'rowLabelSkip',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={handleStructuralBlur}
-                                    className="h-7 bg-muted/20 text-center font-mono text-xs font-bold text-blue-500"
-                                    placeholder="I,O,Q"
-                                />
-                            </PropertyRow>
-
-                            <PropertyRow label="Dirección">
-                                <Button
-                                    variant={
-                                        formData.seatLabelDirection === 'RL'
-                                            ? 'default'
-                                            : 'outline'
-                                    }
-                                    size="sm"
-                                    className="h-7 w-full gap-1 text-[10px]"
-                                    onClick={() =>
-                                        handleImmediateChange(
-                                            'seatLabelDirection',
-                                            formData.seatLabelDirection === 'LR'
-                                                ? 'RL'
-                                                : 'LR',
-                                        )
-                                    }
-                                >
-                                    <ArrowLeftRight className="h-3.5 w-3.5" />
-                                    Invertir
-                                </Button>
-                            </PropertyRow>
+                                </PropertyRow>
+                            )}
 
                             <PropertyRow label="Posición">
-                                <div className="flex rounded bg-muted/20 p-0.5">
+                                <div className="flex items-center gap-1.5 pt-1">
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            handleImmediateChange(
-                                                'rowLabelPosition',
-                                                'left',
-                                            )
-                                        }
+                                        onClick={() => {
+                                            const current = formData.rowLabelPosition;
+                                            if (current === 'both') handleImmediateChange('rowLabelPosition', 'right');
+                                            else if (current === 'right') handleImmediateChange('rowLabelPosition', 'both');
+                                            else if (current === 'left') handleImmediateChange('rowLabelPosition', 'none');
+                                            else handleImmediateChange('rowLabelPosition', 'left');
+                                        }}
                                         className={cn(
-                                            'flex h-7 flex-1 items-center justify-center rounded text-[10px] font-bold',
-                                            formData.rowLabelPosition === 'left'
-                                                ? 'bg-background text-blue-600 shadow-sm'
-                                                : 'text-muted-foreground',
+                                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold shadow-sm transition-colors',
+                                            formData.rowLabelPosition === 'left' || formData.rowLabelPosition === 'both'
+                                                ? 'bg-background border-muted-foreground/30 text-foreground'
+                                                : 'bg-muted/50 border-transparent text-muted-foreground/40 hover:text-muted-foreground'
                                         )}
                                     >
-                                        A
+                                        F
                                     </button>
+                                    <div className="flex flex-1 justify-center gap-[3px]">
+                                        {[...Array(5)].map((_, i) => (
+                                            <div key={i} className="h-[7px] w-[7px] rounded-full border border-muted-foreground/40" />
+                                        ))}
+                                    </div>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            handleImmediateChange(
-                                                'rowLabelPosition',
-                                                'both',
-                                            )
-                                        }
+                                        onClick={() => {
+                                            const current = formData.rowLabelPosition;
+                                            if (current === 'both') handleImmediateChange('rowLabelPosition', 'left');
+                                            else if (current === 'left') handleImmediateChange('rowLabelPosition', 'both');
+                                            else if (current === 'right') handleImmediateChange('rowLabelPosition', 'none');
+                                            else handleImmediateChange('rowLabelPosition', 'right');
+                                        }}
                                         className={cn(
-                                            'flex h-7 flex-1 items-center justify-center rounded border-r border-l border-muted text-[10px] font-bold',
-                                            formData.rowLabelPosition === 'both'
-                                                ? 'bg-background text-blue-600 shadow-sm'
-                                                : 'text-muted-foreground',
+                                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-bold shadow-sm transition-colors',
+                                            formData.rowLabelPosition === 'right' || formData.rowLabelPosition === 'both'
+                                                ? 'bg-background border-muted-foreground/30 text-foreground'
+                                                : 'bg-muted/50 border-transparent text-muted-foreground/40 hover:text-muted-foreground'
                                         )}
                                     >
-                                        A-A
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleImmediateChange(
-                                                'rowLabelPosition',
-                                                'right',
-                                            )
-                                        }
-                                        className={cn(
-                                            'flex h-7 flex-1 items-center justify-center rounded text-[10px] font-bold',
-                                            formData.rowLabelPosition ===
-                                                'right'
-                                                ? 'bg-background text-blue-600 shadow-sm'
-                                                : 'text-muted-foreground',
-                                        )}
-                                    >
-                                        A
+                                        F
                                     </button>
                                 </div>
                             </PropertyRow>
 
                             <PropertyRow label="Mostrar tipo">
                                 <select
-                                    value={formData.rowLabelDisplayType}
-                                    onChange={(e) =>
-                                        handleImmediateChange(
-                                            'rowLabelDisplayType',
-                                            e.target.value,
-                                        )
+                                    value={
+                                        ['Row', 'Couch', 'Bar', 'Table'].includes(formData.rowLabelDisplayType || 'Row')
+                                            ? (formData.rowLabelDisplayType || 'Row')
+                                            : 'custom'
                                     }
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'custom') {
+                                            handleImmediateChange('rowLabelDisplayType', 'Personalizado');
+                                        } else {
+                                            handleImmediateChange('rowLabelDisplayType', val);
+                                        }
+                                    }}
                                     className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
                                 >
                                     <option value="Row">Fila</option>
-                                    <option value="Section">Sección</option>
-                                    <option value="None">Ninguno</option>
+                                    <option value="Couch">Sofá</option>
+                                    <option value="Bar">Barra</option>
+                                    <option value="Table">Mesa</option>
+                                    <option value="custom">Personalizado...</option>
                                 </select>
                             </PropertyRow>
+
+                            {!['Row', 'Couch', 'Bar', 'Table'].includes(formData.rowLabelDisplayType || 'Row') && (
+                                <PropertyRow label="Nombre Personalizado">
+                                    <Input
+                                        value={formData.rowLabelDisplayType || ''}
+                                        onChange={(e) => handlePendingChange('rowLabelDisplayType', e.target.value)}
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 bg-muted/20 text-xs"
+                                        placeholder="Ej: Palco, Terraza..."
+                                    />
+                                </PropertyRow>
+                            )}
                         </div>
                     )}
                     <Separator className="opacity-50" />
@@ -1490,55 +1579,63 @@ const Inspector: React.FC<InspectorProps> = ({
                     />
                     {sections.seatLabeling && (
                         <div className="space-y-1 px-1 py-2 pb-6">
-                            <PropertyRow label="Tipo Numeración">
+                            <PropertyRow label="Etiquetas">
                                 <select
                                     value={formData.seatLabelType}
-                                    onChange={(e) =>
-                                        handleImmediateChange(
-                                            'seatLabelType',
-                                            e.target.value,
-                                        )
-                                    }
+                                    onChange={(e) => handleImmediateChange('seatLabelType', e.target.value)}
                                     className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
                                 >
-                                    <option value="123">
-                                        Secuencial (1, 2, 3...)
-                                    </option>
-                                    <option value="Pares">
-                                        Pares (2, 4, 6...)
-                                    </option>
-                                    <option value="Impares">
-                                        Impares (1, 3, 5...)
-                                    </option>
+                                    <option value="123">Secuencial (1, 2, 3...)</option>
+                                    <option value="Pares">Pares (2, 4, 6...)</option>
+                                    <option value="Impares">Impares (1, 3, 5...)</option>
                                 </select>
                             </PropertyRow>
+                            
                             <PropertyRow label="Empieza en">
-                                <Input
-                                    value={formData.seatLabelStart || ''}
-                                    onChange={(e) =>
-                                        handlePendingChange(
-                                            'seatLabelStart',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={handleStructuralBlur}
-                                    className="h-7 bg-muted/20 text-center font-mono text-xs"
-                                />
+                                <div className="flex items-center gap-1">
+                                    <Button variant="outline" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => {
+                                        const cur = parseInt(formData.seatLabelStart) || 1;
+                                        handleImmediateChange('seatLabelStart', Math.max(1, cur - 1));
+                                    }}>
+                                        <ChevronRight className="h-4 w-4 rotate-180" />
+                                    </Button>
+                                    <Input
+                                        value={formData.seatLabelStart || ''}
+                                        onChange={(e) => handlePendingChange('seatLabelStart', e.target.value)}
+                                        onBlur={handleStructuralBlur}
+                                        className="h-7 flex-1 bg-muted/20 text-center font-mono text-xs"
+                                    />
+                                    <Button variant="outline" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => {
+                                        const cur = parseInt(formData.seatLabelStart) || 1;
+                                        handleImmediateChange('seatLabelStart', cur + 1);
+                                    }}>
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </PropertyRow>
+
                             <PropertyRow label="Dirección">
-                                <select
-                                    value={formData.seatLabelDirection}
-                                    onChange={(e) =>
-                                        handleImmediateChange(
-                                            'seatLabelDirection',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 w-12 p-0"
+                                    onClick={() => {
+                                        const currentDir = formData.seatLabelDirection === 'RL' ? 'RL' : 'LR';
+                                        const nextDir = currentDir === 'LR' ? 'RL' : 'LR';
+                                        handleImmediateChange('seatLabelDirection', nextDir);
+                                    }}
+                                    title={formData.seatLabelDirection === 'RL' ? 'Derecha a Izquierda' : 'Izquierda a Derecha'}
                                 >
-                                    <option value="LR">Izq → Der</option>
-                                    <option value="RL">Der → Izq</option>
-                                </select>
+                                    <ArrowLeftRight className={cn("h-4 w-4 text-muted-foreground", formData.seatLabelDirection === 'RL' && "text-blue-600")} />
+                                </Button>
+                            </PropertyRow>
+
+                            <PropertyRow label="Mostrar tipo">
+                                <Input
+                                    value="Asiento"
+                                    disabled
+                                    className="h-7 bg-muted/20 text-xs text-muted-foreground"
+                                />
                             </PropertyRow>
                         </div>
                     )}

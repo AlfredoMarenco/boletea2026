@@ -2,8 +2,14 @@
 
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LocalEventBookingController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SalesCenterController;
+use App\Http\Controllers\SeatReservationController;
+use App\Models\ApkVersion;
+use App\Services\WorldCupScoreService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -12,8 +18,6 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::post('/location', [LocationController::class, 'store'])->name('location.store');
 
 Route::get('/evento/{slug}', [EventController::class, 'show'])->name('event.show');
-
-use App\Http\Controllers\LocalEventBookingController;
 
 Route::get('/compra/{slug}', [LocalEventBookingController::class, 'show'])->name('local-event.booking');
 
@@ -67,6 +71,10 @@ Route::get('/app-scanner/download', function () {
 })->name('scanner.download');
 
 Route::get('/world-cup/status', function () {
+    if (! class_exists(WorldCupScoreService::class)) {
+        return response()->json(['status' => 'inactive']);
+    }
+
     $service = app(WorldCupScoreService::class);
 
     return response()->json($service->updateScore());
@@ -88,12 +96,13 @@ Route::post('/reembolsos/actualizar-documentos/{refundRequest}', [RefundControll
     ->name('refund.submit_update_documents')
     ->middleware('signed');
 
-use App\Http\Controllers\RefundController;
-use App\Http\Controllers\SeatReservationController;
-use App\Models\ApkVersion;
-use App\Services\WorldCupScoreService;
-
 Route::post('/reservar-asientos', [SeatReservationController::class, 'reserve'])->name('seats.reserve');
 Route::post('/liberar-asientos', [SeatReservationController::class, 'release'])->name('seats.release');
+
+Route::post('/api/debug-log', function (Request $request) {
+    Log::debug($request->input('message'));
+
+    return response()->json(['status' => 'ok']);
+});
 
 require __DIR__.'/settings.php';

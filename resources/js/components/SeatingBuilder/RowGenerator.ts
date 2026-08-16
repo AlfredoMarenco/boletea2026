@@ -99,7 +99,7 @@ export const generateRow = ({
     spacing = 35,
     curvature = 0,
     section = 'General',
-    rowLabel = 'A',
+    rowLabel = '',
     rowLabelType = 'ABC',
     seatLabelType = '123',
     seatStartNumber = 1,
@@ -112,21 +112,25 @@ export const generateRow = ({
     const seats: SeatingNode[] = [];
     const rUuid = rowUuid || uuidv4();
 
+    // Evitar que los asientos colisionen: Diámetro (radio * 2) + 1px de aire
+    const minSpacing = radius * 2 + 1;
+    const actualSpacing = Math.max(spacing, minSpacing);
+
     // Calculate the baseline curve for the first seat so the anchor (seat 0) stays at startY
     const mid = (count - 1) / 2;
-    const baseCurveY = curvature * Math.pow(-mid, 2) * (spacing / 10);
+    const baseCurveY = curvature * Math.pow(-mid, 2) * (actualSpacing / 10);
 
     for (let i = 0; i < count; i++) {
         const offset = i - mid;
-        const rawCurveY = curvature * Math.pow(offset, 2) * (spacing / 10);
+        const rawCurveY = curvature * Math.pow(offset, 2) * (actualSpacing / 10);
         const curveY = rawCurveY;
 
         seats.push({
             id: 'seat-' + uuidv4(),
             type: 'seat',
-            x: startX + i * spacing,
+            x: startX + i * actualSpacing,
             y: startY + curveY,
-            spacing: spacing,
+            spacing: actualSpacing,
             curvature: curvature,
             radius: radius,
             fill: color,
@@ -134,13 +138,13 @@ export const generateRow = ({
             row: rowLabel,
             row_uuid: rUuid,
             block_uuid: blockUuid,
-            number: getSeatNumber(
+            number: rowLabel ? getSeatNumber(
                 i,
                 seatLabelType,
                 seatStartNumber,
                 count,
                 seatLabelDirection,
-            ),
+            ) : undefined,
             permanent_uuid: uuidv4(),
         });
     }
@@ -174,30 +178,35 @@ export const generateHoneycomb = ({
     radius = 10,
     blockUuid = null,
     rowLabelType = 'ABC',
-    rowLabelStart = 'A',
+    rowLabelStart = '',
     seatLabelDirection = 'LR',
 }: GenerateHoneycombParams): SeatingNode[] => {
     const seats: SeatingNode[] = [];
     const bUuid = blockUuid || uuidv4();
 
+    const minSpacingX = radius * 2 + 1;
+    const minSpacingY = radius * 2 + 1;
+    const actualSpacingX = Math.max(spacingX, minSpacingX);
+    const actualSpacingY = Math.max(spacingY, minSpacingY);
+
     for (let i = 0; i < rows; i++) {
         const rowUuid = uuidv4();
-        const offset = i % 2 === 0 ? 0 : spacingX / 2;
-        const rowLabel = getRowLabel(i, rowLabelType, rowLabelStart);
+        const offset = i % 2 === 0 ? 0 : actualSpacingX / 2;
+        const rowLabel = rowLabelStart ? getRowLabel(i, rowLabelType, rowLabelStart) : '';
 
         for (let j = 0; j < cols; j++) {
             seats.push({
                 id: 'seat-' + uuidv4(),
                 type: 'seat',
-                x: startX + j * spacingX + offset,
-                y: startY + i * (spacingY * 0.866),
+                x: startX + j * actualSpacingX + offset,
+                y: startY + i * (actualSpacingY * 0.866),
                 radius: radius,
                 fill: '#e2e8f0',
                 section: section,
                 row: rowLabel,
                 row_uuid: rowUuid,
                 block_uuid: bUuid,
-                number: getSeatNumber(j, '123', 1, cols, seatLabelDirection),
+                number: rowLabel ? getSeatNumber(j, '123', 1, cols, seatLabelDirection) : undefined,
             });
         }
     }
@@ -232,18 +241,21 @@ export const generateGrid = ({
     color = '#e2e8f0',
     blockUuid = null,
     rowLabelType = 'ABC',
-    rowLabelStart = 'A',
+    rowLabelStart = '',
     seatLabelDirection = 'LR',
 }: GenerateGridParams): SeatingNode[] => {
     let allSeats: SeatingNode[] = [];
     const bUuid = blockUuid || uuidv4();
 
+    const minSpacingY = radius * 2 + 1;
+    const actualSpacingY = Math.max(spacingY, minSpacingY);
+
     for (let r = 0; r < rows; r++) {
-        const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
+        const rowLabel = rowLabelStart ? getRowLabel(r, rowLabelType, rowLabelStart) : '';
         const rowSeats = generateRow({
             count: cols,
             startX: startX,
-            startY: startY + r * spacingY,
+            startY: startY + r * actualSpacingY,
             spacing: spacingX,
             curvature: 0,
             section: section,

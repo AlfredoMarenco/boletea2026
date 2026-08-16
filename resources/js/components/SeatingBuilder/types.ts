@@ -28,6 +28,7 @@ export interface SeatingNode {
     points?: number[];
     scaleX?: number;
     scaleY?: number;
+    rotation?: number;
     showTitle?: boolean;
     titlePosition?: 'center' | 'bottom' | 'top';
     capacity?: number;
@@ -36,6 +37,10 @@ export interface SeatingNode {
     row_label_position?: 'both' | 'left' | 'right';
     row_label_override?: string;
     row_label_display_type?: string;
+    row_label_direction?: string;
+    row_label_type?: string;
+    row_label_start?: string;
+    row_label_skip?: string;
     numSeats?: number;
     curve?: number;
     seatSpacing?: number;

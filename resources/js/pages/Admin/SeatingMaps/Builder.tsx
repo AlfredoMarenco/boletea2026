@@ -73,6 +73,18 @@ const isPointInCircle = (px: number, py: number, cx: number, cy: number, radius:
 export default function Builder({ seatingMap }: Props) {
     const canvasRef = useRef<any>();
     const [layout, setLayout] = useState(seatingMap.layout_json || { nodes: [], config: {} });
+
+    useEffect(() => {
+        if (seatingMap?.layout_json) {
+            setLayout(seatingMap.layout_json);
+        }
+    }, [seatingMap?.id]);
+
+    const handleLayoutChange = useCallback((updater: any) => {
+        setLayout((prev: any) => {
+            return typeof updater === 'function' ? updater(prev) : updater;
+        });
+    }, []);
     const [mode, setMode] = useState<'edit' | 'preview'>('edit');
     const [activeTool, setActiveTool] = useState<'select' | 'pan' | 'seat' | 'row' | 'honeycomb' | 'rect' | 'circle_zone' | 'zone' | 'text' | 'section_container'>('select');
     const [snapToGrid, setSnapToGrid] = useState(true);
@@ -107,6 +119,21 @@ export default function Builder({ seatingMap }: Props) {
 
     const handleSave = () => {
         setIsSaving(true);
+        const firstSeat = layout.nodes.find(n => n.type === 'seat');
+        const msg = firstSeat 
+            ? `[SAVE CLICKED] Saving layout. First seat ID: ${firstSeat.id}, x: ${firstSeat.x}, y: ${firstSeat.y}, spacing: ${firstSeat.spacing}, curvature: ${firstSeat.curvature}`
+            : `[SAVE CLICKED] Saving layout. No seats found.`;
+        
+        const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content || '';
+        fetch('/api/debug-log', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+            },
+            body: JSON.stringify({ message: msg }),
+        }).catch(() => {});
+
         router.put(route('admin.seating-maps.update', seatingMap.id), {
             layout_json: layout
         }, {
@@ -122,45 +149,65 @@ export default function Builder({ seatingMap }: Props) {
     };
 
     const handleUpdateProperties = useCallback((properties: any) => {
-        const structuralFields = [
-            'numSeats', 'curve', 'seatSpacing', 'rowSpacing', 
-            'row', 'rowLabelStart', 'rowLabelType', 'rowLabelSkip',
-            'rowLabelEnabled', 'rowLabelPosition', 'rowLabelOverride', 'rowLabelDisplayType',
-            'seatLabelType', 'seatLabelStart', 'seatLabelDirection',
-            'shape' 
+        const geometricFields = [
+            'numSeats', 'curve', 'seatSpacing', 'rowSpacing', 'radius', 'shape'
         ];
-        const isStructural = Object.keys(properties).some(key => structuralFields.includes(key));
+        const labelFields = [
+            'row', 'rowLabelStart', 'rowLabelType', 'rowLabelSkip',
+            'rowLabelEnabled', 'rowLabelPosition', 'rowLabelOverride', 'rowLabelDisplayType', 'rowLabelDirection',
+            'row_label_start', 'row_label_type', 'row_label_skip',
+            'row_label_enabled', 'row_label_position', 'row_label_override', 'row_label_display_type', 'row_label_direction',
+            'seatLabelType', 'seatLabelStart', 'seatLabelDirection', 'seat_label_direction'
+        ];
+        const isGeometric = Object.keys(properties).some(key => geometricFields.includes(key));
+        const isLabel = Object.keys(properties).some(key => labelFields.includes(key));
+        const isStructural = isGeometric || isLabel;
 
         if (canvasRef.current && selectedIds.length > 0) {
             const selectedNodes = layout.nodes.filter((n: any) => selectedIds.includes(n.id));
-            
+            const hasRowUuids = selectedNodes.some(n => n.row_uuid);
             const tableUuid = selectedNodes.find(n => n.table_uuid)?.table_uuid;
-            if (tableUuid && (isStructural || properties.name || properties.radius || properties.width || properties.height)) {
+            
+            if (tableUuid && !hasRowUuids && (isStructural || properties.name || properties.radius || properties.width || properties.height)) {
                 canvasRef.current.updateTableStructure(tableUuid, properties);
                 return;
             }
 
             if (isStructural) {
-                const uniqueRowUuids = Array.from(new Set(
-                    selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
-                ));
-
-                if (uniqueRowUuids.length > 0) {
-                    if (uniqueRowUuids.length === 1) {
-                        canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
-                    } else {
-                        if (canvasRef.current.updateMultipleRowsStructure) {
-                            canvasRef.current.updateMultipleRowsStructure(uniqueRowUuids, properties);
-                        } else {
-                            canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
+                if (blockUuid) {
+                    if (isGeometric) {
+                        canvasRef.current.updateBlockStructure(blockUuid, properties);
+                    } else if (isLabel) {
+                        if (canvasRef.current.updateBlockLabels) {
+                            canvasRef.current.updateBlockLabels(blockUuid, properties);
                         }
                     }
                     return;
                 }
 
-                const blockUuid = selectedNodes.find(n => n.block_uuid)?.block_uuid;
-                if (blockUuid) {
-                    canvasRef.current.updateBlockStructure(blockUuid, properties);
+                const uniqueRowUuids = Array.from(new Set(
+                    selectedNodes.filter((n: any) => n.row_uuid).map((n: any) => n.row_uuid)
+                ));
+
+                if (uniqueRowUuids.length > 0) {
+                    if (isGeometric) {
+                        if (uniqueRowUuids.length === 1) {
+                            canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                        } else {
+                            if (canvasRef.current.updateMultipleRowsStructure) {
+                                canvasRef.current.updateMultipleRowsStructure(uniqueRowUuids, properties);
+                            } else {
+                                canvasRef.current.updateRowStructure(uniqueRowUuids[0], properties);
+                            }
+                        }
+                    } else if (isLabel) {
+                        uniqueRowUuids.forEach(uuid => {
+                            if (canvasRef.current?.updateRowLabels) {
+                                canvasRef.current.updateRowLabels(uuid, properties);
+                            }
+                        });
+                    }
                     return;
                 }
             }
@@ -232,7 +279,7 @@ export default function Builder({ seatingMap }: Props) {
 
             return { ...prev, nodes: updatedNodes };
         });
-    }, [selectedIds]);
+    }, [selectedIds, layout]);
 
     const handleUpdateConfig = useCallback((newConfig: any) => {
         setLayout({
@@ -700,7 +747,7 @@ export default function Builder({ seatingMap }: Props) {
                             tool={activeTool}
                             snapToGrid={snapToGrid}
                             onSelectionChange={setSelectedIds}
-                            onChange={setLayout} 
+                            onChange={handleLayoutChange} 
                             onToolComplete={() => setActiveTool('select')}
                             onSectionContainerCreated={handleSectionContainerCreated}
                         />

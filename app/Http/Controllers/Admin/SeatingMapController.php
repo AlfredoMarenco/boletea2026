@@ -58,6 +58,15 @@ class SeatingMapController extends Controller
     {
         $seatingMap->load('venue');
 
+        if (isset($seatingMap->layout_json['nodes'])) {
+            $firstSeat = collect($seatingMap->layout_json['nodes'])->firstWhere('type', 'seat');
+            if ($firstSeat) {
+                $x = $firstSeat['x'] ?? 'N/A';
+                $y = $firstSeat['y'] ?? 'N/A';
+                \Log::debug("[BACKEND EDIT LOAD] SeatingMapController edit called for ID {$seatingMap->id}. First seat ID: {$firstSeat['id']}, x: {$x}, y: {$y}");
+            }
+        }
+
         return Inertia::render('Admin/SeatingMaps/Builder', [
             'seatingMap' => $seatingMap,
         ]);
@@ -69,6 +78,15 @@ class SeatingMapController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'layout_json' => 'sometimes|required|array',
         ]);
+
+        if (isset($validated['layout_json']['nodes'])) {
+            $firstSeat = collect($validated['layout_json']['nodes'])->firstWhere('type', 'seat');
+            if ($firstSeat) {
+                $x = $firstSeat['x'] ?? 'N/A';
+                $y = $firstSeat['y'] ?? 'N/A';
+                \Log::debug("[BACKEND UPDATE] SeatingMapController update called for ID {$seatingMap->id}. First seat ID: {$firstSeat['id']}, x: {$x}, y: {$y}");
+            }
+        }
 
         $seatingMap->update($validated);
 
