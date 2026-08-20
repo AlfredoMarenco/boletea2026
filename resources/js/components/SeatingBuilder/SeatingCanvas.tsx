@@ -6,6 +6,7 @@ import {
     Circle,
     Group,
     Text,
+    TextPath,
     Transformer,
     Line,
     Image as KonvaImage,
@@ -32,6 +33,62 @@ const getRelativePointerPosition = (stage: Konva.Stage) => {
     return pos ? transform.point(pos) : { x: 0, y: 0 };
 };
 
+// Helper to compute contrast text color (white or dark slate) based on background luminance
+const getContrastingTextColor = (hexColor?: string): string => {
+    if (!hexColor) return '#1e293b';
+    let hex = hexColor.replace('#', '').trim();
+    if (hex.length === 3) {
+        hex = hex.split('').map((char) => char + char).join('');
+    }
+    if (hex.length !== 6) return '#1e293b';
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#1e293b';
+    // YIQ formula for perceived luminance
+    const luminance = (r * 299 + g * 587 + b * 114) / 1000;
+    return luminance < 128 ? '#ffffff' : '#1e293b';
+};
+
+const toRgbaColor = (
+    fill?: string,
+    fillOpacity?: number,
+    defaultHex: string = '#3b82f6',
+    defaultOpacity: number = 0.15
+): string => {
+    let opacity = defaultOpacity;
+    if (fillOpacity !== undefined && fillOpacity !== null) {
+        opacity = fillOpacity;
+    } else if (fill && (fill.startsWith('rgba') || fill.startsWith('hsla'))) {
+        const match = fill.match(/rgba?\(.*?,\s*.*?,\s*.*?,\s*([\d.]+)\)/);
+        if (match && match[1]) {
+            opacity = parseFloat(match[1]);
+        }
+    }
+
+    let hex = defaultHex;
+    if (fill && fill.startsWith('#')) {
+        hex = fill;
+    } else if (fill && (fill.startsWith('rgba') || fill.startsWith('rgb'))) {
+        const match = fill.match(/\d+/g);
+        if (match && match.length >= 3) {
+            const r = parseInt(match[0], 10).toString(16).padStart(2, '0');
+            const g = parseInt(match[1], 10).toString(16).padStart(2, '0');
+            const b = parseInt(match[2], 10).toString(16).padStart(2, '0');
+            hex = `#${r}${g}${b}`;
+        }
+    }
+
+    let r = 59, g = 130, b = 246;
+    if (hex.startsWith('#') && hex.length === 7) {
+        r = parseInt(hex.slice(1, 3), 16);
+        g = parseInt(hex.slice(3, 5), 16);
+        b = parseInt(hex.slice(5, 7), 16);
+    }
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 const isPointInRect = (
     px: number,
     py: number,
@@ -41,6 +98,18 @@ const isPointInRect = (
     rh: number,
 ) => {
     return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+};
+
+const isPointInCircle = (
+    px: number,
+    py: number,
+    cx: number,
+    cy: number,
+    radius: number,
+) => {
+    const dx = px - cx;
+    const dy = py - cy;
+    return dx * dx + dy * dy <= radius * radius;
 };
 
 const isPointInPolygon = (
@@ -79,8 +148,8 @@ interface SeatNodeProps {
     onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => void;
     onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => void;
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
-    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => void;
-    onTap: (e: Konva.KonvaEventObject<TouchEvent>) => void;
+    onClick?: (e: Konva.KonvaEventObject<MouseEvent>) => void;
+    onTap?: (e: Konva.KonvaEventObject<TouchEvent>) => void;
 }
 
 const SeatNode = React.memo<SeatNodeProps>(
@@ -100,6 +169,12 @@ const SeatNode = React.memo<SeatNodeProps>(
         onTap,
     }) => {
         const radius = node.radius || 10;
+        const fill = isInCart
+            ? '#10b981'
+            : isSelected
+              ? '#fbbf24'
+              : node.fill || '#e2e8f0';
+        const textColor = getContrastingTextColor(fill);
         return (
             <Group
                 id={node.id}
@@ -120,13 +195,7 @@ const SeatNode = React.memo<SeatNodeProps>(
                     radius={
                         mode === 'preview' && isHovered ? radius * 1.2 : radius
                     }
-                    fill={
-                        isInCart
-                            ? '#10b981'
-                            : isSelected
-                              ? '#fbbf24'
-                              : node.fill || '#e2e8f0'
-                    }
+                    fill={fill}
                     stroke={isSelected ? '#d97706' : node.stroke || '#94a3b8'}
                     strokeWidth={isSelected ? 2 : 1}
                     name="selectable"
@@ -140,7 +209,7 @@ const SeatNode = React.memo<SeatNodeProps>(
                         fontSize={radius * 0.8}
                         x={-radius}
                         y={-radius / 1.7}
-                        fill="#475569"
+                        fill={textColor}
                         align="center"
                         verticalAlign="middle"
                         width={radius * 2}
@@ -168,6 +237,7 @@ const TableNode = React.memo<TableNodeProps>(
         const radius = node.radius || 45;
         const width = node.width || 90;
         const height = node.height || 90;
+        const textColor = getContrastingTextColor(node.fill);
         return (
             <Group
                 id={node.id}
@@ -202,7 +272,7 @@ const TableNode = React.memo<TableNodeProps>(
                     y={-6}
                     width={node.shape === 'circle' ? radius * 2 : width}
                     align="center"
-                    fill="#475569"
+                    fill={textColor}
                     fontStyle="bold"
                     fontSize={12}
                     listening={false}
@@ -222,67 +292,268 @@ interface SectionNodeProps {
     onDragMove: (e: Konva.KonvaEventObject<DragEvent>) => void;
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
     onTransformEnd: (e: Konva.KonvaEventObject<Event>) => void;
+    onPointsChange?: (newPoints: number[]) => void;
+}
+
+function getPolygonCentroid(points: number[]): { cx: number; cy: number; minX: number; maxX: number; minY: number; maxY: number } {
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const n = points.length / 2;
+    if (n < 3) {
+        if (n > 0) {
+            minX = points[0]; maxX = points[0];
+            minY = points[1]; maxY = points[1];
+        }
+        return { cx: minX || 0, cy: minY || 0, minX, maxX, minY, maxY };
+    }
+
+    let area = 0;
+    let cx = 0;
+    let cy = 0;
+
+    for (let i = 0; i < points.length; i += 2) {
+        const x0 = points[i];
+        const y0 = points[i + 1];
+        const nextIdx = (i + 2) % points.length;
+        const x1 = points[nextIdx];
+        const y1 = points[nextIdx + 1];
+
+        if (x0 < minX) minX = x0;
+        if (x0 > maxX) maxX = x0;
+        if (y0 < minY) minY = y0;
+        if (y0 > maxY) maxY = y0;
+
+        const cross = x0 * y1 - x1 * y0;
+        area += cross;
+        cx += (x0 + x1) * cross;
+        cy += (y0 + y1) * cross;
+    }
+
+    area *= 0.5;
+    if (Math.abs(area) < 1e-5) {
+        let sumX = 0, sumY = 0;
+        for (let i = 0; i < points.length; i += 2) {
+            sumX += points[i];
+            sumY += points[i + 1];
+        }
+        return { cx: sumX / n, cy: sumY / n, minX, maxX, minY, maxY };
+    }
+
+    cx = cx / (6 * area);
+    cy = cy / (6 * area);
+
+    return { cx, cy, minX, maxX, minY, maxY };
 }
 
 const SectionNode = React.memo<SectionNodeProps>(
     ({
         node,
         isSelected,
+        stageScale,
         onDragStart,
         onDragMove,
         onDragEnd,
         onTransformEnd,
+        onPointsChange,
     }) => {
-        const width = node.width || 200;
-        const height = node.height || 150;
+        const width = node.width || (node.type === 'section_container' ? 400 : 200);
+        const height = node.height || (node.type === 'section_container' ? 300 : 150);
         const radius = node.radius || 80;
 
         let shape;
-        if (node.type === 'rect_zone') {
+        let cx = width / 2;
+        let cy = height / 2;
+        let boxWidth = width;
+        let boxHeight = height;
+
+        const isGeneral = node.sectionType === 'general';
+        const strokeColor = node.stroke && node.stroke !== 'transparent'
+            ? node.stroke
+            : (isGeneral ? '#10b981' : '#3b82f6');
+        const defaultHex = isGeneral ? '#10b981' : '#3b82f6';
+        const defaultOpacity = isGeneral ? 0.15 : 0.08;
+        const computedFill = toRgbaColor(node.fill, node.fillOpacity, defaultHex, defaultOpacity);
+
+        const handleLineDblClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+            if (!node.points || node.points.length < 6 || !onPointsChange) return;
+            e.cancelBubble = true;
+
+            const stage = e.target.getStage();
+            if (!stage) return;
+            const pointer = stage.getPointerPosition();
+            if (!pointer) return;
+
+            const scaleX = node.scaleX ?? 1;
+            const scaleY = node.scaleY ?? 1;
+
+            // Convert pointer position to local polygon coordinate space
+            const localX = (pointer.x - stage.x()) / stage.scaleX() - node.x;
+            const localY = (pointer.y - stage.y()) / stage.scaleY() - node.y;
+
+            const px = localX / scaleX;
+            const py = localY / scaleY;
+
+            const pts = node.points;
+            let bestInsertIdx = -1;
+            let minDistance = Infinity;
+            let insertX = px;
+            let insertY = py;
+
+            for (let i = 0; i < pts.length; i += 2) {
+                const x1 = pts[i];
+                const y1 = pts[i + 1];
+                const nextIdx = (i + 2) % pts.length;
+                const x2 = pts[nextIdx];
+                const y2 = pts[nextIdx + 1];
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const lenSq = dx * dx + dy * dy;
+
+                let t = lenSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lenSq;
+                t = Math.max(0, Math.min(1, t));
+
+                const projX = x1 + t * dx;
+                const projY = y1 + t * dy;
+                const distSq = (px - projX) * (px - projX) + (py - projY) * (py - projY);
+
+                if (distSq < minDistance) {
+                    minDistance = distSq;
+                    bestInsertIdx = i + 2;
+                    insertX = Math.round(projX);
+                    insertY = Math.round(projY);
+                }
+            }
+
+            if (bestInsertIdx !== -1) {
+                const newPts = [...pts];
+                newPts.splice(bestInsertIdx, 0, insertX, insertY);
+                onPointsChange(newPts);
+            }
+        };
+
+        const handleVertexDrag = (index: number, e: Konva.KonvaEventObject<DragEvent>) => {
+            if (!node.points || !onPointsChange) return;
+            const scaleX = node.scaleX ?? 1;
+            const scaleY = node.scaleY ?? 1;
+
+            const targetX = e.target.x() / scaleX;
+            const targetY = e.target.y() / scaleY;
+
+            const newPts = [...node.points];
+            newPts[index * 2] = Math.round(targetX);
+            newPts[index * 2 + 1] = Math.round(targetY);
+            onPointsChange(newPts);
+        };
+
+        const handleVertexDblClick = (index: number, e: Konva.KonvaEventObject<MouseEvent>) => {
+            if (!node.points || node.points.length <= 6 || !onPointsChange) return;
+            e.cancelBubble = true;
+            const newPts = [...node.points];
+            newPts.splice(index * 2, 2);
+            onPointsChange(newPts);
+        };
+
+        if (node.type === 'circle_zone') {
+            cx = 0;
+            cy = 0;
+            boxWidth = radius * 2;
+            boxHeight = radius * 2;
+            shape = (
+                <Circle
+                    radius={radius}
+                    fill={computedFill}
+                    stroke={isSelected ? '#fbbf24' : strokeColor}
+                    strokeWidth={isSelected ? 3 : node.strokeWidth || 2}
+                    name="selectable"
+                    id={node.id}
+                />
+            );
+        } else if (node.points && node.points.length >= 6) {
+            const centroid = getPolygonCentroid(node.points);
+            cx = centroid.cx;
+            cy = centroid.cy;
+            boxWidth = Math.max(20, centroid.maxX - centroid.minX);
+            boxHeight = Math.max(20, centroid.maxY - centroid.minY);
+
+            shape = (
+                <Line
+                    points={node.points}
+                    fill={computedFill}
+                    stroke={isSelected ? '#fbbf24' : (node.type === 'section_container' && !isGeneral && (!node.stroke || node.stroke === 'transparent') ? 'transparent' : strokeColor)}
+                    strokeWidth={isSelected ? 3 : node.strokeWidth || 2}
+                    hitStrokeWidth={12}
+                    closed={true}
+                    name="selectable"
+                    id={node.id}
+                    onDblClick={handleLineDblClick}
+                />
+            );
+        } else {
+            cx = width / 2;
+            cy = height / 2;
+            boxWidth = width;
+            boxHeight = height;
             shape = (
                 <Rect
                     width={width}
                     height={height}
-                    fill={node.fill || 'rgba(52, 211, 153, 0.15)'}
-                    stroke={isSelected ? '#fbbf24' : node.stroke || '#10b981'}
+                    fill={computedFill}
+                    stroke={isSelected ? '#fbbf24' : strokeColor}
                     strokeWidth={isSelected ? 3 : node.strokeWidth || 2}
                     cornerRadius={8}
                     name="selectable"
                     id={node.id}
                 />
             );
-        } else if (node.type === 'circle_zone') {
-            shape = (
-                <Circle
-                    radius={radius}
-                    fill={node.fill || 'rgba(59, 130, 246, 0.15)'}
-                    stroke={isSelected ? '#fbbf24' : node.stroke || '#3b82f6'}
-                    strokeWidth={isSelected ? 3 : node.strokeWidth || 2}
-                    name="selectable"
-                    id={node.id}
-                />
-            );
-        } else {
-            shape = (
-                <Line
-                    points={node.points}
-                    fill={node.fill || 'rgba(59, 130, 246, 0.08)'}
-                    stroke={isSelected ? '#fbbf24' : (node.type === 'section_container' ? 'transparent' : node.stroke || '#3b82f6')}
-                    strokeWidth={isSelected ? 3 : node.strokeWidth || 2}
-                    closed={true}
-                    name="selectable"
-                    id={node.id}
-                />
-            );
         }
+
+        const isOverview = stageScale <= 0.5;
+        const baseDimension = Math.min(boxWidth, boxHeight);
+        const watermarkFontSize = Math.max(18, Math.min(Math.round(baseDimension * 0.18), 54));
+        const overviewFontSize = Math.max(16, Math.min(Math.round(baseDimension * 0.15), 36));
+
+        let fontSize = watermarkFontSize;
+        if (node.fontSize && Number(node.fontSize) > 0) {
+            const userSize = Number(node.fontSize);
+            fontSize = isOverview
+                ? Math.max(userSize, Math.round(userSize * (0.5 / Math.max(0.08, stageScale))))
+                : userSize;
+        } else {
+            fontSize = isOverview ? overviewFontSize : watermarkFontSize;
+        }
+
+        const opacity = isGeneral ? 1 : (isOverview ? 0.95 : 0.35);
+        const defaultTextColor = isGeneral
+            ? strokeColor
+            : (isOverview ? (node.stroke || '#1e293b') : strokeColor);
+        const textColor = node.titleColor || defaultTextColor;
+
+        const titleText = isGeneral && node.capacity !== undefined && node.capacity > 0
+            ? `${node.name}\n(Aforo: ${node.capacity})`
+            : node.name;
+
+        const isMultiline = titleText.includes('\n');
+        const effectiveLineCount = isMultiline ? 2 : 1;
+        const totalTextHeight = fontSize * 1.2 * effectiveLineCount;
+
+        const posSetting = node.titlePosition || 'center';
+        let textY = cy - totalTextHeight / 2;
+        if (posSetting === 'top') {
+            textY = cy - boxHeight / 2 - totalTextHeight - 6;
+        } else if (posSetting === 'bottom') {
+            textY = cy + boxHeight / 2 + 6;
+        }
+
+        const scaleX = node.scaleX ?? 1;
+        const scaleY = node.scaleY ?? 1;
 
         return (
             <Group
                 id={node.id}
                 x={node.x}
                 y={node.y}
-                scaleX={node.scaleX ?? 1}
-                scaleY={node.scaleY ?? 1}
+                scaleX={scaleX}
+                scaleY={scaleY}
                 draggable
                 onDragStart={onDragStart}
                 onDragMove={onDragMove}
@@ -290,26 +561,47 @@ const SectionNode = React.memo<SectionNodeProps>(
                 onTransformEnd={onTransformEnd}
             >
                 {shape}
-                {node.showTitle !== false && (
+                {node.showTitle !== false && node.name && (
                     <Text
-                        text={node.name}
-                        x={node.type === 'circle_zone' ? -radius : 0}
-                        y={
-                            node.type === 'circle_zone'
-                                ? -10
-                                : node.titlePosition === 'center'
-                                  ? height / 2 - 10
-                                  : node.titlePosition === 'bottom'
-                                    ? height + 10
-                                    : -25
-                        }
-                        width={node.type === 'circle_zone' ? radius * 2 : width}
+                        text={titleText}
+                        x={cx - boxWidth / 2}
+                        y={textY}
+                        width={boxWidth}
                         align="center"
-                        fill={node.stroke || '#3b82f6'}
-                        fontSize={16}
+                        verticalAlign="middle"
+                        fill={textColor}
+                        fontSize={fontSize}
                         fontStyle="bold"
+                        opacity={opacity}
                         listening={false}
+                        shadowColor={isGeneral || isOverview ? 'rgba(255, 255, 255, 0.8)' : undefined}
+                        shadowBlur={isGeneral || isOverview ? 4 : 0}
+                        shadowOffset={isGeneral || isOverview ? { x: 0, y: 1 } : undefined}
+                        shadowOpacity={isGeneral || isOverview ? 0.9 : 0}
                     />
+                )}
+
+                {/* Render interactive vertex handles when selected */}
+                {isSelected && node.points && node.points.length >= 6 && (
+                    Array.from({ length: node.points.length / 2 }).map((_, idx) => {
+                        const vx = node.points![idx * 2] * scaleX;
+                        const vy = node.points![idx * 2 + 1] * scaleY;
+                        return (
+                            <Circle
+                                key={`vertex-${idx}`}
+                                x={vx}
+                                y={vy}
+                                radius={6 / Math.max(0.5, stageScale)}
+                                fill="#ffffff"
+                                stroke="#3b82f6"
+                                strokeWidth={2 / Math.max(0.5, stageScale)}
+                                draggable
+                                onDragMove={(e) => handleVertexDrag(idx, e)}
+                                onDragEnd={(e) => handleVertexDrag(idx, e)}
+                                onDblClick={(e) => handleVertexDblClick(idx, e)}
+                            />
+                        );
+                    })
                 )}
             </Group>
         );
@@ -327,9 +619,34 @@ interface StandingNodeProps {
 }
 
 const StandingNode = React.memo<StandingNodeProps>(
-    ({ node, isSelected, onDragEnd }) => {
+    ({ node, isSelected, stageScale, onDragEnd }) => {
         const width = node.width || 400;
         const height = node.height || 300;
+        const isOverview = stageScale <= 0.5;
+        const baseDimension = Math.min(width, height);
+        const fontSize = node.fontSize && Number(node.fontSize) > 0
+            ? Number(node.fontSize)
+            : Math.max(16, Math.min(Math.round(baseDimension * 0.15), 36));
+
+        const titleText = node.capacity !== undefined && node.capacity > 0
+            ? `${node.name}\n(Aforo: ${node.capacity})`
+            : node.name;
+
+        const isMultiline = titleText.includes('\n');
+        const effectiveLineCount = isMultiline ? 2 : 1;
+        const totalTextHeight = fontSize * 1.2 * effectiveLineCount;
+
+        const posSetting = node.titlePosition || 'center';
+        let textY = height / 2 - totalTextHeight / 2;
+        if (posSetting === 'top') {
+            textY = -totalTextHeight - 6;
+        } else if (posSetting === 'bottom') {
+            textY = height + 6;
+        }
+
+        const strokeColor = node.stroke || '#10b981';
+        const textColor = node.titleColor || strokeColor;
+
         return (
             <Group
                 x={node.x}
@@ -342,29 +659,27 @@ const StandingNode = React.memo<StandingNodeProps>(
                     id={node.id}
                     width={width}
                     height={height}
-                    fill={node.fill || 'rgba(16, 185, 129, 0.1)'}
-                    stroke={isSelected ? '#fbbf24' : node.stroke || '#10b981'}
+                    fill={toRgbaColor(node.fill, node.fillOpacity, '#10b981', 0.1)}
+                    stroke={isSelected ? '#fbbf24' : strokeColor}
                     strokeWidth={isSelected ? 3 : 2}
                     name="selectable"
                     cornerRadius={4}
                 />
                 {node.showTitle !== false && (
                     <Text
-                        text={`${node.name}\n(Capacidad: ${node.capacity || 0})`}
+                        text={titleText}
                         x={0}
-                        y={
-                            node.titlePosition === 'center'
-                                ? height / 2 - 15
-                                : node.titlePosition === 'bottom'
-                                  ? height + 10
-                                  : -35
-                        }
+                        y={textY}
                         width={width}
                         align="center"
-                        fill={node.stroke || '#10b981'}
-                        fontSize={14}
+                        fill={textColor}
+                        fontSize={fontSize}
                         fontStyle="bold"
                         listening={false}
+                        shadowColor={isOverview ? 'rgba(255, 255, 255, 0.8)' : undefined}
+                        shadowBlur={isOverview ? 4 : 0}
+                        shadowOffset={isOverview ? { x: 0, y: 1 } : undefined}
+                        shadowOpacity={isOverview ? 0.9 : 0}
                     />
                 )}
             </Group>
@@ -372,7 +687,104 @@ const StandingNode = React.memo<StandingNodeProps>(
     },
 );
 
-StandingNode.displayName = 'StandingNode';
+interface TextNodeProps {
+    node: SeatingNode;
+    mode: 'edit' | 'preview';
+    isSelected: boolean;
+    stageScale: number;
+    onDragStart?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+    onDragMove?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+    onDragEnd?: (e: Konva.KonvaEventObject<DragEvent>) => void;
+}
+
+const TextNode = React.memo<TextNodeProps>(
+    ({
+        node,
+        mode,
+        isSelected,
+        stageScale,
+        onDragStart,
+        onDragMove,
+        onDragEnd,
+    }) => {
+        const textContent = node.name || 'Texto';
+        const fontSize = node.fontSize || 28;
+        const fill = node.fill || '#1e293b';
+        const opacity = node.fillOpacity !== undefined ? node.fillOpacity : 1;
+        const fontStyle = (node.fontStyle as any) || 'bold';
+        const align = (node.align as any) || 'center';
+        const fontFamily = node.fontFamily || 'Inter, system-ui, sans-serif';
+        const curve = node.curve !== undefined ? node.curve : (node.curvature || 0);
+
+        const textWidth = Math.max(60, textContent.length * fontSize * 0.55);
+        const hasCurve = Math.abs(curve) > 0.01;
+        const pathData = hasCurve
+            ? `M 0 0 Q ${textWidth / 2} ${-curve * 12} ${textWidth} 0`
+            : '';
+
+        const rectY = hasCurve ? (curve > 0 ? -curve * 12 - 6 : -6) : -4;
+        const rectHeight = hasCurve ? fontSize + Math.abs(curve * 12) + 12 : fontSize + 8;
+
+        return (
+            <Group
+                id={node.id}
+                name="selectable"
+                x={node.x}
+                y={node.y}
+                rotation={node.rotation || 0}
+                scaleX={node.scaleX || 1}
+                scaleY={node.scaleY || 1}
+                draggable={mode === 'edit'}
+                onDragStart={onDragStart}
+                onDragMove={onDragMove}
+                onDragEnd={onDragEnd}
+            >
+                {isSelected && mode === 'edit' && (
+                    <Rect
+                        x={-6}
+                        y={rectY}
+                        width={textWidth + 12}
+                        height={rectHeight}
+                        stroke="#3b82f6"
+                        strokeWidth={1.5 / Math.max(0.5, stageScale)}
+                        dash={[4, 4]}
+                        cornerRadius={4}
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                )}
+                {hasCurve ? (
+                    <TextPath
+                        text={textContent}
+                        data={pathData}
+                        fontSize={fontSize}
+                        fill={fill}
+                        opacity={opacity}
+                        fontFamily={fontFamily}
+                        fontStyle={fontStyle}
+                        align={align}
+                        listening={true}
+                        perfectDrawEnabled={false}
+                    />
+                ) : (
+                    <Text
+                        text={textContent}
+                        fontSize={fontSize}
+                        fill={fill}
+                        opacity={opacity}
+                        fontFamily={fontFamily}
+                        fontStyle={fontStyle}
+                        align={align}
+                        listening={true}
+                        perfectDrawEnabled={false}
+                    />
+                )}
+            </Group>
+        );
+    },
+);
+
+TextNode.displayName = 'TextNode';
 
 // --- END MEMOIZED COMPONENTS ---
 
@@ -384,6 +796,7 @@ interface SeatingCanvasRef {
     addHoneycomb: (x?: number, y?: number) => void;
     addRectZone: (x?: number, y?: number) => void;
     addCircleZone: (x?: number, y?: number) => void;
+    addTextNode: (x?: number, y?: number, text?: string) => void;
     addSectionContainer: (x: number, y: number) => void;
     redistributeSelected: (params: any) => void;
     deleteSelected: () => void;
@@ -396,6 +809,7 @@ interface SeatingCanvasRef {
     fitView: () => void;
     getCurrentFocus: () => { x: number; y: number; zoom: number };
     zoomToFocus: (focus?: { x: number; y: number; zoom: number }) => void;
+    zoomToBoundingBox: (bbox: { minX: number; minY: number; maxX: number; maxY: number }) => void;
 }
 
 interface SeatingCanvasProps {
@@ -403,10 +817,12 @@ interface SeatingCanvasProps {
     onChange: (layout: SeatingLayout) => void;
     mode?: 'edit' | 'preview';
     onSelectionChange?: (selectedIds: string[]) => void;
+    externalSelectedIds?: string[];
     tool?: string;
     snapToGrid?: boolean;
     onToolComplete?: () => void;
     onSectionContainerCreated?: (node: SeatingNode) => void;
+    onSeatHover?: (node: SeatingNode | null, e?: Konva.KonvaEventObject<MouseEvent>) => void;
 }
 
 const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
@@ -416,16 +832,24 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
             onChange,
             mode = 'edit',
             onSelectionChange,
+            externalSelectedIds,
             tool = 'select',
             snapToGrid = true,
             onToolComplete,
             onSectionContainerCreated,
+            onSeatHover,
         },
         ref,
     ) => {
         const stageRef = useRef<Konva.Stage>(null);
         const [nodes, setNodes] = useState<SeatingNode[]>(layout?.nodes || []);
         const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+        useEffect(() => {
+            if (externalSelectedIds !== undefined) {
+                setSelectedIds(externalSelectedIds);
+            }
+        }, [externalSelectedIds]);
         const [drawingPoints, setDrawingPoints] = useState<number[]>([]); // For polygon drawing
         const [currentMousePos, setCurrentMousePos] = useState<{
             x: number;
@@ -454,13 +878,21 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
         const [isCCurvePressed, setIsCCurvePressed] = useState(false);
         const [blockDragOffset, setBlockDragOffset] = useState<{x: number, y: number} | null>(null);
         const isCCurvePressedRef = useRef(false);
+        const isShiftPressedRef = useRef(false);
+        const isAltPressedRef = useRef(false);
 
         useEffect(() => {
             const handleKeyDown = (e: KeyboardEvent) => {
-                if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') return;
                 if (e.key === 'c' || e.key === 'C') {
                     setIsCCurvePressed(true);
                     isCCurvePressedRef.current = true;
+                }
+                if (e.key === 'Shift') {
+                    isShiftPressedRef.current = true;
+                }
+                if (e.key === 'Alt') {
+                    isAltPressedRef.current = true;
                 }
             };
             const handleKeyUp = (e: KeyboardEvent) => {
@@ -468,7 +900,14 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
                     setIsCCurvePressed(false);
                     isCCurvePressedRef.current = false;
                 }
+                if (e.key === 'Shift') {
+                    isShiftPressedRef.current = false;
+                }
+                if (e.key === 'Alt') {
+                    isAltPressedRef.current = false;
+                }
             };
+            window.addEventListener('keydown', handleKeyDown);
             window.addEventListener('keyup', handleKeyUp);
             return () => {
                 window.removeEventListener('keydown', handleKeyDown);
@@ -679,6 +1118,32 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
             });
         };
 
+        const zoomToBoundingBox = (bbox: { minX: number; minY: number; maxX: number; maxY: number }) => {
+            if (!stageSize.width || !stageSize.height) return;
+
+            const padding = 60;
+            const minX = bbox.minX - padding;
+            const minY = bbox.minY - padding;
+            const maxX = bbox.maxX + padding;
+            const maxY = bbox.maxY + padding;
+
+            const w = Math.max(maxX - minX, 100);
+            const h = Math.max(maxY - minY, 100);
+
+            const scaleX = stageSize.width / w;
+            const scaleY = stageSize.height / h;
+            const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.4), 2.8);
+
+            const cx = minX + w / 2;
+            const cy = minY + h / 2;
+
+            setStageScale(newScale);
+            setStagePos({
+                x: stageSize.width / 2 - cx * newScale,
+                y: stageSize.height / 2 - cy * newScale,
+            });
+        };
+
         const getCurrentFocus = () => {
             const cx = stageSize.width / 2;
             const cy = stageSize.height / 2;
@@ -704,6 +1169,22 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
             }
         }, [stageSize.width, stageSize.height, layout.config?.focus]);
 
+        const hasAutoFittedRef = useRef(false);
+        useEffect(() => {
+            if (
+                mode === 'preview' &&
+                stageSize.width > 0 &&
+                stageSize.height > 0 &&
+                !hasAutoFittedRef.current
+            ) {
+                const timer = setTimeout(() => {
+                    fitView();
+                    hasAutoFittedRef.current = true;
+                }, 100);
+                return () => clearTimeout(timer);
+            }
+        }, [mode, stageSize.width, stageSize.height, nodes.length]);
+
         useEffect(() => {
             if (bgImage && nodes.length === 0 && !layout.config?.focus) {
                 const timer = setTimeout(() => {
@@ -725,196 +1206,148 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
             setHistoryStep(nextHistory.length);
         }, [history, historyStep]);
 
-        
+        const processRowSeats = useCallback((
+            rowNodes: SeatingNode[],
+            newProps: any,
+            baselineCenterOverride?: { x: number; y: number },
+            forcedAngle?: number
+        ): SeatingNode[] => {
+            if (rowNodes.length === 0) return [];
+
+            const rowDx = rowNodes.length > 1 ? rowNodes[rowNodes.length - 1].x - rowNodes[0].x : 0;
+            const rowDy = rowNodes.length > 1 ? rowNodes[rowNodes.length - 1].y - rowNodes[0].y : 0;
+            const sortedRowNodes = [...rowNodes].sort((a, b) => {
+                return Math.abs(rowDx) > Math.abs(rowDy) ? a.x - b.x : a.y - b.y;
+            });
+            const anchor = sortedRowNodes[0];
+            const last = sortedRowNodes[sortedRowNodes.length - 1];
+
+            let angle = forcedAngle !== undefined ? forcedAngle : 0;
+            if (forcedAngle === undefined && sortedRowNodes.length > 1) {
+                angle = Math.atan2(last.y - anchor.y, last.x - anchor.x);
+            }
+
+            const origSpacing = anchor.spacing || newProps.seatSpacing || 35;
+            const configSpacing = newProps.seatSpacing !== undefined ? newProps.seatSpacing : origSpacing;
+            const curvature = newProps.curve !== undefined ? newProps.curve : (newProps.curvature !== undefined ? newProps.curvature : (anchor.curvature !== undefined ? anchor.curvature : (anchor.curve || 0)));
+
+            const rawCols = sortedRowNodes.map((s) => {
+                const dx = s.x - anchor.x;
+                const dy = s.y - anchor.y;
+                const proj = dx * Math.cos(angle) + dy * Math.sin(angle);
+                return Math.round(proj / (origSpacing || 35));
+            });
+
+            const minCol = Math.min(...rawCols);
+            const cols = rawCols.map((c) => c - minCol);
+            const maxCol = Math.max(...cols);
+            const midSpan = maxCol / 2;
+
+            let baselineCenter = baselineCenterOverride;
+            if (!baselineCenter) {
+                const currentCurve = anchor.curvature !== undefined ? anchor.curvature : (anchor.curve || 0);
+                const currentCurveOffset = currentCurve * Math.pow(-midSpan, 2) * (configSpacing / 10);
+                const currentCenter = { x: (anchor.x + last.x) / 2, y: (anchor.y + last.y) / 2 };
+                baselineCenter = {
+                    x: currentCenter.x + currentCurveOffset * Math.sin(angle),
+                    y: currentCenter.y - currentCurveOffset * Math.cos(angle),
+                };
+            }
+
+            const numberingMode = newProps.seatNumberingMode || newProps.seat_numbering_mode || anchor.seat_numbering_mode || anchor.seatNumberingMode || 'consecutive';
+            const seatLabelType = newProps.seatLabelType || newProps.seat_label_type || anchor.seat_label_type || anchor.seatLabelType || '123';
+            
+            const existingNumbers = sortedRowNodes.map(n => typeof n.number === 'number' ? n.number : (parseInt(n.number) || 1)).filter(n => !isNaN(n));
+            const existingMinNumber = existingNumbers.length > 0 ? Math.min(...existingNumbers) : 1;
+            const seatStartNumberRaw = newProps.seatLabelStart !== undefined ? newProps.seatLabelStart : (newProps.seat_start_number !== undefined ? newProps.seat_start_number : (anchor.seat_start_number || (anchor as any).seatStartNumber || (isFinite(existingMinNumber) ? existingMinNumber : 1)));
+            const seatStartNumber = parseInt(String(seatStartNumberRaw), 10) || 1;
+            const seatLabelDirection = newProps.seatLabelDirection || newProps.seat_label_direction || anchor.seat_label_direction || anchor.seatLabelDirection || 'LR';
+
+            const isExplicitRenumbering = newProps.seatLabelType !== undefined ||
+                newProps.seat_label_type !== undefined ||
+                newProps.seatLabelStart !== undefined ||
+                newProps.seat_start_number !== undefined ||
+                newProps.seatLabelDirection !== undefined ||
+                newProps.seat_label_direction !== undefined ||
+                newProps.seatNumberingMode !== undefined ||
+                newProps.seat_numbering_mode !== undefined;
+
+            return sortedRowNodes.map((oldSeat, physicalIdx) => {
+                const colIndex = cols[physicalIdx];
+                const cOffset = colIndex - midSpan;
+                const lx = cOffset * configSpacing;
+
+                const rawCurveY = curvature * Math.pow(cOffset, 2) * (configSpacing / 10);
+                const rx = lx * Math.cos(angle) - rawCurveY * Math.sin(angle);
+                const ry = lx * Math.sin(angle) + rawCurveY * Math.cos(angle);
+
+                let seatNumber = oldSeat.number;
+                if (isExplicitRenumbering || seatNumber === undefined) {
+                    const idxForNumber = numberingMode === 'positional' ? colIndex : physicalIdx;
+                    const totalForNumber = numberingMode === 'positional' ? maxCol + 1 : sortedRowNodes.length;
+                    seatNumber = getSeatNumber(
+                        idxForNumber,
+                        seatLabelType,
+                        seatStartNumber,
+                        totalForNumber,
+                        seatLabelDirection
+                    );
+                }
+
+                return {
+                    ...oldSeat,
+                    x: baselineCenter!.x + rx,
+                    y: baselineCenter!.y + ry,
+                    spacing: configSpacing,
+                    curvature: curvature,
+                    number: seatNumber,
+                    seat_numbering_mode: numberingMode,
+                    seat_label_direction: seatLabelDirection,
+                    seat_start_number: seatStartNumber,
+                    seat_label_type: seatLabelType,
+                    row: newProps.row !== undefined ? newProps.row : oldSeat.row,
+                    section: newProps.section !== undefined ? newProps.section : oldSeat.section,
+                    radius: newProps.radius !== undefined ? newProps.radius : oldSeat.radius,
+                    fill: newProps.fill !== undefined ? newProps.fill : oldSeat.fill,
+                    row_label_enabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : (oldSeat.row_label_enabled ?? true),
+                    row_label_position: newProps.rowLabelPosition || oldSeat.row_label_position || 'both',
+                    row_label_override: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : oldSeat.row_label_override || '',
+                    row_label_display_type: newProps.rowLabelDisplayType || oldSeat.row_label_display_type || 'Row',
+                };
+            });
+        }, []);
+
         const updateMultipleRowsStructureFn = useCallback((rowUuids: string[], newProps: any) => {
             const currentNodes = nodesRef.current;
             let updatedNodes = [...currentNodes];
 
-            rowUuids.forEach(rowUuid => {
-                const rowNodesUnsorted = currentNodes.filter((n) => n.row_uuid === rowUuid);
-                const rowNodes = [...rowNodesUnsorted].sort((a, b) => (a.number || 0) - (b.number || 0));
+            rowUuids.forEach((rowUuid) => {
+                const rowNodes = currentNodes.filter((n) => n.row_uuid === rowUuid);
                 if (rowNodes.length === 0) return;
 
-                const anchor = rowNodes[0];
-                const last = rowNodes[rowNodes.length - 1];
-
-                let realSpacing = anchor.spacing;
-                if (!realSpacing && rowNodes.length > 1) {
-                    const dxRaw = last.x - anchor.x;
-                    const dyRaw = last.y - anchor.y;
-                    const distRaw = Math.sqrt(dxRaw * dxRaw + dyRaw * dyRaw);
-                    const lastIdx = (last.number || rowNodes.length) - 1;
-                    realSpacing = distRaw / (lastIdx || 1);
-                }
-                const configSpacing = newProps.seatSpacing !== undefined ? newProps.seatSpacing : (realSpacing || 35);
-
-                const curvature = newProps.curve !== undefined ? newProps.curve : (anchor.curvature || 0);
-
-                let angle = 0;
-                if (rowNodes.length > 1) {
-                    const dxRaw = last.x - anchor.x;
-                    const dyRaw = last.y - anchor.y;
-                    angle = Math.atan2(dyRaw, dxRaw);
-                }
-
-                const count = rowNodes.length;
-                const mid = (count - 1) / 2;
-                const currentCurve = anchor.curvature || 0;
-                const currentCurveOffset = currentCurve * Math.pow(-mid, 2) * (configSpacing / 10);
-                const currentCenter = { x: (anchor.x + last.x) / 2, y: (anchor.y + last.y) / 2 };
-                const baselineCenter = {
-                    x: currentCenter.x + currentCurveOffset * Math.sin(angle),
-                    y: currentCenter.y - currentCurveOffset * Math.cos(angle),
-                };
-
-                const config = {
-                    count: newProps.numSeats || rowNodes.length,
-                    startX: anchor.x,
-                    startY: anchor.y,
-                    spacing: configSpacing,
-                    curvature: curvature,
-                    section: newProps.section || anchor.section,
-                    rowLabel: newProps.row || anchor.row,
-                    rowLabelEnabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : (anchor.row_label_enabled ?? true),
-                    rowLabelPosition: newProps.rowLabelPosition || anchor.row_label_position || 'both',
-                    rowLabelOverride: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : anchor.row_label_override || '',
-                    rowLabelDisplayType: newProps.rowLabelDisplayType || anchor.row_label_display_type || 'Row',
-                    seatLabelType: newProps.seatLabelType || '123',
-                    seatStartNumber: newProps.seatLabelStart || 1,
-                    seatLabelDirection: newProps.seatLabelDirection || anchor.seat_label_direction || 'LR',
-                    radius: newProps.radius || anchor.radius,
-                    color: newProps.fill || anchor.fill,
-                    rowUuid: rowUuid,
-                    blockUuid: anchor.block_uuid,
-                };
-
+                const newRowSeats = processRowSeats(rowNodes, newProps);
                 updatedNodes = updatedNodes.filter((n) => n.row_uuid !== rowUuid);
-                const newRowSeats = generateRow(config).map((seat, index) => {
-                    const oldSeat = rowNodes[index];
-                    const i = (seat.number || 1) - config.seatStartNumber;
-                    const cOffset = i - mid;
-                    const lx = cOffset * config.spacing;
-                    
-                    const rawCurveY = config.curvature * Math.pow(cOffset, 2) * (config.spacing / 10);
-                    const rx = lx * Math.cos(angle) - rawCurveY * Math.sin(angle);
-                    const ry = lx * Math.sin(angle) + rawCurveY * Math.cos(angle);
-
-                    return {
-                        ...seat,
-                        id: oldSeat ? oldSeat.id : seat.id,
-                        permanent_uuid: oldSeat ? oldSeat.permanent_uuid : seat.permanent_uuid,
-                        x: baselineCenter.x + rx,
-                        y: baselineCenter.y + ry,
-                        spacing: config.spacing,
-                        curvature: config.curvature,
-                        seat_label_direction: config.seatLabelDirection,
-                        row_label_enabled: config.rowLabelEnabled,
-                        row_label_position: config.rowLabelPosition,
-                        row_label_override: config.rowLabelOverride,
-                        row_label_display_type: config.rowLabelDisplayType,
-                    };
-                });
                 updatedNodes.push(...newRowSeats);
             });
 
             setNodes(updatedNodes);
             pushToHistory(updatedNodes);
             onChange({ ...layout, nodes: updatedNodes });
-        }, [layout, pushToHistory, onChange]);
+        }, [layout, pushToHistory, onChange, processRowSeats]);
 
-const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
+        const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
             const currentNodes = nodesRef.current;
-            const rowNodesUnsorted = currentNodes.filter(
-                (n) => n.row_uuid === rowUuid,
-            );
-            const rowNodes = [...rowNodesUnsorted].sort((a, b) => (a.number || 0) - (b.number || 0));
+            const rowNodes = currentNodes.filter((n) => n.row_uuid === rowUuid);
             if (rowNodes.length === 0) return;
 
-            const anchor = rowNodes[0];
-            const last = rowNodes[rowNodes.length - 1];
-            
-            let realSpacing = anchor.spacing;
-            if (!realSpacing && rowNodes.length > 1) {
-                const dxRaw = last.x - anchor.x;
-                const dyRaw = last.y - anchor.y;
-                const distRaw = Math.sqrt(dxRaw * dxRaw + dyRaw * dyRaw);
-                const lastIdx = (last.number || rowNodes.length) - 1;
-                realSpacing = distRaw / (lastIdx || 1);
-            }
-            const configSpacing = newProps.seatSpacing !== undefined ? newProps.seatSpacing : (realSpacing || 35);
-            
-            const curvature = newProps.curve !== undefined ? newProps.curve : (anchor.curvature || 0);
-
-            let angle = 0;
-            if (rowNodes.length > 1) {
-                const dxRaw = last.x - anchor.x;
-                const dyRaw = last.y - anchor.y;
-                angle = Math.atan2(dyRaw, dxRaw);
-            }
-
-            const count = rowNodes.length;
-            const mid = (count - 1) / 2;
-            const currentCurve = anchor.curvature || 0;
-            const currentCurveOffset = currentCurve * Math.pow(-mid, 2) * (configSpacing / 10);
-            const currentCenter = { x: (anchor.x + last.x) / 2, y: (anchor.y + last.y) / 2 };
-            const baselineCenter = {
-                x: currentCenter.x + currentCurveOffset * Math.sin(angle),
-                y: currentCenter.y - currentCurveOffset * Math.cos(angle),
-            };
-
-            const config = {
-                count: newProps.numSeats || rowNodes.length,
-                startX: anchor.x,
-                startY: anchor.y,
-                spacing: configSpacing,
-                curvature: curvature,
-                section: newProps.section || anchor.section,
-                rowLabel: newProps.row || anchor.row,
-                rowLabelEnabled: newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : (anchor.row_label_enabled ?? true),
-                rowLabelPosition: newProps.rowLabelPosition || anchor.row_label_position || 'both',
-                rowLabelOverride: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : anchor.row_label_override || '',
-                rowLabelDisplayType: newProps.rowLabelDisplayType || anchor.row_label_display_type || 'Row',
-                seatLabelType: newProps.seatLabelType || '123',
-                seatStartNumber: newProps.seatLabelStart || 1,
-                seatLabelDirection: newProps.seatLabelDirection || anchor.seat_label_direction || 'LR',
-                radius: newProps.radius || anchor.radius,
-                color: newProps.fill || anchor.fill,
-                rowUuid: rowUuid,
-                blockUuid: anchor.block_uuid,
-            };
-
+            const newRowSeats = processRowSeats(rowNodes, newProps);
             const updatedNodes = currentNodes.filter((n) => n.row_uuid !== rowUuid);
-            const newRowSeats = generateRow(config).map((seat, index) => {
-                const oldSeat = rowNodes[index];
-                const i = (seat.number || 1) - config.seatStartNumber;
-                const cOffset = i - mid;
-                const lx = cOffset * config.spacing;
-                
-                const rawCurveY = config.curvature * Math.pow(cOffset, 2) * (config.spacing / 10);
-                const rx = lx * Math.cos(angle) - rawCurveY * Math.sin(angle);
-                const ry = lx * Math.sin(angle) + rawCurveY * Math.cos(angle);
-
-                return {
-                    ...seat,
-                    id: oldSeat ? oldSeat.id : seat.id,
-                    permanent_uuid: oldSeat ? oldSeat.permanent_uuid : seat.permanent_uuid,
-                    x: baselineCenter.x + rx,
-                    y: baselineCenter.y + ry,
-                    spacing: config.spacing,
-                    curvature: config.curvature,
-                    seat_label_direction: config.seatLabelDirection,
-                    row_label_enabled: config.rowLabelEnabled,
-                    row_label_position: config.rowLabelPosition,
-                    row_label_override: config.rowLabelOverride,
-                    row_label_display_type: config.rowLabelDisplayType,
-                };
-            });
             updatedNodes.push(...newRowSeats);
 
             setNodes(updatedNodes);
             pushToHistory(updatedNodes);
             onChange({ ...layout, nodes: updatedNodes });
-        }, [layout, pushToHistory, onChange]);
+        }, [layout, pushToHistory, onChange, processRowSeats]);
 
         const updateRowLabelsFn = useCallback((rowUuid: string, newProps: any) => {
             const currentNodes = nodesRef.current;
@@ -924,23 +1357,56 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
             const dx = rowNodesUnsorted[rowNodesUnsorted.length - 1].x - rowNodesUnsorted[0].x;
             const dy = rowNodesUnsorted[rowNodesUnsorted.length - 1].y - rowNodesUnsorted[0].y;
             
+            const sampleNode = rowNodesUnsorted[0] || {};
             const rowNodes = [...rowNodesUnsorted].sort((a, b) => {
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    return a.x - b.x;
-                } else {
-                    return a.y - b.y;
-                }
+                return Math.abs(dx) > Math.abs(dy) ? a.x - b.x : a.y - b.y;
             });
+
+            const isExplicitSeatRenumbering = newProps.seatLabelType !== undefined ||
+                newProps.seat_label_type !== undefined ||
+                newProps.seatLabelStart !== undefined ||
+                newProps.seat_start_number !== undefined ||
+                newProps.seatLabelDirection !== undefined ||
+                newProps.seat_label_direction !== undefined ||
+                newProps.seatNumberingMode !== undefined ||
+                newProps.seat_numbering_mode !== undefined;
+
+            const seatLabelDirection = newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : (newProps.seat_label_direction !== undefined ? newProps.seat_label_direction : (sampleNode.seat_label_direction || sampleNode.seatLabelDirection || 'LR'));
+            const seatLabelType = newProps.seatLabelType !== undefined ? newProps.seatLabelType : (newProps.seat_label_type !== undefined ? newProps.seat_label_type : (sampleNode.seat_label_type || sampleNode.seatLabelType || '123'));
+            const numberingMode = newProps.seatNumberingMode || newProps.seat_numbering_mode || sampleNode.seat_numbering_mode || sampleNode.seatNumberingMode || 'consecutive';
+            const existingNumbers = rowNodesUnsorted.map(n => typeof n.number === 'number' ? n.number : (parseInt(String(n.number || '')) || 1)).filter(n => !isNaN(n));
+            const existingMinNumber = existingNumbers.length > 0 ? Math.min(...existingNumbers) : 1;
+            const seatStartNumberRaw = newProps.seatLabelStart !== undefined ? newProps.seatLabelStart : (newProps.seat_start_number !== undefined ? newProps.seat_start_number : (sampleNode.seat_start_number || (sampleNode as any).seatStartNumber || (isFinite(existingMinNumber) ? existingMinNumber : 1)));
+            const seatStartNumber = parseInt(String(seatStartNumberRaw), 10) || 1;
+
+            // Compute grid colIndex for positional mode
+            const anchorSeat = rowNodes[0];
+            const origSpacing = anchorSeat.spacing || 35;
+            const rowDx = rowNodes[rowNodes.length - 1].x - anchorSeat.x;
+            const rowDy = rowNodes[rowNodes.length - 1].y - anchorSeat.y;
+            const rowAngle = rowNodes.length > 1 ? Math.atan2(rowDy, rowDx) : 0;
+            const rawCols = rowNodes.map(s => {
+                const dx = s.x - anchorSeat.x;
+                const dy = s.y - anchorSeat.y;
+                const proj = dx * Math.cos(rowAngle) + dy * Math.sin(rowAngle);
+                return Math.round(proj / origSpacing);
+            });
+            const minCol = Math.min(...rawCols);
+            const cols = rawCols.map(c => c - minCol);
+            const maxCol = Math.max(...cols, 0);
 
             const updatedNodes = currentNodes.map(node => {
                 if (node.row_uuid !== rowUuid) return node;
                 
-                const idx = rowNodes.findIndex(n => n.id === node.id);
-                const seatLabelDirection = newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : (newProps.seat_label_direction !== undefined ? newProps.seat_label_direction : (node.seat_label_direction || 'LR'));
-                const seatLabelType = newProps.seatLabelType !== undefined ? newProps.seatLabelType : '123';
-                const seatStartNumber = newProps.seatLabelStart !== undefined ? newProps.seatLabelStart : 1;
-                
-                let number = getSeatNumber(idx, seatLabelType, seatStartNumber, rowNodes.length, seatLabelDirection);
+                const physicalIdx = rowNodes.findIndex(n => n.id === node.id);
+                const colIndex = cols[physicalIdx] !== undefined ? cols[physicalIdx] : physicalIdx;
+                const idxForNumber = numberingMode === 'positional' ? colIndex : physicalIdx;
+                const totalForNumber = numberingMode === 'positional' ? maxCol + 1 : rowNodes.length;
+
+                let number = node.number;
+                if (isExplicitSeatRenumbering || number === undefined) {
+                    number = getSeatNumber(idxForNumber, seatLabelType, seatStartNumber, totalForNumber, seatLabelDirection);
+                }
 
                 return {
                     ...node,
@@ -950,6 +1416,9 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                     row_label_override: newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : node.row_label_override,
                     row_label_display_type: newProps.rowLabelDisplayType !== undefined ? newProps.rowLabelDisplayType : node.row_label_display_type,
                     seat_label_direction: seatLabelDirection,
+                    seat_label_type: seatLabelType,
+                    seat_numbering_mode: numberingMode,
+                    seat_start_number: seatStartNumber,
                     number: number
                 };
             });
@@ -985,13 +1454,25 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
 
             let currentNodes = [...initialNodes];
 
+            const isExplicitRowLabeling = newProps.rowLabelType !== undefined ||
+                newProps.rowLabelStart !== undefined ||
+                newProps.rowLabelSkip !== undefined ||
+                newProps.rowLabelDirection !== undefined ||
+                newProps.row_label_direction !== undefined;
+
+            const isExplicitSeatRenumbering = newProps.seatLabelType !== undefined ||
+                newProps.seat_label_type !== undefined ||
+                newProps.seatLabelStart !== undefined ||
+                newProps.seat_start_number !== undefined ||
+                newProps.seatLabelDirection !== undefined ||
+                newProps.seat_label_direction !== undefined ||
+                newProps.seatNumberingMode !== undefined ||
+                newProps.seat_numbering_mode !== undefined;
+
             rows.forEach((row, index) => {
-                const calculatedRowLabel = getRowLabel(
-                    index,
-                    rowLabelType,
-                    rowLabelStart,
-                    rowLabelSkip,
-                );
+                const calculatedRowLabel = isExplicitRowLabeling
+                    ? getRowLabel(index, rowLabelType, rowLabelStart, rowLabelSkip)
+                    : (row.nodes[0]?.row || getRowLabel(index, rowLabelType, rowLabelStart, rowLabelSkip));
 
                 const rowNodesUnsorted = currentNodes.filter((n) => n.row_uuid === row.uuid);
                 if (rowNodesUnsorted.length === 0) return;
@@ -1003,19 +1484,46 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                     return Math.abs(dx) > Math.abs(dy) ? a.x - b.x : a.y - b.y;
                 });
 
+                const seatLabelDirection = newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : (newProps.seat_label_direction !== undefined ? newProps.seat_label_direction : (sampleNode.seat_label_direction || sampleNode.seatLabelDirection || 'LR'));
+                const seatLabelType = newProps.seatLabelType !== undefined ? newProps.seatLabelType : (newProps.seat_label_type !== undefined ? newProps.seat_label_type : (sampleNode.seat_label_type || sampleNode.seatLabelType || '123'));
+                const numberingMode = newProps.seatNumberingMode || newProps.seat_numbering_mode || sampleNode.seat_numbering_mode || sampleNode.seatNumberingMode || 'consecutive';
+                const existingNumbers = rowNodesUnsorted.map(n => typeof n.number === 'number' ? n.number : (parseInt(String(n.number || '')) || 1)).filter(n => !isNaN(n));
+                const existingMinNumber = existingNumbers.length > 0 ? Math.min(...existingNumbers) : 1;
+                const seatStartNumberRaw = newProps.seatLabelStart !== undefined ? newProps.seatLabelStart : (newProps.seat_start_number !== undefined ? newProps.seat_start_number : (sampleNode.seat_start_number || (sampleNode as any).seatStartNumber || (isFinite(existingMinNumber) ? existingMinNumber : 1)));
+                const seatStartNumber = parseInt(String(seatStartNumberRaw), 10) || 1;
+
+                // Compute grid colIndex for positional mode
+                const anchorSeat = rowNodes[0];
+                const origSpacing = anchorSeat.spacing || 35;
+                const rDx = rowNodes[rowNodes.length - 1].x - anchorSeat.x;
+                const rDy = rowNodes[rowNodes.length - 1].y - anchorSeat.y;
+                const rAngle = rowNodes.length > 1 ? Math.atan2(rDy, rDx) : 0;
+                const rawCols = rowNodes.map(s => {
+                    const diffX = s.x - anchorSeat.x;
+                    const diffY = s.y - anchorSeat.y;
+                    const proj = diffX * Math.cos(rAngle) + diffY * Math.sin(rAngle);
+                    return Math.round(proj / origSpacing);
+                });
+                const minCol = Math.min(...rawCols);
+                const cols = rawCols.map(c => c - minCol);
+                const maxCol = Math.max(...cols, 0);
+
                 currentNodes = currentNodes.map((node) => {
                     if (node.row_uuid !== row.uuid) return node;
 
-                    const idx = rowNodes.findIndex(n => n.id === node.id);
-                    const seatLabelDirection = newProps.seatLabelDirection !== undefined ? newProps.seatLabelDirection : (newProps.seat_label_direction !== undefined ? newProps.seat_label_direction : (node.seat_label_direction || 'LR'));
-                    const seatLabelType = newProps.seatLabelType !== undefined ? newProps.seatLabelType : '123';
-                    const seatStartNumber = newProps.seatLabelStart !== undefined ? newProps.seatLabelStart : 1;
-                    
-                    let number = getSeatNumber(idx, seatLabelType, seatStartNumber, rowNodes.length, seatLabelDirection);
+                    const physicalIdx = rowNodes.findIndex(n => n.id === node.id);
+                    const colIndex = cols[physicalIdx] !== undefined ? cols[physicalIdx] : physicalIdx;
+                    const idxForNumber = numberingMode === 'positional' ? colIndex : physicalIdx;
+                    const totalForNumber = numberingMode === 'positional' ? maxCol + 1 : rowNodes.length;
+
+                    let number = node.number;
+                    if (isExplicitSeatRenumbering || number === undefined) {
+                        number = getSeatNumber(idxForNumber, seatLabelType, seatStartNumber, totalForNumber, seatLabelDirection);
+                    }
 
                     const nextRowLabelPosition = newProps.rowLabelPosition !== undefined ? newProps.rowLabelPosition : (newProps.row_label_position !== undefined ? newProps.row_label_position : node.row_label_position);
                     const nextRowLabelEnabled = newProps.rowLabelEnabled !== undefined ? newProps.rowLabelEnabled : (newProps.row_label_enabled !== undefined ? newProps.row_label_enabled : node.row_label_enabled);
-                    const nextRowLabelDisplayType = newProps.rowLabelDisplayType !== undefined ? newProps.rowLabelDisplayType : (newProps.row_label_display_type !== undefined ? newProps.row_label_display_type : node.row_label_display_type);
+                    const nextRowLabelDisplayType = newProps.rowLabelDisplayType !== undefined ? newProps.rowLabelDisplayType : (newProps.row_label_display_type !== undefined ? newProps.rowLabelDisplayType : node.row_label_display_type);
                     const nextRowLabelOverride = newProps.rowLabelOverride !== undefined ? newProps.rowLabelOverride : (newProps.row_label_override !== undefined ? newProps.row_label_override : node.row_label_override);
 
                     return {
@@ -1030,6 +1538,9 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                         row_label_override: nextRowLabelOverride,
                         row_label_display_type: nextRowLabelDisplayType,
                         seat_label_direction: seatLabelDirection,
+                        seat_label_type: seatLabelType,
+                        seat_numbering_mode: numberingMode,
+                        seat_start_number: seatStartNumber,
                         number: number
                     };
                 });
@@ -1242,106 +1753,41 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
 
                 let currentNodes = [...initialNodes];
 
+                const isExplicitRowLabeling = newProps.rowLabelType !== undefined ||
+                    newProps.rowLabelStart !== undefined ||
+                    newProps.rowLabelSkip !== undefined ||
+                    newProps.rowLabelDirection !== undefined ||
+                    newProps.row_label_direction !== undefined;
+
                 rows.forEach((row, index) => {
                     const rowProps = { ...newProps };
-                    rowProps.row = getRowLabel(
-                        index,
-                        newProps.rowLabelType || 'ABC',
-                        newProps.rowLabelStart || 'A',
-                        (newProps.rowLabelSkip || '')
-                            .split(',')
-                            .map((s: string) => s.trim())
-                            .filter(Boolean),
-                    );
+                    if (isExplicitRowLabeling) {
+                        rowProps.row = getRowLabel(
+                            index,
+                            newProps.rowLabelType || 'ABC',
+                            newProps.rowLabelStart || 'A',
+                            (newProps.rowLabelSkip || '')
+                                .split(',')
+                                .map((s: string) => s.trim())
+                                .filter(Boolean),
+                        );
+                    } else {
+                        const existingRowLabel = row.nodes[0]?.row;
+                        if (existingRowLabel) {
+                            rowProps.row = existingRowLabel;
+                        }
+                    }
 
                     const rowNodes = row.nodes;
                     if (rowNodes.length === 0) return;
 
-                    const anchor = rowNodes[0];
-                    const last = rowNodes[rowNodes.length - 1];
-
-                    let angle = blockAngle;
-                    if (rowNodes.length > 1) {
-                        angle = Math.atan2(last.y - anchor.y, last.x - anchor.x);
-                    }
-
-                    const configSpacing = newProps.seatSpacing !== undefined ? newProps.seatSpacing : (anchor.spacing || 35);
-                    const curvature = newProps.curve !== undefined ? newProps.curve : (anchor.curvature || 0);
-                    const count = newProps.numSeats || rowNodes.length;
-                    const mid = (count - 1) / 2;
-
-                    // Row baseline center anchored strictly at the invariant block center
                     const rowOffset = rowCenterOffsets[index];
                     const baselineCenter = {
                         x: originalBlockCenterX + rowOffset * perpX,
                         y: originalBlockCenterY + rowOffset * perpY,
                     };
 
-                    const config = {
-                        count: count,
-                        startX: anchor.x,
-                        startY: anchor.y,
-                        spacing: configSpacing,
-                        curvature: curvature,
-                        section: rowProps.section || anchor.section,
-                        rowLabel: rowProps.row || anchor.row,
-                        rowLabelEnabled:
-                            newProps.rowLabelEnabled !== undefined
-                                ? newProps.rowLabelEnabled
-                                : (anchor.row_label_enabled ?? true),
-                        rowLabelPosition:
-                            newProps.rowLabelPosition ||
-                            anchor.row_label_position ||
-                            'both',
-                        rowLabelOverride:
-                            newProps.rowLabelOverride !== undefined
-                                ? newProps.rowLabelOverride
-                                : anchor.row_label_override || '',
-                        rowLabelDisplayType:
-                            newProps.rowLabelDisplayType ||
-                            anchor.row_label_display_type ||
-                            'Row',
-                        seatLabelType: rowProps.seatLabelType || '123',
-                        seatStartNumber: rowProps.seatLabelStart || 1,
-                        seatLabelDirection:
-                            newProps.seatLabelDirection ||
-                            newProps.seat_label_direction ||
-                            anchor.seat_label_direction ||
-                            'LR',
-                        radius: rowProps.radius || anchor.radius,
-                        color: rowProps.fill || anchor.fill,
-                        rowUuid: row.uuid,
-                        blockUuid: blockUuid,
-                    };
-
-                    const newRowSeats = generateRow(config).map((seat, seatIdx) => {
-                        const oldSeat = rowNodes[seatIdx];
-                        const seatId = oldSeat ? oldSeat.id : seat.id;
-                        const permUuid = oldSeat
-                            ? oldSeat.permanent_uuid
-                            : seat.permanent_uuid;
-
-                        const cOffset = seatIdx - mid;
-                        const lx = cOffset * config.spacing;
-                        const rawCurveY = config.curvature * Math.pow(cOffset, 2) * (config.spacing / 10);
-                        const rx = lx * Math.cos(angle) - rawCurveY * Math.sin(angle);
-                        const ry = lx * Math.sin(angle) + rawCurveY * Math.cos(angle);
-
-                        return {
-                            ...seat,
-                            id: seatId,
-                            permanent_uuid: permUuid,
-                            x: baselineCenter.x + rx,
-                            y: baselineCenter.y + ry,
-                            spacing: config.spacing,
-                            curvature: config.curvature,
-                            seat_label_direction: config.seatLabelDirection,
-                            row_label_enabled: config.rowLabelEnabled,
-                            row_label_position: config.rowLabelPosition,
-                            row_label_override: config.rowLabelOverride,
-                            row_label_display_type: config.rowLabelDisplayType,
-                        };
-                    });
+                    const newRowSeats = processRowSeats(rowNodes, rowProps, baselineCenter, blockAngle);
 
                     currentNodes = [
                         ...currentNodes.filter((n) => n.row_uuid !== row.uuid),
@@ -1422,9 +1868,13 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                 pushToHistory(updatedNodes);
                 onChange({ ...layout, nodes: updatedNodes });
             },
+            addTextNode: (x, y, text) => {
+                addTextNode(x, y, text);
+            },
             fitView,
             getCurrentFocus,
             zoomToFocus,
+            zoomToBoundingBox,
         }));
 
         // Selection synchronization
@@ -1454,7 +1904,30 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
             transformerRef.current.getLayer()?.batchDraw();
         }, [selectedIds, nodes, mode]);
 
+        const isRightClickDuplicatingRef = useRef<boolean>(false);
 
+        useEffect(() => {
+            const handleMouseDownGlobal = (e: MouseEvent) => {
+                if (e.button === 2 && dragStartRef.current && Object.keys(dragStartRef.current).length > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isRightClickDuplicatingRef.current = true;
+                }
+            };
+
+            const handleContextMenuGlobal = (e: MouseEvent) => {
+                if ((dragStartRef.current && Object.keys(dragStartRef.current).length > 0) || isRightClickDuplicatingRef.current) {
+                    e.preventDefault();
+                }
+            };
+
+            window.addEventListener('mousedown', handleMouseDownGlobal, true);
+            window.addEventListener('contextmenu', handleContextMenuGlobal, true);
+            return () => {
+                window.removeEventListener('mousedown', handleMouseDownGlobal, true);
+                window.removeEventListener('contextmenu', handleContextMenuGlobal, true);
+            };
+        }, []);
 
         const undo = () => {
             if (historyStep > 0) {
@@ -1492,6 +1965,17 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                 ),
             [nodes],
         );
+        const textNodes = useMemo(
+            () => nodes.filter((n) => n.type === 'text'),
+            [nodes],
+        );
+        const isOnlyTextSelected = useMemo(() => {
+            if (selectedIds.length === 0) return false;
+            return selectedIds.every((id) => {
+                const n = nodes.find((node) => node.id === id);
+                return n?.type === 'text';
+            });
+        }, [selectedIds, nodes]);
         const seats = useMemo(
             () => nodes.filter((n) => n.type === 'seat'),
             [nodes],
@@ -1612,7 +2096,7 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                 }
             } else {
                 // General select / toggle
-                if (isMulti) {
+                if (isMulti || mode === 'preview') {
                     newSelection = selectedIds.includes(clickedId)
                         ? selectedIds.filter((id) => id !== clickedId)
                         : [...selectedIds, clickedId];
@@ -1635,12 +2119,13 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
             if (e.evt.button === 2 || e.evt.button === 1) {
                 setDrawingPoints([]);
                 if (e.evt.button === 1) {
+                    e.evt.preventDefault();
                     stage.startDrag();
                 }
                 return;
             }
 
-            if (mode === 'preview') {
+            if (mode === 'preview' && !onSelectionChange) {
                 const clickedId = e.target.id() || e.target.getParent()?.id();
                 if (clickedId) {
                     const node = nodes.find((n) => n.id === clickedId);
@@ -1780,6 +2265,11 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
 
             if (tool === 'circle_zone') {
                 addCircleZone(relativePos.x, relativePos.y);
+                return;
+            }
+
+            if (tool === 'text') {
+                addTextNode(relativePos.x, relativePos.y);
                 return;
             }
 
@@ -2154,6 +2644,31 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
             if (onToolComplete) onToolComplete();
         };
 
+        const addTextNode = (x = 200, y = 200, text = 'Nuevo Texto') => {
+            const newTextNode: SeatingNode = {
+                id: 'text-' + uuidv4(),
+                type: 'text',
+                x,
+                y,
+                name: text,
+                fontSize: 28,
+                fill: '#1e293b',
+                fillOpacity: 1,
+                rotation: 0,
+                scaleX: 1,
+                scaleY: 1,
+                fontStyle: 'bold',
+                align: 'center',
+            };
+            const updatedNodes = [...nodes, newTextNode];
+            setNodes(updatedNodes);
+            pushToHistory(updatedNodes);
+            onChange({ ...layout, nodes: updatedNodes });
+            setSelectedIds([newTextNode.id]);
+            if (onSelectionChange) onSelectionChange([newTextNode.id]);
+            if (onToolComplete) onToolComplete();
+        };
+
         return (
             <div
                 ref={containerRef}
@@ -2172,10 +2687,10 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                     scaleY={stageScale}
                     x={stagePos.x}
                     y={stagePos.y}
-                    draggable={mode === 'edit'}
+                    draggable={mode === 'edit' || mode === 'preview' || tool === 'pan'}
                     onDragStart={(e) => {
                         if (e.target !== e.currentTarget) return;
-                        if (tool !== 'pan' && e.evt?.button !== 1) {
+                        if (tool !== 'pan' && e.evt?.button !== 1 && mode !== 'preview') {
                             e.target.stopDrag();
                         }
                     }}
@@ -2478,6 +2993,79 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                             }
                             return null;
                         })}
+                        {textNodes.map((node) => (
+                            <TextNode
+                                key={node.id}
+                                node={node}
+                                mode={mode}
+                                stageScale={stageScale}
+                                isSelected={selectedIds.includes(node.id)}
+                                onDragStart={(e) => {
+                                    if (e.target.id() !== node.id) return;
+                                    dragStartRef.current[node.id] = {
+                                        x: node.x,
+                                        y: node.y,
+                                        konvaNode: e.target,
+                                    };
+                                    (e.target as any).setAttr('dragStartX', node.x);
+                                    (e.target as any).setAttr('dragStartY', node.y);
+                                }}
+                                onDragEnd={(e) => {
+                                    if (!dragStartRef.current || Object.keys(dragStartRef.current).length === 0) return;
+                                    const initialPos = dragStartRef.current[node.id];
+                                    const newX = e.target.x();
+                                    const newY = e.target.y();
+
+                                    if (isRightClickDuplicatingRef.current && initialPos) {
+                                        e.target.x(initialPos.x);
+                                        e.target.y(initialPos.y);
+
+                                        const duplicatedNode: SeatingNode = {
+                                            ...node,
+                                            id: 'text-' + uuidv4(),
+                                            x: newX,
+                                            y: newY,
+                                        };
+
+                                        const updatedNodes = [
+                                            ...nodesRef.current.map((n) =>
+                                                n.id === node.id ? { ...n, x: initialPos.x, y: initialPos.y } : n,
+                                            ),
+                                            duplicatedNode,
+                                        ];
+                                        setNodes(updatedNodes);
+                                        pushToHistory(updatedNodes);
+                                        onChange({
+                                            ...layout,
+                                            nodes: updatedNodes,
+                                        });
+                                        setSelectedIds([duplicatedNode.id]);
+                                        if (onSelectionChange) onSelectionChange([duplicatedNode.id]);
+
+                                        isRightClickDuplicatingRef.current = false;
+                                        dragStartRef.current = {};
+                                        return;
+                                    }
+
+                                    const updatedNodes = nodesRef.current.map((n) =>
+                                        n.id === node.id
+                                            ? {
+                                                  ...n,
+                                                  x: newX,
+                                                  y: newY,
+                                              }
+                                            : n,
+                                    );
+                                    setNodes(updatedNodes);
+                                    pushToHistory(updatedNodes);
+                                    onChange({
+                                        ...layout,
+                                        nodes: updatedNodes,
+                                    });
+                                    dragStartRef.current = {};
+                                }}
+                            />
+                        ))}
                     </Layer>
                     <Layer name="seats" className="seats">
                         {stageScale > 0.5 &&
@@ -2490,13 +3078,18 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                     isHovered={hoveredId === node.id}
                                     isInCart={cart.includes(node.id)}
                                     stageScale={stageScale}
-                                    onMouseEnter={() =>
-                                        mode === 'preview' &&
-                                        setHoveredId(node.id)
-                                    }
-                                    onMouseLeave={() =>
-                                        mode === 'preview' && setHoveredId(null)
-                                    }
+                                    onMouseEnter={(e) => {
+                                        if (mode === 'preview') {
+                                            setHoveredId(node.id);
+                                            onSeatHover?.(node, e);
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (mode === 'preview') {
+                                            setHoveredId(null);
+                                            onSeatHover?.(null, e);
+                                        }
+                                    }}
                                     onDragStart={(e) => {
                                         e.cancelBubble = true;
                                         const startMap: Record<
@@ -2613,21 +3206,13 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                 // Perpendicular offset (perpendicular to row direction vector)
                                                 const perpY = -relX * Math.sin(angle) + relY * Math.cos(angle);
 
-                                                const count = rowNodes.length;
-                                                const mid = (count - 1) / 2;
-                                                const seatIdx = (node.number || 1) - 1;
-                                                const cOffset = seatIdx - mid;
-                                                const spacing = anchor.spacing || 35;
-
-                                                let newCurve = 0;
-                                                if (Math.abs(cOffset) > 0.001) {
-                                                    newCurve = perpY / (Math.pow(cOffset, 2) * (spacing / 10));
-                                                } else {
-                                                    newCurve = perpY / (spacing / 10);
-                                                }
-
-                                                // Clamp curvature to avoid extreme distortion
-                                                newCurve = Math.max(-15, Math.min(15, newCurve));
+                                                const seatIdx = sortedRowNodes.findIndex((n) => n.id === node.id);
+                                                if (seatIdx === -1) return;
+                                                const isFinePrecision = (e.evt as any)?.shiftKey || isShiftPressedRef.current;
+                                                const damping = isFinePrecision ? 0.008 : 0.025;
+                                                const rawCurve = perpY * damping;
+                                                const clampedCurve = Math.max(-15, Math.min(15, rawCurve));
+                                                const newCurve = Math.round(clampedCurve * 10) / 10;
 
                                                 const selectedRowUuids = Array.from(new Set(
                                                     nodesRef.current
@@ -2650,7 +3235,8 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                         const selectionSize = Object.keys(
                                             dragStartRef.current,
                                         ).length;
-                                        if (selectionSize < 20) {
+                                        const isBypassGuides = (e.evt as any)?.shiftKey || (e.evt as any)?.altKey || isShiftPressedRef.current || isAltPressedRef.current;
+                                        if (snapToGrid && selectionSize < 20 && !isBypassGuides) {
                                             const activeGuides: any[] = [];
                                             nodesRef.current.forEach(
                                                 (other, idx) => {
@@ -2669,10 +3255,18 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                     )
                                                         return;
 
+                                                    // Scoped magnet: only snap to seats within same section if assigned
+                                                    if (
+                                                        node.section &&
+                                                        other.section &&
+                                                        node.section !== other.section
+                                                    )
+                                                        return;
+
                                                     if (
                                                         Math.abs(
                                                             rawX - other.x,
-                                                        ) < 5
+                                                        ) < 4
                                                     ) {
                                                         rawX = other.x;
                                                         activeGuides.push({
@@ -2683,7 +3277,7 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                     if (
                                                         Math.abs(
                                                             rawY - other.y,
-                                                        ) < 5
+                                                        ) < 4
                                                     ) {
                                                         rawY = other.y;
                                                         activeGuides.push({
@@ -2789,8 +3383,9 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                 />
                             ))}
                         {/* Row Labels Layer (Duales: Inicio y Fin) */}
-                        {(() => {
-                            const rowGroups: Record<string, SeatingNode[]> = {};
+                        {stageScale > 0.5 &&
+                            (() => {
+                                const rowGroups: Record<string, SeatingNode[]> = {};
                             nodes.forEach((n) => {
                                 if (n.type === 'seat' && n.row_uuid) {
                                     if (!rowGroups[n.row_uuid])
@@ -2822,7 +3417,7 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                     const extremeRight =
                                         sorted[sorted.length - 1];
                                     const radius = extremeLeft.radius || 10;
-                                     const offset = radius * 3;
+                                     const offset = radius * 4.5;
 
                                     let dx = extremeRight.x - extremeLeft.x;
                                     let dy = extremeRight.y - extremeLeft.y;
@@ -2882,14 +3477,14 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                     x={posXLeft}
                                                     y={posYLeft}
                                                     rotation={rotLeft}
-                                                    offsetX={radius}
-                                                    offsetY={radius / 2}
+                                                    offsetX={displayLabel.length * radius * 0.75}
+                                                    offsetY={radius * 0.6}
                                                     text={displayLabel}
                                                     fontSize={radius * 1.2}
                                                     fill="#64748b"
                                                     fontStyle="bold"
-                                                    width={radius * 2}
-                                                    align="center"
+                                                    wrap="none"
+                                                    align="right"
                                                 />
                                             )}
                                             {showRight && (
@@ -2898,14 +3493,14 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                     x={posXRight}
                                                     y={posYRight}
                                                     rotation={rotRight}
-                                                    offsetX={radius}
-                                                    offsetY={radius / 2}
+                                                    offsetX={0}
+                                                    offsetY={radius * 0.6}
                                                     text={displayLabel}
                                                     fontSize={radius * 1.2}
                                                     fill="#64748b"
                                                     fontStyle="bold"
-                                                    width={radius * 2}
-                                                    align="center"
+                                                    wrap="none"
+                                                    align="left"
                                                 />
                                             )}
                                         </React.Fragment>
@@ -3271,16 +3866,19 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                             }) && (
                                 <Transformer
                                     ref={transformerRef}
-                                    anchorSize={10}
+                                    anchorSize={isOnlyTextSelected ? 9 : 10}
                                     borderStroke="#3b82f6"
                                     borderStrokeWidth={1.5}
+                                    borderDash={isOnlyTextSelected ? [4, 4] : undefined}
                                     anchorFill="#ffffff"
                                     anchorStroke="#3b82f6"
                                     anchorStrokeWidth={2}
-                                    anchorCornerRadius={5}
-                                    resizeEnabled={false}
+                                    anchorCornerRadius={isOnlyTextSelected ? 2 : 5}
+                                    resizeEnabled={isOnlyTextSelected}
+                                    enabledAnchors={isOnlyTextSelected ? ['top-left', 'top-right', 'bottom-left', 'bottom-right'] : undefined}
                                     rotateEnabled={true}
                                     rotationSnaps={[0, 15, 30, 45, 60, 75, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345]}
+                                    rotationSnapTolerance={1}
                                     onTransform={() => {
                                         if (transformerRef.current) {
                                             const tr = transformerRef.current;
@@ -3301,6 +3899,22 @@ const updateRowStructureFn = useCallback((rowUuid: string, newProps: any) => {
                                                 const updatedNodes = nodesRef.current.map((n) => {
                                                     const kn = activeKonvaNodes.find(k => k.id() === n.id);
                                                     if (kn) {
+                                                        if (n.type === 'text') {
+                                                            const scale = Math.max(0.2, Math.max(kn.scaleX(), kn.scaleY()));
+                                                            const origFontSize = n.fontSize || 28;
+                                                            const newFontSize = Math.max(8, Math.min(200, Math.round(origFontSize * scale)));
+                                                            kn.scaleX(1);
+                                                            kn.scaleY(1);
+                                                            return {
+                                                                ...n,
+                                                                x: kn.x(),
+                                                                y: kn.y(),
+                                                                rotation: kn.rotation(),
+                                                                scaleX: 1,
+                                                                scaleY: 1,
+                                                                fontSize: newFontSize,
+                                                            };
+                                                        }
                                                         return {
                                                             ...n,
                                                             x: kn.x(),

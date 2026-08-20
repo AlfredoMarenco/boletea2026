@@ -17,7 +17,7 @@ class PublishMapAction
 
         // Generate a public slug if missing
         if (empty($eventMap->slug)) {
-            $eventMap->slug = Str::slug($eventMap->id . '-' . now()->timestamp);
+            $eventMap->slug = Str::slug($eventMap->id.'-'.now()->timestamp);
             $eventMap->save();
         }
 

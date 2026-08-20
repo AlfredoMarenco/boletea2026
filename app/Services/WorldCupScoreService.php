@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\SiteSetting;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -119,7 +120,7 @@ class WorldCupScoreService
         $localDatetime = '';
         if ($matchDatetime) {
             try {
-                $localDatetime = \Illuminate\Support\Carbon::parse($matchDatetime)
+                $localDatetime = Carbon::parse($matchDatetime)
                     ->timezone('America/Mexico_City')
                     ->format('Y-m-d\TH:i:s');
                 SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $localDatetime]);
@@ -162,7 +163,7 @@ class WorldCupScoreService
         $localDatetime = '';
         if ($matchDatetime) {
             try {
-                $localDatetime = \Illuminate\Support\Carbon::parse($matchDatetime)
+                $localDatetime = Carbon::parse($matchDatetime)
                     ->timezone('America/Mexico_City')
                     ->format('Y-m-d\TH:i:s');
                 SiteSetting::updateOrCreate(['key' => 'world_cup_match_datetime'], ['value' => $localDatetime]);

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MailingCampaign extends Model
 {
@@ -20,7 +21,7 @@ class MailingCampaign extends Model
         'sent_at',
     ];
 
-    public function audience(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function audience(): BelongsTo
     {
         return $this->belongsTo(MailingAudience::class, 'mailing_audience_id');
     }

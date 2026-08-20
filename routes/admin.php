@@ -6,7 +6,7 @@ use App\Http\Controllers\Admin\ExternalEventController;
 use App\Http\Controllers\Admin\ImageController;
 use App\Http\Controllers\Admin\LocalEventController;
 use App\Http\Controllers\Admin\SalesCenterController;
-use App\Http\Controllers\Admin\SalesCenterGroupController; // Added this line
+use App\Http\Controllers\Admin\SalesCenterGroupController;
 use App\Http\Controllers\Admin\SeatingMapController;
 use App\Http\Controllers\Admin\SiteSettingController;
 use App\Http\Controllers\Admin\StateController;
@@ -40,9 +40,25 @@ Route::resource('categories', CategoryController::class);
 Route::resource('venues', VenueController::class);
 Route::resource('users', UserController::class);
 Route::resource('seating-maps', SeatingMapController::class);
-Route::get('local-events/{event}/prices', [LocalEventController::class, 'prices'])->name('local-events.prices');
-Route::post('local-events/{event}/prices', [LocalEventController::class, 'updatePrices'])->name('local-events.prices.update');
-Route::post('local-events/{event}/inventory', [LocalEventController::class, 'generateInventory'])->name('local-events.inventory');
+
+// --- Local Events & Showtimes (Funciones) --- //
+Route::prefix('local-events/{event}')->name('local-events.')->group(function () {
+    Route::get('showtimes', [LocalEventController::class, 'showtimesIndex'])->name('showtimes.index');
+    Route::post('showtimes', [LocalEventController::class, 'storeShowtime'])->name('showtimes.store');
+    Route::get('showtimes/{showtime}', [LocalEventController::class, 'showtimeShow'])->name('showtimes.show');
+    Route::put('showtimes/{showtime}', [LocalEventController::class, 'updateShowtime'])->name('showtimes.update');
+    Route::post('showtimes/{showtime}/sync-inventory', [LocalEventController::class, 'syncInventory'])->name('showtimes.sync-inventory');
+    Route::delete('showtimes/{showtime}', [LocalEventController::class, 'destroyShowtime'])->name('showtimes.destroy');
+
+    // Configuración fina de la función
+    Route::post('showtimes/{showtime}/prices', [LocalEventController::class, 'updateShowtimePrices'])->name('showtimes.prices.update');
+    Route::post('showtimes/{showtime}/general-capacity', [LocalEventController::class, 'updateGeneralCapacity'])->name('showtimes.general-capacity.update');
+    Route::post('showtimes/{showtime}/seats/status', [LocalEventController::class, 'updateSeatStatus'])->name('showtimes.seats.status');
+    Route::post('showtimes/{showtime}/seats/category', [LocalEventController::class, 'updateSeatCategory'])->name('showtimes.seats.category');
+    Route::post('showtimes/{showtime}/promotions', [LocalEventController::class, 'storePromotion'])->name('showtimes.promotions.store');
+    Route::delete('showtimes/{showtime}/promotions/{promotion}', [LocalEventController::class, 'destroyPromotion'])->name('showtimes.promotions.destroy');
+});
+
 Route::resource('local-events', LocalEventController::class)->parameters(['local-events' => 'event']);
 
 Route::get('settings', [SiteSettingController::class, 'index'])->name('settings.index');
@@ -56,10 +72,10 @@ Route::resource('banners', WelcomeBannerController::class)->except(['index', 'cr
 use App\Http\Controllers\Admin\PostbackUrlController;
 
 Route::resource('postback-urls', PostbackUrlController::class)->only(['store', 'update', 'destroy']);
+
 // ─── Mailing ──────────────────────────────────────────────────────────────────
 use App\Http\Controllers\Admin\MailingController;
 
-// Contactos / Lista de correos
 Route::prefix('mailing')->name('mailing.')->group(function () {
     Route::get('contacts', [MailingController::class, 'contactsIndex'])->name('contacts.index');
     Route::post('contacts', [MailingController::class, 'contactsStore'])->name('contacts.store');
@@ -67,16 +83,13 @@ Route::prefix('mailing')->name('mailing.')->group(function () {
     Route::delete('contacts/{contact}', [MailingController::class, 'contactsDestroy'])->name('contacts.destroy');
     Route::patch('contacts/{contact}/toggle', [MailingController::class, 'contactsToggle'])->name('contacts.toggle');
 
-    // Acciones masivas
     Route::post('contacts/bulk-destroy', [MailingController::class, 'contactsBulkDestroy'])->name('contacts.bulk-destroy');
     Route::post('contacts/bulk-assign', [MailingController::class, 'contactsBulkAssign'])->name('contacts.bulk-assign');
 
-    // Audiencias (Listas)
     Route::get('audiences', [MailingController::class, 'audiencesIndex'])->name('audiences.index');
     Route::post('audiences', [MailingController::class, 'audiencesStore'])->name('audiences.store');
     Route::delete('audiences/{audience}', [MailingController::class, 'audiencesDestroy'])->name('audiences.destroy');
 
-    // Campañas
     Route::get('campaigns', [MailingController::class, 'campaignsIndex'])->name('campaigns.index');
     Route::get('campaigns/create', [MailingController::class, 'campaignsCreate'])->name('campaigns.create');
     Route::post('campaigns', [MailingController::class, 'campaignsStore'])->name('campaigns.store');
@@ -128,7 +141,6 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
     Route::get('requests', [AdminRefundController::class, 'requestsIndex'])->name('requests');
     Route::get('requests/export-csv', [AdminRefundController::class, 'exportCsv'])->name('requests.export_csv');
     Route::get('requests/export-banamex', [AdminRefundController::class, 'exportBanamexExcel'])->name('requests.export_banamex');
-    // Route::post('requests/process-mass-validation', [AdminRefundController::class, 'processMassRefundValidation'])->name('requests.process_mass_validation');
     Route::post('requests/{refundRequest}/status', [AdminRefundController::class, 'updateRequestStatus'])->name('requests.status');
     Route::get('requests/{refundRequest}/file/{type}', [AdminRefundController::class, 'downloadFile'])->name('requests.file');
 });

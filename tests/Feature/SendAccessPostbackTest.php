@@ -3,6 +3,7 @@
 use App\Jobs\SendAccessPostback;
 use App\Models\AccessEvent;
 use App\Models\PostbackUrl;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 
 test('postback is sent if event has active postback url', function () {
@@ -31,7 +32,7 @@ test('postback is sent if event has active postback url', function () {
 
     $job->handle();
 
-    Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+    Http::assertSent(function (Request $request) {
         return $request->url() === 'https://test-server.com/postback';
     });
 });

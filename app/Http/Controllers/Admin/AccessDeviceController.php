@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AccessDevice;
+use App\Models\ApkVersion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -105,9 +106,9 @@ class AccessDeviceController extends Controller
         $file->move($path, $filename);
 
         // Limpiar el historial en la BD
-        \App\Models\ApkVersion::query()->delete();
+        ApkVersion::query()->delete();
 
-        \App\Models\ApkVersion::create([
+        ApkVersion::create([
             'version_name' => $request->version_name,
             'version_code' => $request->version_code,
             'apk_path' => 'storage/scanner/'.$filename,

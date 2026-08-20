@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AccessControlController;
+use App\Http\Controllers\Api\ApkUpdateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -11,7 +12,7 @@ Route::get('/user', function (Request $request) {
 // ─── Access Control API ───────────────────────────────────────────────────────
 Route::prefix('v1/access')->group(function () {
     // Debug route to check headers
-    Route::get('/debug-headers', function (Illuminate\Http\Request $request) {
+    Route::get('/debug-headers', function (Request $request) {
         return response()->json([
             'headers' => $request->headers->all(),
             'has_auth' => $request->hasHeader('Authorization'),
@@ -21,7 +22,7 @@ Route::prefix('v1/access')->group(function () {
 
     // Endpoints públicos o con autenticación básica de dispositivo
     Route::post('/login-device', [AccessControlController::class, 'loginDevice']);
-    Route::get('/check-apk', [\App\Http\Controllers\Api\ApkUpdateController::class, 'check']);
+    Route::get('/check-apk', [ApkUpdateController::class, 'check']);
 
     // Endpoints protegidos por Sanctum (Dispositivos registrados)
     Route::middleware('auth:sanctum')->group(function () {

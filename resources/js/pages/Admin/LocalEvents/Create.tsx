@@ -5,44 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Calendar, Info } from 'lucide-react';
 
-interface Venue {
-    id: number;
-    name: string;
-}
-
-interface SeatingMap {
-    id: number;
-    name: string;
-    venue_id: number;
-}
-
-interface Props {
-    venues: Venue[];
-    seatingMaps: SeatingMap[];
-}
-
-export default function Create({ venues, seatingMaps }: Props) {
+export default function Create() {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
-        start_date: '',
-        end_date: '',
-        venue_id: '',
-        seating_map_id: '',
         image: null as File | null,
     });
-
-    const filteredMaps = seatingMaps.filter(
-        (map) => !data.venue_id || map.venue_id === parseInt(data.venue_id),
-    );
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -62,151 +32,63 @@ export default function Create({ venues, seatingMaps }: Props) {
                 },
             ]}
         >
-            <Head title="Nuevo Evento Local" />
+            <Head title="Nuevo Evento (Cascarón)" />
 
             <div className="mx-auto max-w-2xl p-6">
-                <h1 className="mb-6 text-2xl font-bold">
-                    Crear Nuevo Evento Nativo
-                </h1>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold tracking-tight">
+                        Crear Nuevo Espectáculo / Evento
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Registra el cascarón principal del espectáculo. Después podrás agregarle 1 o más funciones con sus recintos, mapas y precios correspondientes.
+                    </p>
+                </div>
 
                 <form
                     onSubmit={handleSubmit}
                     className="space-y-6 rounded-xl border bg-card p-6 shadow-sm"
                 >
+                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-4 border border-amber-200 dark:border-amber-800 text-sm text-amber-800 dark:text-amber-300 flex items-start gap-3">
+                        <Info className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                        <div>
+                            <strong>Nota sobre recintos, mapas y precios:</strong>
+                            <p className="mt-0.5">
+                                Este formulario crea únicamente la información general del espectáculo. Los recintos, funciones, mapas interactivos, precios y fechas de venta se configuran individualmente en el siguiente paso por cada función.
+                            </p>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
-                        <Label htmlFor="name">Nombre del Evento</Label>
+                        <Label htmlFor="name">Nombre del Evento / Espectáculo</Label>
                         <Input
                             id="name"
                             value={data.name}
                             onChange={(e) => setData('name', e.target.value)}
-                            placeholder="Ej: Gran Concierto 2026"
+                            placeholder="Ej: Tour Boletea 2026"
                         />
                         {errors.name && (
-                            <p className="text-sm text-red-500">
+                            <p className="text-sm text-red-500 font-medium">
                                 {errors.name}
                             </p>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="start_date">
-                                Fecha y Hora de Inicio
-                            </Label>
-                            <Input
-                                id="start_date"
-                                type="datetime-local"
-                                value={data.start_date}
-                                onChange={(e) =>
-                                    setData('start_date', e.target.value)
-                                }
-                            />
-                            {errors.start_date && (
-                                <p className="text-sm text-red-500">
-                                    {errors.start_date}
-                                </p>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="end_date">
-                                Fecha y Hora de Fin
-                            </Label>
-                            <Input
-                                id="end_date"
-                                type="datetime-local"
-                                value={data.end_date}
-                                onChange={(e) =>
-                                    setData('end_date', e.target.value)
-                                }
-                            />
-                            {errors.end_date && (
-                                <p className="text-sm text-red-500">
-                                    {errors.end_date}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-
                     <div className="space-y-2">
-                        <Label htmlFor="venue">Recinto (Venue)</Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setData('venue_id', value)
-                            }
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Selecciona un recinto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {venues.map((venue) => (
-                                    <SelectItem
-                                        key={venue.id}
-                                        value={venue.id.toString()}
-                                    >
-                                        {venue.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.venue_id && (
-                            <p className="text-sm text-red-500">
-                                {errors.venue_id}
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="seating_map">
-                            Plantilla de Mapa de Asientos
-                        </Label>
-                        <Select
-                            onValueChange={(value) =>
-                                setData('seating_map_id', value)
-                            }
-                            disabled={!data.venue_id}
-                        >
-                            <SelectTrigger>
-                                <SelectValue
-                                    placeholder={
-                                        data.venue_id
-                                            ? 'Selecciona una plantilla'
-                                            : 'Primero selecciona un recinto'
-                                    }
-                                />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {filteredMaps.map((map) => (
-                                    <SelectItem
-                                        key={map.id}
-                                        value={map.id.toString()}
-                                    >
-                                        {map.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.seating_map_id && (
-                            <p className="text-sm text-red-500">
-                                {errors.seating_map_id}
-                            </p>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Descripción</Label>
+                        <Label htmlFor="description">Sinopsis / Descripción General</Label>
                         <Textarea
                             id="description"
                             value={data.description}
                             onChange={(e) =>
                                 setData('description', e.target.value)
                             }
+                            placeholder="Detalles generales del espectáculo para el público..."
                             rows={4}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="image">
-                            Imagen del Evento (Opcional)
+                            Poster / Banner Publicitario
                         </Label>
                         <Input
                             id="image"
@@ -220,7 +102,7 @@ export default function Create({ venues, seatingMaps }: Props) {
                             }
                         />
                         {errors.image && (
-                            <p className="text-sm text-red-500">
+                            <p className="text-sm text-red-500 font-medium">
                                 {errors.image}
                             </p>
                         )}
@@ -234,8 +116,9 @@ export default function Create({ venues, seatingMaps }: Props) {
                         >
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={processing}>
-                            Crear Evento
+                        <Button type="submit" disabled={processing} className="bg-[#c90000] hover:bg-[#a00000] text-white">
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Crear Evento e Ir a Funciones
                         </Button>
                     </div>
                 </form>

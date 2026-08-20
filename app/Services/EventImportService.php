@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\ExternalEvent;
 use App\Models\Venue;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -114,7 +115,7 @@ class EventImportService
 
                     if (! empty($perf['PerformanceDateTime'])) {
                         try {
-                            $dt = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceDateTime']);
+                            $dt = Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceDateTime']);
                             if ($earliest === null || $dt->lt($earliest)) {
                                 $earliest = clone $dt;
                                 $startDate = $earliest->format('Y-m-d H:i:s');
@@ -133,7 +134,7 @@ class EventImportService
 
                     if (! empty($perf['PerformanceEndDateTime'])) {
                         try {
-                            $dtEnd = \Carbon\Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceEndDateTime']);
+                            $dtEnd = Carbon::createFromFormat('n/j/Y g:i:s A', $perf['PerformanceEndDateTime']);
                             if ($latest === null || $dtEnd->gt($latest)) {
                                 $latest = clone $dtEnd;
                                 $endDate = $latest->format('Y-m-d H:i:s');
@@ -148,7 +149,7 @@ class EventImportService
                 $venueName = $eventData['VenueName'] ?? null;
                 $venueId = null;
                 if (! empty($venueName)) {
-                    $venue = \App\Models\Venue::firstOrCreate(
+                    $venue = Venue::firstOrCreate(
                         ['name' => $venueName],
                         [
                             // 'city' => $eventData['VenueCity'] ?? null,  // Removed as per user request
@@ -205,7 +206,7 @@ class EventImportService
                 // Sync Category
                 $categoryName = $eventData['EventCategory'] ?? null;
                 if (! empty($categoryName)) {
-                    $category = \App\Models\Category::firstOrCreate(
+                    $category = Category::firstOrCreate(
                         ['name' => $categoryName],
                         ['slug' => Str::slug($categoryName)]
                     );

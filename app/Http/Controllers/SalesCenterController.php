@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\State;
 use Inertia\Inertia;
 
 class SalesCenterController extends Controller
 {
     public function index()
     {
-        $states = \App\Models\State::whereHas('salesCenters', function ($query) {
+        $states = State::whereHas('salesCenters', function ($query) {
             $query->where('is_active', true);
         })->with(['salesCenters' => function ($query) {
             $query->where('is_active', true);

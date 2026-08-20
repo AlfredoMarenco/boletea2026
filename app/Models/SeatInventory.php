@@ -11,6 +11,7 @@ class SeatInventory extends Model
 
     protected $fillable = [
         'event_map_id',
+        'event_showtime_id',
         'seat_uuid',
         'status',
         'price',
@@ -24,10 +25,16 @@ class SeatInventory extends Model
 
     protected $casts = [
         'reserved_expires_at' => 'datetime',
+        'price' => 'decimal:2',
     ];
 
     public function eventMap()
     {
         return $this->belongsTo(EventMap::class);
+    }
+
+    public function showtime()
+    {
+        return $this->belongsTo(EventShowtime::class, 'event_showtime_id');
     }
 }

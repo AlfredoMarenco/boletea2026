@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\SalesCenter;
+use App\Models\State;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -20,7 +21,7 @@ class SalesCenterController extends Controller
 
     public function create()
     {
-        $states = \App\Models\State::orderBy('name')->get();
+        $states = State::orderBy('name')->get();
 
         return Inertia::render('Admin/SalesCenters/Create', [
             'states' => $states,
@@ -66,7 +67,7 @@ class SalesCenterController extends Controller
 
     public function edit(SalesCenter $salesCenter)
     {
-        $states = \App\Models\State::orderBy('name')->get();
+        $states = State::orderBy('name')->get();
         $salesCenter->load('states');
 
         return Inertia::render('Admin/SalesCenters/Edit', [

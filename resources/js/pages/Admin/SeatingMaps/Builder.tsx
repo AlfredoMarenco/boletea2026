@@ -157,7 +157,8 @@ export default function Builder({ seatingMap }: Props) {
             'rowLabelEnabled', 'rowLabelPosition', 'rowLabelOverride', 'rowLabelDisplayType', 'rowLabelDirection',
             'row_label_start', 'row_label_type', 'row_label_skip',
             'row_label_enabled', 'row_label_position', 'row_label_override', 'row_label_display_type', 'row_label_direction',
-            'seatLabelType', 'seatLabelStart', 'seatLabelDirection', 'seat_label_direction'
+            'seatLabelType', 'seatLabelStart', 'seatLabelDirection', 'seat_label_direction',
+            'seatNumberingMode', 'seat_numbering_mode'
         ];
         const isGeometric = Object.keys(properties).some(key => geometricFields.includes(key));
         const isLabel = Object.keys(properties).some(key => labelFields.includes(key));
@@ -224,7 +225,7 @@ export default function Builder({ seatingMap }: Props) {
                 return ['section_container', 'zone', 'rect_zone', 'circle_zone', 'standing'].includes(node?.type);
             });
 
-            if (sectionUpdates.length > 0 && (properties.name || properties.fill || properties.category_id)) {
+            if (sectionUpdates.length > 0 && (properties.name || properties.category_id !== undefined)) {
                 sectionUpdates.forEach(sectionId => {
                     const sectionNode = updatedNodes.find((n: any) => n.id === sectionId);
                     if (!sectionNode) return;
@@ -244,7 +245,6 @@ export default function Builder({ seatingMap }: Props) {
                             return { 
                                 ...node, 
                                 section: properties.name || node.section,
-                                fill: properties.fill || node.fill,
                                 category_id: properties.category_id !== undefined ? properties.category_id : node.category_id
                             };
                         }
@@ -352,6 +352,8 @@ export default function Builder({ seatingMap }: Props) {
                 setActiveTool('pan');
             } else if (e.key.toLowerCase() === 'v') {
                 setActiveTool('select');
+            } else if (e.key.toLowerCase() === 't') {
+                setActiveTool('text');
             }
         };
 

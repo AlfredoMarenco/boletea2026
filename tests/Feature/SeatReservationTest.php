@@ -20,12 +20,14 @@ test('a user can temporarily reserve available seats', function () {
         'venue_id' => $venue->id,
         'status' => 'draft',
     ]);
-    $eventMap = $event->eventMaps()->create([
+    $showtime = $event->showtimes()->create([
+        'name' => 'Función 1',
+        'date_time' => now()->addDays(2),
         'seating_map_id' => $seatingMap->id,
     ]);
 
     $seat1 = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-1',
         'status' => 'available',
         'price' => 100,
@@ -34,7 +36,7 @@ test('a user can temporarily reserve available seats', function () {
     ]);
 
     $seat2 = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-2',
         'status' => 'available',
         'price' => 100,
@@ -43,7 +45,7 @@ test('a user can temporarily reserve available seats', function () {
     ]);
 
     $response = $this->post(route('seats.reserve'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-1', 'uuid-2'],
     ]);
 
@@ -70,13 +72,15 @@ test('a user cannot reserve already reserved or sold seats', function () {
         'venue_id' => $venue->id,
         'status' => 'draft',
     ]);
-    $eventMap = $event->eventMaps()->create([
+    $showtime = $event->showtimes()->create([
+        'name' => 'Función 1',
+        'date_time' => now()->addDays(2),
         'seating_map_id' => $seatingMap->id,
     ]);
 
     // Pre-create a sold seat
     $soldSeat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-sold',
         'status' => 'sold',
         'price' => 100,
@@ -86,7 +90,7 @@ test('a user cannot reserve already reserved or sold seats', function () {
 
     // Pre-create an actively reserved seat
     $reservedSeat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-reserved',
         'status' => 'reserved',
         'reserved_expires_at' => now()->addMinutes(5),
@@ -98,14 +102,14 @@ test('a user cannot reserve already reserved or sold seats', function () {
 
     // Try to reserve the sold seat
     $response = $this->post(route('seats.reserve'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-sold'],
     ]);
     $response->assertStatus(422);
 
     // Try to reserve the active reserved seat
     $response2 = $this->post(route('seats.reserve'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-reserved'],
     ]);
     $response2->assertStatus(422);
@@ -125,13 +129,15 @@ test('a user can reserve an expired reservation seat', function () {
         'venue_id' => $venue->id,
         'status' => 'draft',
     ]);
-    $eventMap = $event->eventMaps()->create([
+    $showtime = $event->showtimes()->create([
+        'name' => 'Función 1',
+        'date_time' => now()->addDays(2),
         'seating_map_id' => $seatingMap->id,
     ]);
 
     // Pre-create an expired reserved seat
     $expiredSeat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-expired',
         'status' => 'reserved',
         'reserved_expires_at' => now()->subMinutes(1),
@@ -142,7 +148,7 @@ test('a user can reserve an expired reservation seat', function () {
     ]);
 
     $response = $this->post(route('seats.reserve'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-expired'],
     ], [
         'X-Session-ID' => 'test-session-expired',
@@ -167,12 +173,14 @@ test('a user can release their own reserved seats', function () {
         'venue_id' => $venue->id,
         'status' => 'draft',
     ]);
-    $eventMap = $event->eventMaps()->create([
+    $showtime = $event->showtimes()->create([
+        'name' => 'Función 1',
+        'date_time' => now()->addDays(2),
         'seating_map_id' => $seatingMap->id,
     ]);
 
     $seat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-rel',
         'status' => 'available',
         'price' => 100,
@@ -182,7 +190,7 @@ test('a user can release their own reserved seats', function () {
 
     // 1. Reserve it via HTTP request with a fixed session header
     $this->post(route('seats.reserve'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-rel'],
     ], [
         'X-Session-ID' => 'test-session-release',
@@ -192,7 +200,7 @@ test('a user can release their own reserved seats', function () {
 
     // 2. Release it via HTTP request using the same session header
     $response = $this->post(route('seats.release'), [
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuids' => ['uuid-rel'],
     ], [
         'X-Session-ID' => 'test-session-release',
@@ -217,12 +225,14 @@ test('cleanup artisan command releases all expired seat reservations', function 
         'venue_id' => $venue->id,
         'status' => 'draft',
     ]);
-    $eventMap = $event->eventMaps()->create([
+    $showtime = $event->showtimes()->create([
+        'name' => 'Función 1',
+        'date_time' => now()->addDays(2),
         'seating_map_id' => $seatingMap->id,
     ]);
 
     $expiredSeat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-expired-cmd',
         'status' => 'reserved',
         'reserved_expires_at' => now()->subSeconds(1),
@@ -233,7 +243,7 @@ test('cleanup artisan command releases all expired seat reservations', function 
     ]);
 
     $activeSeat = SeatInventory::create([
-        'event_map_id' => $eventMap->id,
+        'event_showtime_id' => $showtime->id,
         'seat_uuid' => 'uuid-active-cmd',
         'status' => 'reserved',
         'reserved_expires_at' => now()->addMinutes(10),

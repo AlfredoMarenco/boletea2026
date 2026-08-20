@@ -1,7 +1,11 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use App\Providers\FortifyServiceProvider;
+use Laravel\Sanctum\SanctumServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\FortifyServiceProvider::class,
-    Laravel\Sanctum\SanctumServiceProvider::class,
+    AppServiceProvider::class,
+    FortifyServiceProvider::class,
+    SanctumServiceProvider::class,
 ];

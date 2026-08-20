@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MailingList extends Model
 {
@@ -25,7 +26,7 @@ class MailingList extends Model
     /**
      * Audiencias a las que pertenece este contacto.
      */
-    public function audiences(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    public function audiences(): BelongsToMany
     {
         return $this->belongsToMany(MailingAudience::class, 'mailing_audience_contact', 'mailing_list_id', 'mailing_audience_id')
             ->withTimestamps();

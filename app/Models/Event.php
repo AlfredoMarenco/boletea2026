@@ -30,13 +30,19 @@ class Event extends Model
         return $this->belongsTo(Venue::class);
     }
 
-    public function eventMaps()
+    public function showtimes()
     {
-        return $this->hasMany(EventMap::class);
+        return $this->hasMany(EventShowtime::class);
     }
 
-    public function prices()
+    public function canBeDeleted(): bool
     {
-        return $this->hasMany(EventPrice::class);
+        foreach ($this->showtimes as $showtime) {
+            if (! $showtime->canBeDeleted()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

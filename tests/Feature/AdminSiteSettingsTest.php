@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Bank;
 use App\Models\SiteSetting;
 use App\Models\User;
 use App\Services\WorldCupScoreService;
@@ -63,7 +64,7 @@ test('authenticated admin user can toggle bank status', function () {
         'email_verified_at' => now(),
     ]);
 
-    $bank = \App\Models\Bank::create([
+    $bank = Bank::create([
         'code' => '012',
         'name' => 'BBVA',
         'enabled' => true,

@@ -21,4 +21,9 @@ class Venue extends Model
     {
         return $this->hasMany(ExternalEvent::class);
     }
+
+    public function seatingMaps()
+    {
+        return $this->hasMany(SeatingMap::class);
+    }
 }

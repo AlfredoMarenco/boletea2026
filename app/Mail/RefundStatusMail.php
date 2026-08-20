@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\URL;
 
 class RefundStatusMail extends Mailable
 {
@@ -158,7 +159,7 @@ class RefundStatusMail extends Mailable
 
         if ($this->request->status === 'rejected') {
             if (! empty($invalidDocs)) {
-                $updateUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                $updateUrl = URL::temporarySignedRoute(
                     'refund.update_documents',
                     now()->addHours(48),
                     ['refundRequest' => $this->request->id]

@@ -1,4 +1,4 @@
-import { Head, useForm, Link } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import AppLayout from '@/layouts/app-layout';
 import { Button } from '@/components/ui/button';
@@ -12,55 +12,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { format } from 'date-fns';
-
-interface Venue {
-    id: number;
-    name: string;
-}
-
-interface SeatingMap {
-    id: number;
-    name: string;
-    venue_id: number;
-}
-
-interface EventMap {
-    id: number;
-    seating_map_id: number;
-    seating_map: SeatingMap;
-}
 
 interface Event {
     id: number;
     name: string;
     description: string;
-    start_date: string;
-    end_date: string | null;
-    venue_id: number;
     status: string;
     image_path: string | null;
-    event_maps: EventMap[];
 }
 
 interface Props {
     event: Event;
-    venues: Venue[];
-    seatingMaps: SeatingMap[];
 }
 
-export default function Edit({ event, venues, seatingMaps }: Props) {
+export default function Edit({ event }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         _method: 'PUT',
         name: event.name || '',
         description: event.description || '',
-        start_date: event.start_date
-            ? format(new Date(event.start_date), "yyyy-MM-dd'T'HH:mm")
-            : '',
-        end_date: event.end_date
-            ? format(new Date(event.end_date), "yyyy-MM-dd'T'HH:mm")
-            : '',
-        venue_id: event.venue_id ? event.venue_id.toString() : '',
         status: event.status || 'draft',
         image: null as File | null,
     });
@@ -87,7 +56,12 @@ export default function Edit({ event, venues, seatingMaps }: Props) {
 
             <div className="mx-auto max-w-4xl p-6">
                 <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold">Editar Evento Nativo</h1>
+                    <div>
+                        <h1 className="text-2xl font-bold">Editar Evento (Cascarón)</h1>
+                        <p className="text-sm text-muted-foreground">
+                            Modifica los datos generales del espectáculo. Las funciones, recintos, mapas y fechas de venta se gestionan en su sección correspondiente.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -113,109 +87,34 @@ export default function Edit({ event, venues, seatingMaps }: Props) {
                                 )}
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="start_date">
-                                        Fecha y Hora de Inicio
-                                    </Label>
-                                    <Input
-                                        id="start_date"
-                                        type="datetime-local"
-                                        value={data.start_date}
-                                        onChange={(e) =>
-                                            setData(
-                                                'start_date',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    {errors.start_date && (
-                                        <p className="text-sm text-red-500">
-                                            {errors.start_date}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="end_date">
-                                        Fecha y Hora de Fin
-                                    </Label>
-                                    <Input
-                                        id="end_date"
-                                        type="datetime-local"
-                                        value={data.end_date}
-                                        onChange={(e) =>
-                                            setData('end_date', e.target.value)
-                                        }
-                                    />
-                                    {errors.end_date && (
-                                        <p className="text-sm text-red-500">
-                                            {errors.end_date}
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="venue">
-                                        Recinto (Venue)
-                                    </Label>
-                                    <Select
-                                        onValueChange={(value) =>
-                                            setData('venue_id', value)
-                                        }
-                                        value={data.venue_id}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un recinto" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {venues.map((venue) => (
-                                                <SelectItem
-                                                    key={venue.id}
-                                                    value={venue.id.toString()}
-                                                >
-                                                    {venue.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.venue_id && (
-                                        <p className="text-sm text-red-500">
-                                            {errors.venue_id}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="status">Estado</Label>
-                                    <Select
-                                        onValueChange={(value) =>
-                                            setData('status', value)
-                                        }
-                                        value={data.status}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Estado del evento" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="draft">
-                                                Borrador
-                                            </SelectItem>
-                                            <SelectItem value="published">
-                                                Publicado
-                                            </SelectItem>
-                                            <SelectItem value="cancelled">
-                                                Cancelado
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.status && (
-                                        <p className="text-sm text-red-500">
-                                            {errors.status}
-                                        </p>
-                                    )}
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="status">Estado General</Label>
+                                <Select
+                                    onValueChange={(value) =>
+                                        setData('status', value)
+                                    }
+                                    value={data.status}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Estado del evento" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="draft">
+                                            Borrador
+                                        </SelectItem>
+                                        <SelectItem value="published">
+                                            Publicado
+                                        </SelectItem>
+                                        <SelectItem value="cancelled">
+                                            Cancelado
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {errors.status && (
+                                    <p className="text-sm text-red-500">
+                                        {errors.status}
+                                    </p>
+                                )}
                             </div>
 
                             <div className="space-y-2">
@@ -232,7 +131,7 @@ export default function Edit({ event, venues, seatingMaps }: Props) {
 
                             <div className="space-y-2">
                                 <Label htmlFor="image">
-                                    Imagen del Evento (Opcional)
+                                    Imagen / Poster (Opcional)
                                 </Label>
                                 <Input
                                     id="image"
@@ -262,7 +161,7 @@ export default function Edit({ event, venues, seatingMaps }: Props) {
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={processing}>
+                                <Button type="submit" disabled={processing} className="bg-[#c90000] text-white">
                                     Guardar Cambios
                                 </Button>
                             </div>
@@ -270,45 +169,6 @@ export default function Edit({ event, venues, seatingMaps }: Props) {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="rounded-xl border bg-card p-6 shadow-sm">
-                            <h2 className="mb-4 text-lg font-semibold">
-                                Mapa de Asientos
-                            </h2>
-                            {event.event_maps && event.event_maps.length > 0 ? (
-                                <div className="space-y-4">
-                                    <div className="rounded-lg bg-muted p-4">
-                                        <p className="font-medium">
-                                            {
-                                                event.event_maps[0].seating_map
-                                                    ?.name
-                                            }
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                            Mapa asignado
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full"
-                                        asChild
-                                    >
-                                        <Link
-                                            href={route(
-                                                'admin.local-events.prices',
-                                                event.id,
-                                            )}
-                                        >
-                                            Configurar Precios y Zonas
-                                        </Link>
-                                    </Button>
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    No hay mapa asignado a este evento.
-                                </p>
-                            )}
-                        </div>
-
                         {event.image_path && (
                             <div className="rounded-xl border bg-card p-6 shadow-sm">
                                 <h2 className="mb-4 text-lg font-semibold">

@@ -15,6 +15,7 @@ export interface SeatingNode {
     width?: number;
     height?: number;
     fill?: string;
+    fillOpacity?: number;
     stroke?: string;
     strokeWidth?: number;
     name?: string;
@@ -31,6 +32,8 @@ export interface SeatingNode {
     rotation?: number;
     showTitle?: boolean;
     titlePosition?: 'center' | 'bottom' | 'top';
+    titleColor?: string;
+    fontSize?: number;
     capacity?: number;
     category_id?: number | string;
     row_label_enabled?: boolean;
@@ -51,11 +54,18 @@ export interface SeatingNode {
     seatLabelType?: string;
     seatLabelStart?: number;
     seatLabelDirection?: string;
+    seat_start_number?: number;
+    seat_label_type?: string;
     shape?: string;
     sectionType?: 'numbered' | 'general';
     curvature?: number;
     seat_label_direction?: string;
+    seat_numbering_mode?: 'consecutive' | 'positional';
+    seatNumberingMode?: 'consecutive' | 'positional';
     spacing?: number;
+    align?: 'left' | 'center' | 'right';
+    fontStyle?: 'normal' | 'bold' | 'italic' | 'bold italic' | string;
+    fontFamily?: string;
 }
 
 export interface SeatingConfig {

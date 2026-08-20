@@ -30,6 +30,11 @@ import {
     LayoutList,
     ArrowUp,
     ArrowDown,
+    Type,
+    AlignCenter,
+    Bold,
+    Italic,
+    RotateCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SeatingLayout, SeatingNode } from './types';
@@ -98,6 +103,32 @@ const PropertyRow: React.FC<PropertyRowProps> = ({ label, children, info }) => (
         <div className="max-w-[120px] flex-1">{children}</div>
     </div>
 );
+
+const getHexFromFill = (fill?: string, defaultHex: string = '#3b82f6') => {
+    if (!fill) return defaultHex;
+    if (fill.startsWith('#')) return fill;
+    if (fill.startsWith('rgba') || fill.startsWith('rgb')) {
+        const match = fill.match(/\d+/g);
+        if (match && match.length >= 3) {
+            const r = parseInt(match[0], 10).toString(16).padStart(2, '0');
+            const g = parseInt(match[1], 10).toString(16).padStart(2, '0');
+            const b = parseInt(match[2], 10).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+    }
+    return defaultHex;
+};
+
+const getOpacityFromFillOrNode = (fill?: string, fillOpacity?: number, sectionType?: string) => {
+    if (fillOpacity !== undefined && fillOpacity !== null) return fillOpacity;
+    if (fill && (fill.startsWith('rgba') || fill.startsWith('hsla'))) {
+        const match = fill.match(/rgba?\(.*?,\s*.*?,\s*.*?,\s*([\d.]+)\)/);
+        if (match && match[1]) {
+            return parseFloat(match[1]);
+        }
+    }
+    return sectionType === 'general' ? 0.15 : 0.08;
+};
 
 interface InspectorProps {
     layout: SeatingLayout;
@@ -327,6 +358,15 @@ const Inspector: React.FC<InspectorProps> = ({
                 0,
             );
 
+            const commonCurvature = (() => {
+                const firstCurve = first.curvature !== undefined ? first.curvature : (first.curve !== undefined ? first.curve : 0);
+                const isSame = selectedNodes.every((n) => {
+                    const c = n.curvature !== undefined ? n.curvature : (n.curve !== undefined ? n.curve : 0);
+                    return c === firstCurve;
+                });
+                return isSame ? firstCurve : 0;
+            })();
+
             const data = {
                 section: getCommon('section'),
                 category_id: getCommon('category_id', null),
@@ -338,7 +378,6 @@ const Inspector: React.FC<InspectorProps> = ({
                 numSeats: commonNumSeats || 0,
                 totalSeats:
                     totalRowSeats || totalTableSeats || totalSelectedSeats || 0,
-                curve: getCommon('curvature', 0),
                 seatSpacing: getCommon('spacing', getCommon('seatSpacing', 35)),
                 rowSpacing: (() => {
                     if (rowUuids.length > 1) {
@@ -378,6 +417,14 @@ const Inspector: React.FC<InspectorProps> = ({
                     return layout?.config?.rowSpacing || 40;
                 })(),
                 seatLabelDirection: getCommon('seat_label_direction', getCommon('seatLabelDirection', 'LR')),
+                seatNumberingMode: getCommon('seat_numbering_mode', getCommon('seatNumberingMode', 'consecutive')),
+                seatLabelStart: (() => {
+                    const explicitStart = getCommon('seat_start_number', getCommon('seatLabelStart', null));
+                    if (explicitStart !== null && explicitStart !== undefined && explicitStart !== '') return parseInt(String(explicitStart), 10) || 1;
+                    const nums = selectedNodes.map(n => typeof n.number === 'number' ? n.number : (parseInt(n.number) || 1)).filter(n => !isNaN(n));
+                    return nums.length > 0 ? Math.min(...nums) : 1;
+                })(),
+                seatLabelType: getCommon('seat_label_type', getCommon('seatLabelType', '123')),
                 rowLabelDirection: getCommon('row_label_direction', 'TB'),
                 rowLabelType: getCommon('row_label_type', ''),
                 rowLabelStart: getCommon('row_label_start', 'A'),
@@ -389,10 +436,17 @@ const Inspector: React.FC<InspectorProps> = ({
                 name: getCommon('name', ''),
                 width: getCommon('width', 0),
                 height: getCommon('height', 0),
+                fillOpacity: getCommon('fillOpacity', undefined),
                 stroke: getCommon('stroke', '#3b82f6'),
                 showTitle: getCommon('showTitle', true),
                 titlePosition: getCommon('titlePosition', 'top'),
+                titleColor: getCommon('titleColor', ''),
+                fontSize: getCommon('fontSize', 28),
                 sectionType: getCommon('sectionType', 'numbered'),
+                rotation: getCommon('rotation', 0),
+                align: getCommon('align', 'center'),
+                fontStyle: getCommon('fontStyle', 'bold'),
+                curve: commonCurvature,
             };
 
             setFormData((prev) => ({ ...prev, ...data }));
@@ -622,26 +676,80 @@ const Inspector: React.FC<InspectorProps> = ({
                                 </PropertyRow>
                             </>
                         )}
-                        <PropertyRow label="Color">
+                        <PropertyRow label="Color Relleno">
                             <div className="flex gap-2">
                                 <input
                                     type="color"
-                                    value={
-                                        formData.fill?.startsWith('rgba')
-                                            ? '#3b82f6'
-                                            : formData.fill || '#3b82f6'
-                                    }
-                                    onChange={(e) =>
-                                        handleImmediateChange(
-                                            'fill',
-                                            e.target.value,
-                                        )
-                                    }
-                                    className="h-8 w-8 rounded border-none"
+                                    value={getHexFromFill(
+                                        formData.fill,
+                                        formData.sectionType === 'general' ? '#10b981' : '#3b82f6'
+                                    )}
+                                    onChange={(e) => {
+                                        const hexColor = e.target.value;
+                                        const currentOpacity = getOpacityFromFillOrNode(
+                                            formData.fill,
+                                            formData.fillOpacity,
+                                            formData.sectionType
+                                        );
+                                        onUpdate({
+                                            fill: hexColor,
+                                            fillOpacity: currentOpacity,
+                                        });
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            fill: hexColor,
+                                            fillOpacity: currentOpacity,
+                                        }));
+                                    }}
+                                    className="h-8 w-8 cursor-pointer rounded border-none"
                                 />
                                 <div className="flex flex-1 items-center rounded bg-muted/20 px-2 py-1 font-mono text-[10px]">
-                                    {formData.fill}
+                                    {formData.fill || (formData.sectionType === 'general' ? '#10b981' : '#3b82f6')}
                                 </div>
+                            </div>
+                        </PropertyRow>
+                        <PropertyRow label="Transparencia">
+                            <div className="flex w-full min-w-0 items-center gap-1.5">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="5"
+                                    value={Math.round(
+                                        getOpacityFromFillOrNode(
+                                            formData.fill,
+                                            formData.fillOpacity,
+                                            formData.sectionType
+                                        ) * 100
+                                    )}
+                                    onChange={(e) => {
+                                        const pct = parseInt(e.target.value, 10);
+                                        const opacityVal = pct / 100;
+                                        const hexColor = getHexFromFill(
+                                            formData.fill,
+                                            formData.sectionType === 'general' ? '#10b981' : '#3b82f6'
+                                        );
+                                        onUpdate({
+                                            fill: hexColor,
+                                            fillOpacity: opacityVal,
+                                        });
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            fill: hexColor,
+                                            fillOpacity: opacityVal,
+                                        }));
+                                    }}
+                                    className="h-1.5 w-full min-w-0 flex-1 cursor-pointer accent-blue-600"
+                                />
+                                <span className="w-8 shrink-0 text-right font-mono text-[10px] text-muted-foreground">
+                                    {Math.round(
+                                        getOpacityFromFillOrNode(
+                                            formData.fill,
+                                            formData.fillOpacity,
+                                            formData.sectionType
+                                        ) * 100
+                                    )}%
+                                </span>
                             </div>
                         </PropertyRow>
                         <PropertyRow label="Mostrar Título">
@@ -652,21 +760,61 @@ const Inspector: React.FC<InspectorProps> = ({
                                 }
                             />
                         </PropertyRow>
-                        <PropertyRow label="Posición Título">
-                            <select
-                                value={formData.titlePosition || 'top'}
-                                onChange={(e) =>
-                                    handleImmediateChange(
-                                        'titlePosition',
-                                        e.target.value,
-                                    )
-                                }
-                                className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
-                            >
-                                <option value="top">Arriba</option>
-                                <option value="center">Centro</option>
-                                <option value="bottom">Abajo</option>
-                            </select>
+                        <PropertyRow label="Color Título">
+                            <div className="flex gap-2">
+                                <input
+                                    type="color"
+                                    value={
+                                        formData.titleColor?.startsWith('rgba')
+                                            ? '#3b82f6'
+                                            : formData.titleColor || '#3b82f6'
+                                    }
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'titleColor',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 w-7 cursor-pointer rounded border-none"
+                                />
+                                <div className="flex flex-1 items-center justify-between rounded bg-muted/20 px-2 py-1 font-mono text-[10px]">
+                                    <span className="truncate">{formData.titleColor || 'Auto'}</span>
+                                    {formData.titleColor && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleImmediateChange('titleColor', '')}
+                                            className="ml-1 text-[9px] text-muted-foreground hover:text-foreground underline"
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </PropertyRow>
+                        <PropertyRow label="Tamaño Título" info="Pulsaciones en px (0 para tamaño automático)">
+                            <div className="flex items-center gap-1">
+                                <Input
+                                    type="number"
+                                    value={formData.fontSize || ''}
+                                    placeholder="Auto"
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'fontSize',
+                                            e.target.value ? parseInt(e.target.value) : 0,
+                                        )
+                                    }
+                                    className="h-7 bg-muted/20 text-center text-xs font-mono"
+                                />
+                                {formData.fontSize > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleImmediateChange('fontSize', 0)}
+                                        className="text-[9px] text-muted-foreground hover:text-foreground px-1"
+                                    >
+                                        Auto
+                                    </button>
+                                )}
+                            </div>
                         </PropertyRow>
 
                         {selectedNodes.length === 1 && (
@@ -896,7 +1044,253 @@ const Inspector: React.FC<InspectorProps> = ({
                 </div>
             )}
 
-            <Separator className="opacity-50" />
+            {selectedNodes.some((n) => n.type === 'text') && (
+                <>
+                    <SectionHeader
+                        title="Etiqueta de Texto"
+                        icon={Type}
+                        isOpen={true}
+                        onToggle={() => {}}
+                    />
+                    <div className="space-y-3 px-1 py-3 pb-4">
+                        <PropertyRow label="Texto">
+                            <Input
+                                value={formData.name || ''}
+                                onChange={(e) =>
+                                    handlePendingChange('name', e.target.value)
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-xs font-bold"
+                                placeholder="Ej. Escenario"
+                            />
+                        </PropertyRow>
+
+                        <PropertyRow label="Tamaño (px)">
+                            <Input
+                                type="number"
+                                min="8"
+                                max="150"
+                                value={formData.fontSize || 28}
+                                onChange={(e) =>
+                                    handlePendingChange(
+                                        'fontSize',
+                                        parseInt(e.target.value) || 12,
+                                    )
+                                }
+                                onBlur={handleStructuralBlur}
+                                className="h-7 bg-muted/20 text-center font-mono text-xs font-bold"
+                            />
+                        </PropertyRow>
+
+                        <PropertyRow label="Color Texto">
+                            <div className="flex gap-2">
+                                <input
+                                    type="color"
+                                    value={
+                                        formData.fill?.startsWith('rgba')
+                                            ? '#1e293b'
+                                            : formData.fill || '#1e293b'
+                                    }
+                                    onChange={(e) =>
+                                        handleImmediateChange(
+                                            'fill',
+                                            e.target.value,
+                                        )
+                                    }
+                                    className="h-7 w-7 cursor-pointer rounded border-none"
+                                />
+                                <div className="flex flex-1 items-center justify-between rounded bg-muted/20 px-2 py-1 font-mono text-[10px] uppercase">
+                                    <span className="truncate">{formData.fill || '#1e293b'}</span>
+                                </div>
+                            </div>
+                        </PropertyRow>
+
+                        <PropertyRow label="Transparencia">
+                            <div className="flex w-full min-w-0 items-center gap-1.5">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="5"
+                                    value={Math.round(
+                                        (formData.fillOpacity !== undefined
+                                            ? formData.fillOpacity
+                                            : 1) * 100,
+                                    )}
+                                    onChange={(e) => {
+                                        const pct = parseInt(e.target.value, 10);
+                                        const opacityVal = pct / 100;
+                                        handleImmediateChange('fillOpacity', opacityVal);
+                                    }}
+                                    className="h-1.5 w-full min-w-0 flex-1 cursor-pointer accent-blue-600"
+                                />
+                                <span className="w-8 shrink-0 text-right font-mono text-[10px] text-muted-foreground">
+                                    {Math.round(
+                                        (formData.fillOpacity !== undefined
+                                            ? formData.fillOpacity
+                                            : 1) * 100,
+                                    )}
+                                    %
+                                </span>
+                            </div>
+                        </PropertyRow>
+
+                        <PropertyRow label="Rotación (°)">
+                            <Input
+                                type="number"
+                                min="0"
+                                max="360"
+                                value={Math.round(formData.rotation || 0)}
+                                onChange={(e) =>
+                                    handleImmediateChange(
+                                        'rotation',
+                                        parseInt(e.target.value) || 0,
+                                    )
+                                }
+                                className="h-7 bg-muted/20 text-center font-mono text-xs font-bold"
+                            />
+                        </PropertyRow>
+
+                        <PropertyRow label="Alineación">
+                            <div className="flex bg-muted p-0.5 rounded-md gap-0.5 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => handleImmediateChange('align', 'left')}
+                                    className={cn(
+                                        "flex-1 py-1 flex justify-center items-center rounded text-xs transition-colors",
+                                        formData.align === 'left' ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                    title="Izquierda"
+                                >
+                                    <AlignLeft className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleImmediateChange('align', 'center')}
+                                    className={cn(
+                                        "flex-1 py-1 flex justify-center items-center rounded text-xs transition-colors",
+                                        (formData.align === 'center' || !formData.align) ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                    title="Centro"
+                                >
+                                    <AlignCenter className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleImmediateChange('align', 'right')}
+                                    className={cn(
+                                        "flex-1 py-1 flex justify-center items-center rounded text-xs transition-colors",
+                                        formData.align === 'right' ? "bg-background text-foreground shadow-sm font-bold" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                    title="Derecha"
+                                >
+                                    <AlignRight className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </PropertyRow>
+
+                        <PropertyRow label="Estilo Fuente">
+                            <div className="flex bg-muted p-0.5 rounded-md gap-1 w-full">
+                                <button
+                                    type="button"
+                                    onClick={() => handleImmediateChange('fontStyle', formData.fontStyle === 'bold' ? 'normal' : 'bold')}
+                                    className={cn(
+                                        "flex-1 py-1 flex justify-center items-center rounded text-xs transition-colors font-bold",
+                                        formData.fontStyle?.includes('bold') ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <Bold className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleImmediateChange('fontStyle', formData.fontStyle === 'italic' ? 'normal' : 'italic')}
+                                    className={cn(
+                                        "flex-1 py-1 flex justify-center items-center rounded text-xs transition-colors italic",
+                                        formData.fontStyle?.includes('italic') ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <Italic className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </PropertyRow>
+
+                        <PropertyRow label="Curvatura (Arco)">
+                            <DraggableNumberInput
+                                value={formData.curve || 0}
+                                step={0.2}
+                                speed={0.05}
+                                min={-15}
+                                max={15}
+                                onChange={(val: number) => handleImmediateChange('curve', val)}
+                                className="h-7 bg-muted/20 text-center font-mono text-xs font-bold"
+                            />
+                        </PropertyRow>
+
+                        <div className="flex bg-muted p-0.5 rounded-md gap-1 w-full">
+                            <button
+                                type="button"
+                                onClick={() => handleImmediateChange('curve', 0)}
+                                className={cn(
+                                    "flex-1 py-1 text-[10px] font-bold rounded transition-colors",
+                                    (!formData.curve || formData.curve === 0) ? "bg-background text-foreground shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Recto
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleImmediateChange('curve', 3)}
+                                className={cn(
+                                    "flex-1 py-1 text-[10px] font-bold rounded transition-colors",
+                                    formData.curve === 3 ? "bg-background text-foreground shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Arco (3)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleImmediateChange('curve', 6)}
+                                className={cn(
+                                    "flex-1 py-1 text-[10px] font-bold rounded transition-colors",
+                                    formData.curve === 6 ? "bg-background text-foreground shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Alto (6)
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleImmediateChange('curve', -4)}
+                                className={cn(
+                                    "flex-1 py-1 text-[10px] font-bold rounded transition-colors",
+                                    formData.curve === -4 ? "bg-background text-foreground shadow-sm text-blue-600" : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                Invertido
+                            </button>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="pt-2 border-t space-y-1.5">
+                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Presets Rápidos</Label>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                {['ESCENARIO', 'ENTRADA', 'ZONA VIP', 'BAR', 'BAÑOS', 'SALIDA'].map((preset) => (
+                                    <Button
+                                        key={preset}
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-6 text-[10px] px-2 font-bold uppercase justify-start"
+                                        onClick={() => handleImmediateChange('name', preset)}
+                                    >
+                                        {preset}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <Separator className="opacity-50" />
+                </>
+            )}
 
             {selectedNodes.some((n) => n.type === 'standing') && (
                 <>
@@ -1588,6 +1982,17 @@ const Inspector: React.FC<InspectorProps> = ({
                                     <option value="123">Secuencial (1, 2, 3...)</option>
                                     <option value="Pares">Pares (2, 4, 6...)</option>
                                     <option value="Impares">Impares (1, 3, 5...)</option>
+                                </select>
+                            </PropertyRow>
+
+                            <PropertyRow label="En Pasillos" info="Numeración al dejar huecos o pasillos intermedios">
+                                <select
+                                    value={formData.seatNumberingMode || 'consecutive'}
+                                    onChange={(e) => handleImmediateChange('seatNumberingMode', e.target.value)}
+                                    className="h-7 w-full rounded border-none bg-muted/20 px-2 text-[11px] outline-none"
+                                >
+                                    <option value="consecutive">Consecutiva (1, 2, 3... 4, 5)</option>
+                                    <option value="positional">Posicional (1, 2, 3... 6, 7)</option>
                                 </select>
                             </PropertyRow>
                             

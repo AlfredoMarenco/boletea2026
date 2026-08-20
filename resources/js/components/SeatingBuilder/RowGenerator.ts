@@ -53,22 +53,23 @@ export const getRowLabel = (
 export const getSeatNumber = (
     index: number,
     type: string = '123',
-    startAt: number = 1,
+    startAt: number | string = 1,
     count: number = 10,
     direction: string = 'LR',
 ): number => {
+    const numStart = typeof startAt === 'number' ? startAt : (parseInt(String(startAt), 10) || 1);
     let visualIndex = index;
     if (direction === 'RL') {
         visualIndex = count - 1 - index;
     }
 
     if (type === 'Pares') {
-        return startAt + visualIndex * 2 + (startAt % 2 === 0 ? 0 : 1);
+        return numStart + visualIndex * 2 + (numStart % 2 === 0 ? 0 : 1);
     }
     if (type === 'Impares') {
-        return startAt + visualIndex * 2 + (startAt % 2 !== 0 ? 0 : -1);
+        return numStart + visualIndex * 2 + (numStart % 2 !== 0 ? 0 : -1);
     }
-    return startAt + visualIndex;
+    return numStart + visualIndex;
 };
 
 interface GenerateRowParams {
@@ -145,6 +146,9 @@ export const generateRow = ({
                 count,
                 seatLabelDirection,
             ) : undefined,
+            seat_start_number: seatStartNumber,
+            seat_label_type: seatLabelType,
+            seat_label_direction: seatLabelDirection,
             permanent_uuid: uuidv4(),
         });
     }
@@ -207,6 +211,9 @@ export const generateHoneycomb = ({
                 row_uuid: rowUuid,
                 block_uuid: bUuid,
                 number: rowLabel ? getSeatNumber(j, '123', 1, cols, seatLabelDirection) : undefined,
+                seat_start_number: 1,
+                seat_label_type: '123',
+                seat_label_direction: seatLabelDirection,
             });
         }
     }

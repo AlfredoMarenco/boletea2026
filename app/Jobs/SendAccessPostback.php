@@ -2,12 +2,17 @@
 
 namespace App\Jobs;
 
+use App\Models\AccessEvent;
+use App\Models\AccessPostbackLog;
+use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Http;
 
 class SendAccessPostback implements ShouldQueue
 {
-    use \Illuminate\Foundation\Bus\Dispatchable, \Illuminate\Queue\InteractsWithQueue, \Illuminate\Queue\SerializesModels, Queueable;
+    use Dispatchable, \Illuminate\Queue\InteractsWithQueue, \Illuminate\Queue\SerializesModels, Queueable;
 
     public function __construct(
         public int $eventId,
@@ -20,7 +25,7 @@ class SendAccessPostback implements ShouldQueue
 
     public function handle(): void
     {
-        $event = \App\Models\AccessEvent::with('postback')->find($this->eventId);
+        $event = AccessEvent::with('postback')->find($this->eventId);
         if (! $event || ! $event->postback || ! $event->postback->is_active) {
             return;
         }
@@ -34,16 +39,16 @@ class SendAccessPostback implements ShouldQueue
             'HoraPostback' => now()->format('Y-m-d H:i:s'),
             'EstatusEscaneo' => $status,
             'Barcode' => $this->barcode,
-            'HoraEscaneo' => \Carbon\Carbon::parse($this->scannedAt)->format('Y-m-d H:i:s'),
+            'HoraEscaneo' => Carbon::parse($this->scannedAt)->format('Y-m-d H:i:s'),
             'EscanerID' => $this->scannerId,
         ];
 
         try {
-            $response = \Illuminate\Support\Facades\Http::asForm()
+            $response = Http::asForm()
                 ->timeout(15)
                 ->post($postbackUrl, $payload);
 
-            \App\Models\AccessPostbackLog::create([
+            AccessPostbackLog::create([
                 'access_event_id' => $this->eventId,
                 'barcode' => $this->barcode,
                 'status' => $this->result,
@@ -53,7 +58,7 @@ class SendAccessPostback implements ShouldQueue
                 'scanned_at' => $this->scannedAt,
             ]);
         } catch (\Exception $e) {
-            \App\Models\AccessPostbackLog::create([
+            AccessPostbackLog::create([
                 'access_event_id' => $this->eventId,
                 'barcode' => $this->barcode,
                 'status' => $this->result,
