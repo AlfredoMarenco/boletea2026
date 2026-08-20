@@ -8,7 +8,6 @@ use App\Http\Controllers\RefundController;
 use App\Http\Controllers\SalesCenterController;
 use App\Http\Controllers\SeatReservationController;
 use App\Models\ApkVersion;
-use App\Services\WorldCupScoreService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -69,16 +68,6 @@ Route::get('/app-scanner/download', function () {
         'Content-Type' => 'application/vnd.android.package-archive',
     ]);
 })->name('scanner.download');
-
-Route::get('/world-cup/status', function () {
-    if (! class_exists(WorldCupScoreService::class)) {
-        return response()->json(['status' => 'inactive']);
-    }
-
-    $service = app(WorldCupScoreService::class);
-
-    return response()->json($service->updateScore());
-})->name('world-cup.status');
 
 // --- Public Refund Routes --- //
 Route::get('/reembolsos', [RefundController::class, 'showForm'])->name('refund.form');

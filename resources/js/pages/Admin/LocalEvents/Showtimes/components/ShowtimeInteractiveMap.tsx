@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback } from 'react';
-import SeatingCanvas, { SeatingCanvasRef } from '@/components/SeatingBuilder/SeatingCanvas';
+import SeatingCanvas, { SeatingCanvasRef, getPolygonCentroid } from '@/components/SeatingBuilder/SeatingCanvas';
 import { Showtime, SeatInventoryItem, Price } from '../types';
 import { cn } from '@/lib/utils';
 import {
@@ -40,13 +40,15 @@ export default function ShowtimeInteractiveMap({
     inventories,
     selectedSeatUuids,
     mapMode = 'status',
+    isCustomerView = false,
     onSetSelectedSeatUuids,
     onEditGeneralCapacity,
 }: {
     showtime: Showtime;
-    inventories: SeatInventoryItem[];
+    inventories: SeatInventoryItem[] | Record<string, SeatInventoryItem>;
     selectedSeatUuids: string[];
     mapMode?: 'status' | 'category';
+    isCustomerView?: boolean;
     onToggleSeat?: (uuid: string) => void;
     onSetSelectedSeatUuids?: (uuids: string[]) => void;
     onEditGeneralCapacity?: (node: any) => void;
@@ -65,9 +67,20 @@ export default function ShowtimeInteractiveMap({
 
     const inventoryMap = useMemo(() => {
         const map: Record<string, SeatInventoryItem> = {};
-        inventories.forEach((item) => {
-            map[item.seat_uuid] = item;
-        });
+        if (Array.isArray(inventories)) {
+            inventories.forEach((item) => {
+                if (item?.seat_uuid) {
+                    map[item.seat_uuid] = item;
+                }
+            });
+        } else if (inventories && typeof inventories === 'object') {
+            Object.entries(inventories).forEach(([uuid, item]) => {
+                map[uuid] = {
+                    ...item,
+                    seat_uuid: item.seat_uuid || uuid,
+                };
+            });
+        }
         return map;
     }, [inventories]);
 
@@ -325,48 +338,53 @@ export default function ShowtimeInteractiveMap({
         let maxY = -Infinity;
 
         let targetNode = typeof target === 'string'
-            ? nodes.find((n: any) => n.id === target || n.section === target || n.name === target)
+            ? nodes.find((n: any) => n.id === target || n.name === target || n.section === target)
             : target;
 
-        const sectionName = typeof target === 'string' ? target : (targetNode?.section || targetNode?.name);
+        if (!targetNode) return;
 
-        if (targetNode && targetNode.x !== undefined && targetNode.y !== undefined) {
-            const w = targetNode.width || 40;
-            const h = targetNode.height || 40;
-            minX = Math.min(minX, targetNode.x);
-            maxX = Math.max(maxX, targetNode.x + w);
-            minY = Math.min(minY, targetNode.y);
-            maxY = Math.max(maxY, targetNode.y + h);
+        const sectionName = typeof target === 'string' ? target : (targetNode.name || targetNode.section);
+
+        // 1. Si el objetivo es una sección o contenedor (polígono, zona o bloque)
+        if (targetNode.points && targetNode.points.length >= 6) {
+            const centroid = getPolygonCentroid(targetNode.points);
+            const scaleX = targetNode.scaleX ?? 1;
+            const scaleY = targetNode.scaleY ?? 1;
+
+            minX = targetNode.x + centroid.minX * scaleX;
+            maxX = targetNode.x + centroid.maxX * scaleX;
+            minY = targetNode.y + centroid.minY * scaleY;
+            maxY = targetNode.y + centroid.maxY * scaleY;
+        } else if (targetNode.type === 'seat') {
+            // Si el objetivo directo fue un asiento individual
+            const r = targetNode.radius || 10;
+            minX = targetNode.x - r;
+            maxX = targetNode.x + r;
+            minY = targetNode.y - r;
+            maxY = targetNode.y + r;
+        } else {
+            const w = targetNode.width || (targetNode.radius ? targetNode.radius * 2 : 40);
+            const h = targetNode.height || (targetNode.radius ? targetNode.radius * 2 : 40);
+            const ox = targetNode.radius ? -targetNode.radius : 0;
+            const oy = targetNode.radius ? -targetNode.radius : 0;
+            minX = targetNode.x + ox;
+            maxX = targetNode.x + ox + w;
+            minY = targetNode.y + oy;
+            maxY = targetNode.y + oy + h;
         }
 
-        // Buscar todos los nodos y asientos pertenecientes a esta sección/contenedor
-        const relatedNodes = nodes.filter((n: any) => {
-            if (targetNode && n.id === targetNode.id) return true;
-            if (targetNode && n.parent_id === targetNode.id) return true;
-            if (sectionName && (n.section === sectionName || n.name === sectionName)) return true;
-
-            if (targetNode && targetNode.width && targetNode.height && targetNode.x !== undefined && targetNode.y !== undefined) {
-                return (
-                    n.x >= targetNode.x - 15 &&
-                    n.x <= targetNode.x + targetNode.width + 15 &&
-                    n.y >= targetNode.y - 15 &&
-                    n.y <= targetNode.y + targetNode.height + 15
-                );
+        // 2. Si la sección tiene asientos numerados asignados explícitamente (ej: n.section === "B1")
+        if (sectionName) {
+            const seatsInSection = nodes.filter((n: any) => n.type === 'seat' && n.section === sectionName);
+            if (seatsInSection.length > 0) {
+                seatsInSection.forEach((s: any) => {
+                    const r = s.radius || 10;
+                    minX = Math.min(minX, s.x - r);
+                    maxX = Math.max(maxX, s.x + r);
+                    minY = Math.min(minY, s.y - r);
+                    maxY = Math.max(maxY, s.y + r);
+                });
             }
-            return false;
-        });
-
-        if (relatedNodes.length > 0) {
-            relatedNodes.forEach((n: any) => {
-                const nx = n.x || 0;
-                const ny = n.y || 0;
-                const nw = n.width || (n.radius ? n.radius * 2 : 24);
-                const nh = n.height || (n.radius ? n.radius * 2 : 24);
-                minX = Math.min(minX, nx);
-                maxX = Math.max(maxX, nx + nw);
-                minY = Math.min(minY, ny);
-                maxY = Math.max(maxY, ny + nh);
-            });
         }
 
         if (minX !== Infinity && maxX !== -Infinity) {
@@ -380,7 +398,7 @@ export default function ShowtimeInteractiveMap({
     }, [nodes]);
 
     return (
-        <div ref={containerRef} className="relative flex flex-col rounded-2xl border border-slate-200 dark:border-white/10 bg-card overflow-hidden shadow-sm h-[680px]">
+        <div ref={containerRef} className="relative flex flex-col rounded-2xl border border-slate-200 dark:border-white/10 bg-card overflow-hidden shadow-sm h-[750px] min-h-[600px]">
             <div className="relative flex-1 h-full w-full overflow-hidden bg-background">
                 {/* Selector Rápido de Sección y Control de Centrado */}
                 <div className="absolute top-3 right-3 z-10 flex items-center gap-2 bg-background/90 backdrop-blur-md p-1.5 rounded-xl border border-border shadow-lg">
@@ -422,10 +440,10 @@ export default function ShowtimeInteractiveMap({
                     externalSelectedIds={selectedSeatUuids}
                     onSeatHover={handleSeatHover}
                     onSelectionChange={(selectedIds) => {
-                        if (!selectedIds || selectedIds.length === 0) return;
+                        const ids = selectedIds || [];
 
-                        if (selectedIds.length === 1) {
-                            const firstId = selectedIds[0];
+                        if (ids.length === 1) {
+                            const firstId = ids[0];
                             const targetNode = nodes.find((n: any) => n.id === firstId);
 
                             if (targetNode) {
@@ -443,7 +461,7 @@ export default function ShowtimeInteractiveMap({
                             }
                         }
 
-                        const seatIds = selectedIds.filter((id) => {
+                        const seatIds = ids.filter((id) => {
                             const n = nodes.find((node: any) => node.id === id);
                             return !n || n.type === 'seat';
                         });
@@ -460,7 +478,7 @@ export default function ShowtimeInteractiveMap({
                         className="pointer-events-none absolute z-50 transition-all duration-75 ease-out"
                         style={{
                             left: `${Math.min(Math.max(tooltip.x, 140), (containerRef.current?.clientWidth || 800) - 140)}px`,
-                            top: `${Math.max(tooltip.y - 12, 160)}px`,
+                            top: `${tooltip.y - 22}px`,
                             transform: 'translate(-50%, -100%)',
                         }}
                     >

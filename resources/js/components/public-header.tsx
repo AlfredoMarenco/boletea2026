@@ -3,7 +3,6 @@ import { Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { useAppearance } from '@/hooks/use-appearance';
 import { User, Menu, X } from 'lucide-react';
-import WorldCupTheme from '@/components/WorldCupTheme';
 import React, { useState, useRef, useEffect } from 'react';
 
 interface Props {
@@ -33,7 +32,6 @@ export default function PublicHeader({ canRegister = false }: Props) {
 
     return (
         <>
-            <WorldCupTheme />
             <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-md dark:border-border dark:bg-background/80">
                 <div className="container mx-auto flex h-20 items-center justify-between px-6">
                     <div className="flex items-center gap-2">

@@ -286,6 +286,7 @@ TableNode.displayName = 'TableNode';
 
 interface SectionNodeProps {
     node: SeatingNode;
+    mode: 'edit' | 'preview';
     isSelected: boolean;
     stageScale: number;
     onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => void;
@@ -295,7 +296,7 @@ interface SectionNodeProps {
     onPointsChange?: (newPoints: number[]) => void;
 }
 
-function getPolygonCentroid(points: number[]): { cx: number; cy: number; minX: number; maxX: number; minY: number; maxY: number } {
+export function getPolygonCentroid(points: number[]): { cx: number; cy: number; minX: number; maxX: number; minY: number; maxY: number } {
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     const n = points.length / 2;
     if (n < 3) {
@@ -347,6 +348,7 @@ function getPolygonCentroid(points: number[]): { cx: number; cy: number; minX: n
 const SectionNode = React.memo<SectionNodeProps>(
     ({
         node,
+        mode,
         isSelected,
         stageScale,
         onDragStart,
@@ -554,7 +556,7 @@ const SectionNode = React.memo<SectionNodeProps>(
                 y={node.y}
                 scaleX={scaleX}
                 scaleY={scaleY}
-                draggable
+                draggable={mode === 'edit'}
                 onDragStart={onDragStart}
                 onDragMove={onDragMove}
                 onDragEnd={onDragEnd}
@@ -581,8 +583,8 @@ const SectionNode = React.memo<SectionNodeProps>(
                     />
                 )}
 
-                {/* Render interactive vertex handles when selected */}
-                {isSelected && node.points && node.points.length >= 6 && (
+                {/* Render interactive vertex handles when selected in edit mode */}
+                {mode === 'edit' && isSelected && node.points && node.points.length >= 6 && (
                     Array.from({ length: node.points.length / 2 }).map((_, idx) => {
                         const vx = node.points![idx * 2] * scaleX;
                         const vy = node.points![idx * 2 + 1] * scaleY;
@@ -612,6 +614,7 @@ SectionNode.displayName = 'SectionNode';
 
 interface StandingNodeProps {
     node: SeatingNode;
+    mode: 'edit' | 'preview';
     isSelected: boolean;
     stageScale: number;
     onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
@@ -619,7 +622,7 @@ interface StandingNodeProps {
 }
 
 const StandingNode = React.memo<StandingNodeProps>(
-    ({ node, isSelected, stageScale, onDragEnd }) => {
+    ({ node, mode, isSelected, stageScale, onDragEnd }) => {
         const width = node.width || 400;
         const height = node.height || 300;
         const isOverview = stageScale <= 0.5;
@@ -652,7 +655,7 @@ const StandingNode = React.memo<StandingNodeProps>(
                 x={node.x}
                 y={node.y}
                 id={node.id}
-                draggable
+                draggable={mode === 'edit'}
                 onDragEnd={onDragEnd}
             >
                 <Rect
@@ -1068,20 +1071,20 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
             if (currentNodes.length > 0) {
                 const xs = currentNodes.map((n) => n.x);
                 const ys = currentNodes.map((n) => n.y);
-                minX = Math.min(...xs) - 100;
-                maxX = Math.max(...xs) + 100;
-                minY = Math.min(...ys) - 100;
-                maxY = Math.max(...ys) + 100;
+                minX = Math.min(...xs) - 25;
+                maxX = Math.max(...xs) + 25;
+                minY = Math.min(...ys) - 25;
+                maxY = Math.max(...ys) + 25;
             } else if (bgImage) {
                 const bgX = layout.config?.bgX || 0;
                 const bgY = layout.config?.bgY || 0;
                 const bgScale = layout.config?.bgScale || 1;
                 const w = bgImage.width * bgScale;
                 const h = bgImage.height * bgScale;
-                minX = bgX - 50;
-                maxX = bgX + w + 50;
-                minY = bgY - 50;
-                maxY = bgY + h + 50;
+                minX = bgX - 25;
+                maxX = bgX + w + 25;
+                minY = bgY - 25;
+                maxY = bgY + h + 25;
             }
 
             if (minX === Infinity) {
@@ -1121,7 +1124,7 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
         const zoomToBoundingBox = (bbox: { minX: number; minY: number; maxX: number; maxY: number }) => {
             if (!stageSize.width || !stageSize.height) return;
 
-            const padding = 60;
+            const padding = 25;
             const minX = bbox.minX - padding;
             const minY = bbox.minY - padding;
             const maxX = bbox.maxX + padding;
@@ -1132,7 +1135,7 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
 
             const scaleX = stageSize.width / w;
             const scaleY = stageSize.height / h;
-            const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.4), 2.8);
+            const newScale = Math.min(Math.max(Math.min(scaleX, scaleY), 0.4), 4.0);
 
             const cx = minX + w / 2;
             const cy = minY + h / 2;
@@ -1178,12 +1181,16 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
                 !hasAutoFittedRef.current
             ) {
                 const timer = setTimeout(() => {
-                    fitView();
+                    if (layout.config?.focus) {
+                        zoomToFocus(layout.config.focus);
+                    } else {
+                        fitView();
+                    }
                     hasAutoFittedRef.current = true;
                 }, 100);
                 return () => clearTimeout(timer);
             }
-        }, [mode, stageSize.width, stageSize.height, nodes.length]);
+        }, [mode, stageSize.width, stageSize.height, nodes.length, layout.config?.focus]);
 
         useEffect(() => {
             if (bgImage && nodes.length === 0 && !layout.config?.focus) {
@@ -2803,6 +2810,7 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
                                     <SectionNode
                                         key={node.id}
                                         node={node}
+                                        mode={mode}
                                         stageScale={stageScale}
                                         isSelected={selectedIds.includes(
                                             node.id,
@@ -2966,6 +2974,7 @@ const SeatingCanvas = React.forwardRef<SeatingCanvasRef, SeatingCanvasProps>(
                                     <StandingNode
                                         key={node.id}
                                         node={node}
+                                        mode={mode}
                                         stageScale={stageScale}
                                         isSelected={selectedIds.includes(
                                             node.id,

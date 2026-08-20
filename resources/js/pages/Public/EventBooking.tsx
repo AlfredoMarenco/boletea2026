@@ -13,6 +13,7 @@ import {
     Clock,
     ShoppingCart,
     CheckCircle2,
+    Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -261,8 +262,8 @@ export default function EventBooking({
 
             <main className="flex flex-1 flex-col pt-28 pb-12">
                 {/* Header del Evento con detalles y reloj de reserva */}
-                <div className="border-b border-slate-200 bg-card px-6 py-6 lg:px-16 shadow-xs">
-                    <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="border-b border-slate-200 bg-card px-6 py-6 lg:px-12 shadow-xs">
+                    <div className="max-w-[1720px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-2">
                                 <span className="rounded-full bg-rose-500/10 border border-rose-500/20 px-3 py-0.5 text-xs font-black tracking-widest text-[#c90000] uppercase">
@@ -313,21 +314,22 @@ export default function EventBooking({
                     </div>
                 </div>
 
-                {/* Contenido Principal: Mapa Interactivo (3 cols) + Resumen de Carrito (1 col) */}
-                <div className="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 p-4 lg:p-8">
-                    {/* Mapa Interactivo Oficial de Boletea */}
-                    <div className="lg:col-span-3 space-y-3">
+                {/* Contenido Principal: Mapa Interactivo + Resumen de Carrito */}
+                <div className="max-w-[1720px] w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 px-4 lg:px-8 py-6">
+                    {/* Mapa Interactivo Oficial de Boletea (9 cols en XL, 8 en LG) */}
+                    <div className="lg:col-span-8 xl:col-span-9 space-y-3">
                         <ShowtimeInteractiveMap
                             showtime={formattedShowtime as any}
                             inventories={inventories as any}
                             selectedSeatUuids={selectedSeatUuids}
                             mapMode="status"
+                            isCustomerView={true}
                             onSetSelectedSeatUuids={handleSetSelectedSeats}
                         />
                     </div>
 
-                    {/* Resumen del Carrito y Bloqueo de Compra */}
-                    <div className="lg:col-span-1 flex flex-col gap-4">
+                    {/* Resumen del Carrito y Bloqueo de Compra (3 cols en XL, 4 en LG) */}
+                    <div className="lg:col-span-4 xl:col-span-3 flex flex-col gap-4">
                         <Card className="border-border bg-card shadow-lg rounded-2xl overflow-hidden flex flex-col h-full">
                             <CardContent className="p-5 flex flex-col h-full space-y-4">
                                 <div className="border-b border-border/50 pb-3">
@@ -341,7 +343,7 @@ export default function EventBooking({
                                 </div>
 
                                 {/* Lista de Boletos Reservados */}
-                                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[380px] pr-1">
+                                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[500px] pr-1">
                                     {selectedSeatDetails.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-2">
                                             <Ticket className="h-10 w-10 text-muted-foreground/40 stroke-1" />
@@ -370,9 +372,19 @@ export default function EventBooking({
                                                             {item.row ? `Fila ${item.row} — Asiento ${item.number}` : item.section || 'Zona General'}
                                                         </p>
                                                     </div>
-                                                    <span className="font-black text-foreground">
-                                                        ${priceVal.toFixed(2)}
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-black text-foreground">
+                                                            ${priceVal.toFixed(2)}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSetSelectedSeats(selectedSeatUuids.filter((id) => id !== item.seat_uuid))}
+                                                            className="text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/40"
+                                                            title="Quitar boleto del carrito"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             );
                                         })
