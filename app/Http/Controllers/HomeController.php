@@ -85,9 +85,9 @@ class HomeController extends Controller
         if ($request->filled('city')) {
             $city = $request->city;
             $queryExt->where('city', $city);
-            // Local events can check if venue matches city
+            // Local events check if venue address matches city
             $queryLoc->whereHas('venue', function ($q) use ($city) {
-                $q->where('city', 'like', '%'.$city.'%');
+                $q->where('address', 'like', '%'.$city.'%');
             });
         }
         if ($request->filled('venue_id')) {
