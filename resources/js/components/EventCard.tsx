@@ -2,9 +2,62 @@ import React from 'react';
 import { Link } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { Calendar, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isSameDay, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ExternalEvent } from '@/types/event';
+
+// Helper para calcular y formatear dinámicamente el rango de fechas
+const getEventDateDisplay = (startDateStr: string | null, endDateStr?: string | null) => {
+    if (!startDateStr) return null;
+
+    const startDate = new Date(startDateStr);
+    const endDate = endDateStr ? new Date(endDateStr) : null;
+
+    const startDay = format(startDate, 'd');
+    const startMonth = format(startDate, 'MMM', { locale: es }).toUpperCase().replace('.', '');
+    const startYear = format(startDate, 'yyyy');
+
+    // Caso 1: No hay end_date o es el mismo día
+    if (!endDate || isSameDay(startDate, endDate)) {
+        return {
+            badgeMonth: startMonth,
+            badgeDay: format(startDate, 'dd'),
+            fullText: format(startDate, 'PPP', { locale: es }),
+        };
+    }
+
+    const endDay = format(endDate, 'd');
+    const endMonth = format(endDate, 'MMM', { locale: es }).toUpperCase().replace('.', '');
+    const diffDays = differenceInCalendarDays(endDate, startDate);
+
+    // Caso 2: Mismo mes y año
+    if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
+        const monthFull = format(startDate, 'MMMM', { locale: es });
+
+        if (diffDays === 1) {
+            // Caso: 17 y 18 de septiembre
+            return {
+                badgeMonth: startMonth,
+                badgeDay: `${startDay} Y ${endDay}`,
+                fullText: `${startDay} y ${endDay} de ${monthFull} de ${startYear}`,
+            };
+        } else {
+            // Caso: Del 8 al 19 de septiembre
+            return {
+                badgeMonth: startMonth,
+                badgeDay: `${startDay} AL ${endDay}`,
+                fullText: `Del ${startDay} al ${endDay} de ${monthFull} de ${startYear}`,
+            };
+        }
+    }
+
+    // Caso 3: Entre meses distintos
+    return {
+        badgeMonth: `${startMonth} - ${endMonth}`,
+        badgeDay: `${startDay} - ${endDay}`,
+        fullText: `${startDay} de ${format(startDate, 'MMMM', { locale: es })} al ${endDay} de ${format(endDate, 'MMMM', { locale: es })} de ${startYear}`,
+    };
+};
 
 export default function EventCard({
     event,
@@ -20,11 +73,7 @@ export default function EventCard({
         return title.replace(/^[A-Z0-9]+\s+/, '');
     };
 
-    const dateObj = event.start_date ? new Date(event.start_date) : null;
-    const day = dateObj ? format(dateObj, 'dd') : null;
-    const month = dateObj
-        ? format(dateObj, 'MMM', { locale: es }).toUpperCase().replace('.', '')
-        : null;
+    const dateInfo = getEventDateDisplay(event.start_date, event.end_date);
 
     return (
         <div
@@ -48,13 +97,13 @@ export default function EventCard({
                 )}
 
                 {/* Date Badge */}
-                {dateObj && (
+                {dateInfo && (
                     <div className="absolute top-1.5 right-1.5 flex min-w-[36px] flex-col items-center justify-center rounded-md border border-gray-100 bg-white/95 p-1 shadow-sm backdrop-blur-md sm:top-4 sm:right-4 sm:min-w-[60px] sm:rounded-xl sm:p-2 sm:shadow-lg">
                         <span className="mb-0.5 text-[7px] leading-none font-bold tracking-widest text-gray-500 uppercase sm:text-xs">
-                            {month}
+                            {dateInfo.badgeMonth}
                         </span>
-                        <span className="text-sm leading-none font-extrabold text-[#c90000] sm:text-2xl">
-                            {day}
+                        <span className={`leading-none font-extrabold text-[#c90000] whitespace-nowrap ${dateInfo.badgeDay.length > 3 ? 'text-[10px] sm:text-lg' : 'text-sm sm:text-2xl'}`}>
+                            {dateInfo.badgeDay}
                         </span>
                     </div>
                 )}
@@ -94,13 +143,11 @@ export default function EventCard({
                 >
                     {cleanTitle(event.title)}
                 </h3>
-                {event.start_date && (
+                {dateInfo && (
                     <div className="mb-1 flex items-center gap-1 text-[10px] leading-tight text-gray-500 sm:mb-4 sm:gap-2 sm:text-sm">
                         <Calendar className="h-3 w-3 shrink-0 text-gray-400 sm:h-4 sm:w-4" />
                         <span className="line-clamp-1">
-                            {format(new Date(event.start_date), 'PPP', {
-                                locale: es,
-                            })}
+                            {dateInfo.fullText}
                         </span>
                     </div>
                 )}
@@ -145,3 +192,4 @@ export default function EventCard({
         </div>
     );
 }
+

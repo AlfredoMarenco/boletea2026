@@ -40,6 +40,8 @@ interface ExternalEvent {
     status: 'draft' | 'published';
     image_path: string | null;
     secondary_image_path: string | null;
+    start_date: string | null;
+    end_date: string | null;
     sales_start_date: string | null;
     button_text: string | null;
     description: string | null;
@@ -123,6 +125,7 @@ export default function Create({
             image_path: '',
             secondary_image_path: '',
             start_date: '',
+            end_date: '',
             sales_start_date: '',
             button_text: '',
             description: '',
@@ -161,6 +164,18 @@ export default function Create({
             }
         } else {
             submissionData.start_date = null;
+        }
+
+        if (submissionData.end_date) {
+            submissionData.end_date = submissionData.end_date.replace(
+                'T',
+                ' ',
+            );
+            if (submissionData.end_date.length === 16) {
+                submissionData.end_date += ':00';
+            }
+        } else {
+            submissionData.end_date = null;
         }
 
         if (submissionData.sales_start_date) {
@@ -684,10 +699,10 @@ export default function Create({
                                     Fechas y Programación
                                 </h3>
 
-                                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                     <div className="space-y-2">
                                         <Label htmlFor="start_date">
-                                            Fecha y Hora del Evento
+                                            Fecha y Hora de Inicio
                                         </Label>
                                         <Input
                                             id="start_date"
@@ -709,8 +724,31 @@ export default function Create({
                                     </div>
 
                                     <div className="space-y-2">
+                                        <Label htmlFor="end_date">
+                                            Fecha y Hora de Fin (Opcional)
+                                        </Label>
+                                        <Input
+                                            id="end_date"
+                                            type="datetime-local"
+                                            value={data.end_date}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'end_date',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-11 rounded-xl"
+                                        />
+                                        {errors.end_date && (
+                                            <p className="text-sm text-red-500">
+                                                {errors.end_date as string}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label htmlFor="sales_start_date">
-                                            Fecha Inicio de Venta (Opcional)
+                                            Fecha Inicio Venta (Opcional)
                                         </Label>
                                         <Input
                                             id="sales_start_date"
