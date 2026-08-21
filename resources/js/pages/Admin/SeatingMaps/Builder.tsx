@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { 
     Save, Eye, Edit3, Settings, MousePointer2, Grid, Square, LayoutList,
     Circle as CircleIcon, Type, Trash2, Undo2, Redo2, Hexagon, PenTool, Hand, Maximize2,
-    ChevronRight, MoreHorizontal, Users, Image as ImageIcon, Plus, Layers, AlertTriangle
+    ChevronRight, MoreHorizontal, Users, Image as ImageIcon, Plus, Layers, AlertTriangle, Download
 } from 'lucide-react';
 import { 
     Tooltip,
@@ -455,32 +455,6 @@ export default function Builder({ seatingMap }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {duplicateWarnings.length > 0 && (
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="destructive" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest bg-red-600 hover:bg-red-700 animate-pulse">
-                                        <AlertTriangle className="h-3.5 w-3.5 mr-2" />
-                                        {duplicateWarnings.length} Error{duplicateWarnings.length > 1 ? 'es' : ''}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent side="bottom" align="end" className="w-80 p-0 shadow-2xl border-red-200">
-                                    <div className="bg-red-50 text-red-900 px-4 py-3 border-b border-red-100 flex items-center gap-2">
-                                        <AlertTriangle className="h-5 w-5 text-red-600" />
-                                        <div>
-                                            <h4 className="font-bold text-sm">Asientos Duplicados</h4>
-                                            <p className="text-xs opacity-80">Hay asientos con la misma numeración en la misma sección.</p>
-                                        </div>
-                                    </div>
-                                    <div className="max-h-64 overflow-y-auto p-2 space-y-1">
-                                        {duplicateWarnings.map((warn, i) => (
-                                            <div key={i} className="text-xs bg-white px-3 py-2 rounded border border-red-100 text-red-800 shadow-sm">
-                                                {warn}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
-                        )}
                         <Button variant="outline" size="sm" className="h-8 text-xs font-bold uppercase tracking-widest text-blue-600 border-blue-200 bg-blue-50/50 hover:bg-blue-100" onClick={() => setIsCalibrationOpen(true)}>
                             <Maximize2 className="h-3.5 w-3.5 mr-2" />
                             Calibrar Plano
