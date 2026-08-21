@@ -29,8 +29,8 @@ class RefundController extends Controller
             ->map(function (RefundEvent $refundEvent) {
                 return [
                     'id' => $refundEvent->id,
-                    'title' => $refundEvent->externalEvent->title ?? 'Evento Desconocido',
-                    'start_date' => $refundEvent->externalEvent->start_date ? $refundEvent->externalEvent->start_date->format('Y-m-d') : null,
+                    'title' => $refundEvent->display_title,
+                    'start_date' => $refundEvent->externalEvent?->start_date ? $refundEvent->externalEvent->start_date->format('Y-m-d') : null,
                 ];
             });
 
@@ -564,7 +564,7 @@ class RefundController extends Controller
             ->map(function (RefundEvent $refundEvent) {
                 return [
                     'id' => $refundEvent->id,
-                    'title' => $refundEvent->externalEvent->title ?? 'Evento Desconocido',
+                    'title' => $refundEvent->display_title,
                 ];
             });
 
@@ -596,7 +596,7 @@ class RefundController extends Controller
             'status' => $refundRequest->status,
             'buyer_name' => $refundRequest->buyer_name,
             'bank_name' => $refundRequest->bank_name,
-            'event_title' => $refundRequest->refundEvent->externalEvent->title ?? 'Evento',
+            'event_title' => $refundRequest->refundEvent?->display_title ?? 'Evento',
             'order_number' => $refundRequest->order_number,
             'admin_notes' => $refundRequest->admin_notes,
             'created_at' => $refundRequest->created_at->format('Y-m-d H:i:s'),

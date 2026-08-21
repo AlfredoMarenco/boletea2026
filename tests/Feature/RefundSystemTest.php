@@ -978,3 +978,59 @@ test('admin updating refund request status records history', function () {
     expect($history->user_id)->toBe($user->id);
     expect($history->description)->toContain("Estado cambiado de 'pending' a 'processing'");
 });
+
+test('deleting external event does not delete refund event, purchases, or customer requests', function () {
+    $user = User::factory()->create();
+    $this->actingAs($user);
+
+    $externalEvent = ExternalEvent::create([
+        'external_id' => 'EXT_TEST_DEL_123',
+        'title' => 'Concierto a Cancelar 2026',
+        'status' => 'published',
+    ]);
+
+    $refundEvent = RefundEvent::create([
+        'external_event_id' => $externalEvent->id,
+        'title' => $externalEvent->title,
+        'status' => 'active',
+    ]);
+
+    $purchase = RefundPurchase::create([
+        'refund_event_id' => $refundEvent->id,
+        'order_number' => 'ORD-DEL-999',
+        'buyer_name' => 'MARIA LOPEZ',
+        'email' => 'maria@example.com',
+        'amount' => 1500.00,
+    ]);
+
+    $refundRequest = RefundRequest::create([
+        'refund_event_id' => $refundEvent->id,
+        'refund_purchase_id' => $purchase->id,
+        'order_number' => 'ORD-DEL-999',
+        'tracking_id' => 'REF-DEL999',
+        'email' => 'maria@example.com',
+        'buyer_name' => 'MARIA LOPEZ',
+        'clabe' => '012345678901234567',
+        'bank_name' => 'BBVA',
+        'ine_path' => 'refunds/ine/test.pdf',
+        'tickets_path' => 'refunds/tickets/test.pdf',
+        'status' => 'pending',
+    ]);
+
+    // Delete external event via admin action
+    $response = $this->delete(route('admin.events.destroy', $externalEvent));
+    $response->assertRedirect(route('admin.events.index'));
+
+    // Assert external event is deleted
+    expect(ExternalEvent::find($externalEvent->id))->toBeNull();
+
+    // Assert refund event is still in DB with title snapshot and null external_event_id
+    $refundEvent->refresh();
+    expect($refundEvent->external_event_id)->toBeNull();
+    expect($refundEvent->display_title)->toBe('Concierto a Cancelar 2026');
+
+    // Assert purchases and requests remain intact
+    expect(RefundPurchase::find($purchase->id))->not->toBeNull();
+    expect(RefundRequest::find($refundRequest->id))->not->toBeNull();
+});
+

@@ -10,8 +10,18 @@ class RefundEvent extends Model
 {
     protected $fillable = [
         'external_event_id',
+        'title',
         'status',
     ];
+
+    protected $appends = [
+        'display_title',
+    ];
+
+    public function getDisplayTitleAttribute(): string
+    {
+        return $this->externalEvent?->title ?? $this->title ?? 'Evento Archivado';
+    }
 
     public function externalEvent(): BelongsTo
     {

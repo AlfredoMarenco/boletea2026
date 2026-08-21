@@ -53,7 +53,13 @@ class AdminRefundController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        RefundEvent::create($validated);
+        $externalEvent = ExternalEvent::findOrFail($validated['external_event_id']);
+
+        RefundEvent::create([
+            'external_event_id' => $externalEvent->id,
+            'title' => $externalEvent->title,
+            'status' => $validated['status'],
+        ]);
 
         return back()->with('success', 'Configuración de reembolso creada correctamente.');
     }
@@ -815,7 +821,7 @@ class AdminRefundController extends Controller
                 $montoRefund = $includeCharges ? ($priceTotal + $chargesTotal) : $priceTotal;
                 $unitPrice = $bltsCount > 0 ? ($montoRefund / $bltsCount) : $montoRefund;
 
-                $eventTitle = $req->refundEvent?->externalEvent?->title ?? 'DESCONOCIDO';
+                $eventTitle = $req->refundEvent?->display_title ?? 'DESCONOCIDO';
 
                 $row = [
                     $idx + 1,                                                   // IT

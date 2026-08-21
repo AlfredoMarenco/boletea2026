@@ -16,7 +16,9 @@ import {
 
 interface RefundEvent {
     id: number;
-    external_event_id: number;
+    external_event_id: number | null;
+    title?: string | null;
+    display_title?: string;
     status: 'active' | 'inactive';
     purchases_count: number;
     requests_count: number;
@@ -214,9 +216,21 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
                                                 {ev.id}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-semibold text-gray-900 dark:text-white">
-                                                    {ev.external_event?.title ||
-                                                        'Desconocido'}
+                                                <div className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                                    <span>
+                                                        {ev.display_title ||
+                                                            ev.external_event?.title ||
+                                                            ev.title ||
+                                                            'Evento Archivado'}
+                                                    </span>
+                                                    {!ev.external_event && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="border-amber-300 text-[10px] text-amber-600 dark:border-amber-700 dark:text-amber-400"
+                                                        >
+                                                            Archivado
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 {ev.external_event
                                                     ?.start_date && (
