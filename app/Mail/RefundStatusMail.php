@@ -66,19 +66,14 @@ class RefundStatusMail extends Mailable
         $invalidDocs = [];
         $validated = $this->request->validated_documents ?? [];
 
-        // CLABE check
-        if (! empty($this->request->clabe) && empty($validated['clabe'])) {
+        // CLABE check: only demand CLABE correction if explicitly set to false
+        if (! empty($this->request->clabe) && isset($validated['clabe']) && $validated['clabe'] === false) {
             $invalidDocs[] = 'Cuenta CLABE Interbancaria';
         }
 
         // INE check
         if (! empty($this->request->ine_path) && empty($validated['ine'])) {
             $invalidDocs[] = 'Identificación Oficial (INE / Pasaporte)';
-        }
-
-        // Proof of payment check
-        if (! empty($this->request->proof_of_payment_path) && empty($validated['proof'])) {
-            $invalidDocs[] = 'Comprobante de Pago';
         }
 
         // Tickets check
@@ -157,18 +152,18 @@ class RefundStatusMail extends Mailable
                 </p>
         ";
 
-        if ($this->request->status === 'rejected') {
+        if ($this->request->status === 'rejected' || ($this->request->status === 'pending' && ! empty($invalidDocs))) {
             if (! empty($invalidDocs)) {
                 $updateUrl = URL::temporarySignedRoute(
                     'refund.update_documents',
-                    now()->addHours(48),
+                    now()->addHours(72),
                     ['refundRequest' => $this->request->id]
                 );
 
                 $html .= '
                     <!-- Correction Docs -->
                     <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 18px; border-radius: 12px; margin-bottom: 28px;">
-                        <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #b91c1c;">Información / Documentos requeridos para corregir:</p>
+                        <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: bold; color: #b91c1c;">Información / Documentos requeridos para adjuntar:</p>
                         <ul style="margin: 0 0 12px 0; padding-left: 20px; font-size: 14px; color: #991b1b;">
                 ';
                 foreach ($invalidDocs as $docName) {
@@ -187,9 +182,9 @@ class RefundStatusMail extends Mailable
                     </div>
                     <div style=\"text-align: center; margin-top: 32px; margin-bottom: 32px;\">
                         <a href=\"{$updateUrl}\" style=\"background-color: #c90000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 12px; font-size: 14px; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);\">
-                            Corregir Información / Documentos Aquí
+                            Adjuntar Documentos / Evidencia Aquí
                         </a>
-                        <p style=\"font-size: 11px; color: #9ca3af; margin-top: 8px; margin-bottom: 0;\">Este enlace es seguro y expirará en 48 horas.</p>
+                        <p style=\"font-size: 11px; color: #9ca3af; margin-top: 8px; margin-bottom: 0;\">Este enlace es seguro y expirará en 72 horas.</p>
                     </div>
                 ";
             } elseif ($this->request->admin_notes) {

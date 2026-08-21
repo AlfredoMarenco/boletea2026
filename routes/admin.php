@@ -134,6 +134,8 @@ Route::prefix('refunds')->name('refunds.')->group(function () {
     Route::post('events', [AdminRefundController::class, 'storeEvent'])->name('events.store');
     Route::post('events/{event}/toggle', [AdminRefundController::class, 'toggleEvent'])->name('events.toggle');
     Route::post('events/{event}/upload-csv', [AdminRefundController::class, 'uploadCsv'])->name('events.upload_csv');
+    Route::post('events/{event}/import-recovered', [AdminRefundController::class, 'importRecoveredRequests'])->name('events.import_recovered');
+    Route::post('events/{event}/send-pending-notifications', [AdminRefundController::class, 'sendPendingEvidenceNotifications'])->name('events.send_pending_notifications');
     Route::delete('events/{event}', [AdminRefundController::class, 'destroyEvent'])->name('events.destroy');
     Route::get('events/{event}/orders', [AdminRefundController::class, 'eventOrdersReport'])->name('events.orders');
     Route::get('events/{event}/orders/export-csv', [AdminRefundController::class, 'exportEventOrdersCsv'])->name('events.orders.export_csv');

@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link, useForm, router } from '@inertiajs/react';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,10 +40,14 @@ interface Props {
 }
 
 export default function EventsIndex({ refundEvents, availableEvents }: Props) {
+    const { auth } = usePage<any>().props;
+    const isSuperAdmin = auth?.user?.email === 'alfredomarenco@boletea.com';
+
     const [selectedEventId, setSelectedEventId] = useState('');
     const [uploadingEventId, setUploadingEventId] = useState<number | null>(
         null,
     );
+    const [sendingNotifEventId, setSendingNotifEventId] = useState<number | null>(null);
 
     const handleCreateLink = (e: React.FormEvent) => {
         e.preventDefault();
@@ -105,6 +109,46 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
         );
     };
 
+    const handleRecoveredCsvUpload = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        id: number,
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingEventId(id);
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        router.post(
+            route('admin.refunds.events.import_recovered', { event: id }),
+            formData,
+            {
+                forceFormData: true,
+                onFinish: () => {
+                    setUploadingEventId(null);
+                    e.target.value = '';
+                },
+            },
+        );
+    };
+
+    const handleSendPendingNotifications = (id: number) => {
+        if (!confirm('¿Deseas enviar por correo la solicitud de fotos/evidencia a todos los clientes que están en estatus PENDIENTE de este evento?')) {
+            return;
+        }
+
+        setSendingNotifEventId(id);
+        router.post(
+            route('admin.refunds.events.send_pending_notifications', { event: id }),
+            {},
+            {
+                onFinish: () => setSendingNotifEventId(null),
+            },
+        );
+    };
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -132,46 +176,43 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
                 </div>
 
                 {/* Add Event Form Section */}
-                {availableEvents.length > 0 && (
-                    <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-border dark:bg-card">
-                        <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                            Vincular Evento Externo a Reembolsos
-                        </h2>
-                        <form
-                            onSubmit={handleCreateLink}
-                            className="flex max-w-2xl flex-col items-end gap-4 sm:flex-row"
-                        >
-                            <div className="flex-grow">
-                                <label className="mb-2 block text-xs font-medium text-gray-500">
-                                    Evento Externo Disponible
-                                </label>
-                                <select
-                                    value={selectedEventId}
-                                    onChange={(e) =>
-                                        setSelectedEventId(e.target.value)
-                                    }
-                                    className="w-full rounded-md border border-gray-300 bg-white p-2 text-sm focus:ring-1 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
-                                >
-                                    <option value="">
-                                        -- Seleccionar Evento --
-                                    </option>
-                                    {availableEvents.map((ev) => (
-                                        <option key={ev.id} value={ev.id}>
-                                            {ev.title}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <Button
-                                type="submit"
-                                disabled={!selectedEventId}
-                                className="bg-[#c90000] text-white hover:bg-[#a60000]"
+                <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-border dark:bg-card">
+                    <h2 className="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        Habilitar Evento para Solicitudes de Reembolso
+                    </h2>
+                    <form
+                        onSubmit={handleCreateLink}
+                        className="flex max-w-xl flex-col items-end gap-4 sm:flex-row"
+                    >
+                        <div className="w-full flex-1">
+                            <label className="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                                Seleccionar Evento de Cartelera
+                            </label>
+                            <select
+                                value={selectedEventId}
+                                onChange={(e) => setSelectedEventId(e.target.value)}
+                                className="w-full rounded-md border border-gray-300 bg-white p-2 text-sm focus:ring-1 focus:ring-[#c90000] focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 dark:text-white"
                             >
-                                Habilitar Reembolso
-                            </Button>
-                        </form>
-                    </div>
-                )}
+                                <option value="">
+                                    -- Seleccionar Evento --
+                                </option>
+                                {availableEvents.map((ev) => (
+                                    <option key={ev.id} value={ev.id}>
+                                        {ev.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <Button
+                            type="submit"
+                            disabled={!selectedEventId}
+                            className="bg-[#c90000] text-white hover:bg-[#a60000]"
+                        >
+                            Habilitar Reembolso
+                        </Button>
+                    </form>
+                </div>
 
                 {/* Table of Enabled Refund Events */}
                 <div className="flex flex-col overflow-hidden rounded-md border border-gray-200 bg-white shadow dark:border-border dark:bg-background">
@@ -279,11 +320,10 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
                                                 </button>
                                             </TableCell>
                                             <TableCell className="text-center">
-                                                <div className="flex flex-col items-center justify-center">
+                                                <div className="flex flex-col items-center justify-center space-y-1.5">
                                                     <label className="inline-flex cursor-pointer items-center space-x-1.5 rounded-md border border-gray-300 bg-gray-50 p-2 py-1 text-xs font-semibold hover:bg-gray-100 dark:border-neutral-800 dark:bg-neutral-900">
                                                         <span>
-                                                            {uploadingEventId ===
-                                                            ev.id
+                                                            {uploadingEventId === ev.id
                                                                 ? 'Subiendo...'
                                                                 : 'Seleccionar Archivo'}
                                                         </span>
@@ -298,14 +338,51 @@ export default function EventsIndex({ refundEvents, availableEvents }: Props) {
                                                             }
                                                             className="hidden"
                                                             disabled={
-                                                                uploadingEventId !==
-                                                                null
+                                                                uploadingEventId !== null
                                                             }
                                                         />
                                                     </label>
-                                                    <span className="mt-1 text-[10px] text-gray-400">
+                                                    <span className="text-[10px] text-gray-400">
                                                         Soporta: CSV (.csv)
                                                     </span>
+
+                                                    {isSuperAdmin && (
+                                                        <>
+                                                            <label className="inline-flex cursor-pointer items-center space-x-1.5 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                                                <span>
+                                                                    {uploadingEventId === ev.id
+                                                                        ? 'Restaurando...'
+                                                                        : 'Recuperar Solicitudes CSV'}
+                                                                </span>
+                                                                <input
+                                                                    type="file"
+                                                                    accept=".csv,text/plain"
+                                                                    onChange={(e) =>
+                                                                        handleRecoveredCsvUpload(
+                                                                            e,
+                                                                            ev.id,
+                                                                        )
+                                                                    }
+                                                                    className="hidden"
+                                                                    disabled={
+                                                                        uploadingEventId !== null
+                                                                    }
+                                                                />
+                                                            </label>
+
+                                                            <Button
+                                                                onClick={() => handleSendPendingNotifications(ev.id)}
+                                                                disabled={sendingNotifEventId === ev.id}
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border-amber-400 bg-amber-50 text-[11px] text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                                                            >
+                                                                {sendingNotifEventId === ev.id
+                                                                    ? 'Enviando...'
+                                                                    : 'Notificar Evidencia a Pendientes'}
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-right">

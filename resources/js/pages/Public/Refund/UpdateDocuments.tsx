@@ -47,6 +47,7 @@ export default function UpdateDocuments({ refundRequest, banks }: Props) {
             else if (docKey.startsWith('ticket_')) {
                 const subId = docKey.substring(7);
                 initialForm[`ticket_photo_${subId}`] = null;
+                initialForm[`ticket_id_${subId}`] = '';
             }
         });
         return initialForm;
@@ -366,7 +367,7 @@ export default function UpdateDocuments({ refundRequest, banks }: Props) {
                                             </select>
                                             {errors.bank_name && (
                                                 <p className="mt-1 text-xs font-medium text-red-500">
-                                                    {errors.bank_name}
+                                                {errors.bank_name}
                                                 </p>
                                             )}
                                         </div>
@@ -377,45 +378,72 @@ export default function UpdateDocuments({ refundRequest, banks }: Props) {
                                 {refundRequest.invalid_documents
                                     .filter((d) => d !== 'clabe')
                                     .map((docKey) => {
-                                        const formKey = docKey.startsWith(
-                                            'ticket_',
-                                        )
-                                            ? `ticket_photo_${docKey.substring(7)}`
-                                            : docKey;
+                                        const isTicketItem = docKey.startsWith('ticket_');
+                                        const subId = isTicketItem ? docKey.substring(7) : null;
+                                        const photoKey = isTicketItem ? `ticket_photo_${subId}` : docKey;
+                                        const idKey = isTicketItem ? `ticket_id_${subId}` : null;
 
                                         return (
                                             <div
                                                 key={docKey}
-                                                className="space-y-2"
+                                                className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
                                             >
-                                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
+                                                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200">
                                                     {getDocLabel(docKey)}{' '}
                                                     <span className="text-[#c90000]">
                                                         *
                                                     </span>
                                                 </label>
-                                                <div className="group relative">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/jpeg,image/png,application/pdf"
-                                                        required
-                                                        onChange={(e) =>
-                                                            handleFileChange(
-                                                                formKey,
-                                                                e.target.files
-                                                                    ? e.target
-                                                                          .files[0]
-                                                                    : null,
-                                                            )
-                                                        }
-                                                        className="hover:file:bg-gray-250 dark:hover:file:bg-neutral-750 w-full cursor-pointer rounded-xl border border-dashed border-gray-300 p-2.5 text-xs text-gray-500 transition-colors file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-gray-100 file:px-4 file:py-2.5 file:text-xs file:font-semibold file:text-gray-700 hover:border-gray-400 dark:border-neutral-700 dark:file:bg-neutral-800 dark:file:text-gray-200 dark:hover:border-neutral-600"
-                                                    />
-                                                </div>
-                                                {errors[formKey] && (
-                                                    <p className="mt-1 text-xs font-medium text-red-500">
-                                                        {errors[formKey]}
-                                                    </p>
+
+                                                {isTicketItem && idKey && (
+                                                    <div className="space-y-1.5">
+                                                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                            Folio / Código de Barras / ID del Boleto #{subId}
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            required
+                                                            placeholder="Ingrese el Folio / Código de Barras"
+                                                            value={data[idKey] || ''}
+                                                            onChange={(e) => setData(idKey, e.target.value)}
+                                                            className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-xs font-mono font-bold focus:ring-2 focus:ring-[#c90000] focus:outline-none dark:border-neutral-700 dark:bg-neutral-800"
+                                                        />
+                                                        {errors[idKey] && (
+                                                            <p className="text-xs font-medium text-red-500">
+                                                                {errors[idKey]}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 )}
+
+                                                <div className="space-y-1.5">
+                                                    {isTicketItem && (
+                                                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                                            Fotografía del Boleto #{subId}
+                                                        </label>
+                                                    )}
+                                                    <div className="group relative">
+                                                        <input
+                                                            type="file"
+                                                            accept="image/jpeg,image/png,application/pdf"
+                                                            required
+                                                            onChange={(e) =>
+                                                                handleFileChange(
+                                                                    photoKey,
+                                                                    e.target.files
+                                                                        ? e.target.files[0]
+                                                                        : null,
+                                                                )
+                                                            }
+                                                            className="hover:file:bg-gray-250 dark:hover:file:bg-neutral-750 w-full cursor-pointer rounded-xl border border-dashed border-gray-300 p-2.5 text-xs text-gray-500 transition-colors file:mr-4 file:cursor-pointer file:rounded-xl file:border-0 file:bg-gray-100 file:px-4 file:py-2.5 file:text-xs file:font-semibold file:text-gray-700 hover:border-gray-400 dark:border-neutral-700 dark:file:bg-neutral-800 dark:file:text-gray-200 dark:hover:border-neutral-600"
+                                                        />
+                                                    </div>
+                                                    {errors[photoKey] && (
+                                                        <p className="mt-1 text-xs font-medium text-red-500">
+                                                            {errors[photoKey]}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}

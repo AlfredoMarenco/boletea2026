@@ -611,11 +611,12 @@ class RefundController extends Controller
      */
     public function showUpdateDocumentsForm(Request $request, RefundRequest $refundRequest): InertiaResponse
     {
-        if ($refundRequest->status !== 'rejected' || $refundRequest->isTotallyRejected()) {
-            abort(403, 'Esta solicitud ha sido rechazada definitivamente y no permite corrección de documentos.');
+        $invalidDocs = $this->getInvalidDocuments($refundRequest);
+
+        if (($refundRequest->status !== 'rejected' && empty($invalidDocs)) || $refundRequest->isTotallyRejected()) {
+            abort(403, 'Esta solicitud no requiere o no permite actualización de documentos.');
         }
 
-        $invalidDocs = $this->getInvalidDocuments($refundRequest);
         $banks = Bank::orderBy('name')->get();
 
         return Inertia::render('Public/Refund/UpdateDocuments', [
@@ -639,11 +640,11 @@ class RefundController extends Controller
      */
     public function updateDocuments(Request $request, RefundRequest $refundRequest)
     {
-        if ($refundRequest->status !== 'rejected' || $refundRequest->isTotallyRejected()) {
-            abort(403, 'Esta solicitud ha sido rechazada definitivamente y no permite corrección de documentos.');
-        }
-
         $invalidDocs = $this->getInvalidDocuments($refundRequest);
+
+        if (($refundRequest->status !== 'rejected' && empty($invalidDocs)) || $refundRequest->isTotallyRejected()) {
+            abort(403, 'Esta solicitud no requiere o no permite actualización de documentos.');
+        }
         $rules = [];
 
         if (! empty($refundRequest->card_last_four)) {
@@ -671,6 +672,7 @@ class RefundController extends Controller
             if (str_starts_with($docKey, 'ticket_')) {
                 $subId = substr($docKey, 7);
                 $rules['ticket_photo_'.$subId] = 'required|file|mimes:jpg,jpeg,png,pdf|max:10240';
+                $rules['ticket_id_'.$subId] = 'required|string|max:255';
                 $ticketsToUpdate[] = $subId;
             }
         }
@@ -725,21 +727,51 @@ class RefundController extends Controller
             $validatedDocs['proof'] = false;
         }
 
-        if (in_array('tickets', $invalidDocs) && $request->hasFile('tickets')) {
-            $updates['tickets_path'] = $request->file('tickets')->store('refunds/tickets');
-            $validatedDocs['tickets'] = false;
+        if (in_array('tickets', $invalidDocs)) {
+            if ($request->hasFile('tickets')) {
+                $fileOrFiles = $request->file('tickets');
+                if (is_array($fileOrFiles)) {
+                    $paths = [];
+                    foreach ($fileOrFiles as $idx => $f) {
+                        $paths[$idx + 1] = $f->store('refunds/tickets');
+                    }
+                    $updates['tickets_path'] = json_encode($paths);
+                } else {
+                    $updates['tickets_path'] = $fileOrFiles->store('refunds/tickets');
+                }
+                $validatedDocs['tickets'] = false;
+            }
         }
 
         if (! empty($ticketsToUpdate)) {
             $currentTickets = json_decode($refundRequest->tickets_path, true) ?: [];
+            $purchase = $refundRequest->refundPurchase;
+            $purchaseDetails = $purchase ? ($purchase->tickets_details ?? []) : [];
+
             foreach ($ticketsToUpdate as $subId) {
-                $inputKey = 'ticket_photo_'.$subId;
-                if ($request->hasFile($inputKey)) {
-                    $currentTickets[$subId] = $request->file($inputKey)->store('refunds/tickets');
+                $photoKey = 'ticket_photo_'.$subId;
+                $idKey = 'ticket_id_'.$subId;
+
+                if ($request->hasFile($photoKey)) {
+                    $currentTickets[$subId] = $request->file($photoKey)->store('refunds/tickets');
                     $validatedDocs['ticket_'.$subId] = false;
+                }
+
+                // If user entered a custom ticket barcode/ID, update purchase details
+                if ($request->filled($idKey)) {
+                    $typedId = trim($request->input($idKey));
+                    $targetIdx = ((int) $subId) - 1;
+                    if (isset($purchaseDetails[$targetIdx])) {
+                        $purchaseDetails[$targetIdx]['ticket_id'] = $typedId;
+                        $purchaseDetails[$targetIdx]['barcode'] = $typedId;
+                    }
                 }
             }
             $updates['tickets_path'] = json_encode($currentTickets);
+
+            if ($purchase && ! empty($purchaseDetails)) {
+                $purchase->update(['tickets_details' => $purchaseDetails]);
+            }
         }
 
         // Set request back to pending status for re-review and save
@@ -774,8 +806,8 @@ class RefundController extends Controller
         $invalid = [];
         $validated = $refundRequest->validated_documents ?? [];
 
-        // CLABE check
-        if (! empty($refundRequest->clabe) && empty($validated['clabe'])) {
+        // CLABE check: only demand CLABE correction if explicitly set to false or empty
+        if (! empty($refundRequest->clabe) && isset($validated['clabe']) && $validated['clabe'] === false) {
             $invalid[] = 'clabe';
         }
 
@@ -784,8 +816,8 @@ class RefundController extends Controller
             $invalid[] = 'ine';
         }
 
-        // Proof of payment check
-        if (! empty($refundRequest->proof_of_payment_path) && empty($validated['proof'])) {
+        // Proof of payment check (Required for standard web requests, ignored for recovered requests)
+        if (! str_starts_with($refundRequest->tracking_id, 'REC-') && ! empty($refundRequest->proof_of_payment_path) && empty($validated['proof'])) {
             $invalid[] = 'proof';
         }
 

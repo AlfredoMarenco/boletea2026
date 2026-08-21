@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\RecoveredRefundEvidenceMail;
 use App\Mail\RefundStatusMail;
 use App\Models\ExternalEvent;
 use App\Models\RefundEvent;
@@ -31,10 +32,8 @@ class AdminRefundController extends Controller
             ->withCount('requests')
             ->get();
 
-        // Get external events not already configured
-        $configuredIds = $refundEvents->pluck('external_event_id')->toArray();
-        $availableEvents = ExternalEvent::whereNotIn('id', $configuredIds)
-            ->orderBy('title')
+        // Get external events ordered by title
+        $availableEvents = ExternalEvent::orderBy('title')
             ->get(['id', 'title']);
 
         return Inertia::render('Admin/Refunds/EventsIndex', [
@@ -44,24 +43,29 @@ class AdminRefundController extends Controller
     }
 
     /**
-     * Store a new refund event link.
+     * Store a new refund event link or standalone refund event.
      */
     public function storeEvent(Request $request)
     {
         $validated = $request->validate([
-            'external_event_id' => 'required|exists:external_events,id|unique:refund_events,external_event_id',
+            'external_event_id' => 'nullable|exists:external_events,id',
+            'title' => 'required_without:external_event_id|nullable|string|max:255',
             'status' => 'required|in:active,inactive',
         ]);
 
-        $externalEvent = ExternalEvent::findOrFail($validated['external_event_id']);
+        $title = $validated['title'] ?? null;
+        if (! empty($validated['external_event_id'])) {
+            $externalEvent = ExternalEvent::findOrFail($validated['external_event_id']);
+            $title = $externalEvent->title;
+        }
 
         RefundEvent::create([
-            'external_event_id' => $externalEvent->id,
-            'title' => $externalEvent->title,
+            'external_event_id' => $validated['external_event_id'] ?? null,
+            'title' => $title,
             'status' => $validated['status'],
         ]);
 
-        return back()->with('success', 'Configuración de reembolso creada correctamente.');
+        return back()->with('success', 'Evento de reembolso creado correctamente.');
     }
 
     /**
@@ -99,18 +103,20 @@ class AdminRefundController extends Controller
         $path = $file->getRealPath();
         $handle = fopen($path, 'r');
 
-        // Helper to convert encoding (the file from Excel is typically ISO-8859-1 / Windows-1252)
+        // Helper to convert encoding and strip UTF-8 BOM
         $sanitizeStr = function (?string $value) {
             if ($value === null || $value === '') {
                 return '';
             }
+            // Strip UTF-8 BOM if present
+            $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
             $encoding = mb_detect_encoding($value, 'UTF-8, ISO-8859-1, Windows-1252', true);
             if (! $encoding) {
                 $encoding = 'ISO-8859-1';
             }
             $utf8 = mb_convert_encoding($value, 'UTF-8', $encoding);
 
-            return trim(trim($utf8, '"'));
+            return trim(trim($utf8, "\"' \t\n\r\0\x0B"));
         };
 
         // Parse header row
@@ -123,13 +129,17 @@ class AdminRefundController extends Controller
 
         // Clean headers to find indexes
         $headers = array_map(function ($h) use ($sanitizeStr) {
-            return strtolower($sanitizeStr($h));
+            $cleaned = strtolower($sanitizeStr($h));
+
+            // Strip non-alphanumeric chars for resilient matching
+            return preg_replace('/[^a-z0-9]/', '', $cleaned);
         }, $headerRow);
 
         // Find positions dynamically (to prevent failures if column ordering changes)
         $findIdx = function ($keys) use ($headers) {
             foreach ($keys as $k) {
-                $idx = array_search(strtolower($k), $headers);
+                $cleanKey = preg_replace('/[^a-z0-9]/', '', strtolower($k));
+                $idx = array_search($cleanKey, $headers);
                 if ($idx !== false) {
                     return $idx;
                 }
@@ -139,7 +149,7 @@ class AdminRefundController extends Controller
         };
 
         $ticketIdIdx = $findIdx(['id', 'id_boleto', 'boleto_id', 'id_ticket', 'ticket_id']);
-        $orderIdx = $findIdx(['orderid', 'order_id', 'id_orden', 'orden']);
+        $orderIdx = $findIdx(['orderid', 'order_id', 'id_orden', 'orden', 'orden_id', 'folio', 'order']);
         $emailIdx = $findIdx(['email_envío', 'email_envo', 'email', 'correo', 'email_envio']);
         $companyIdx = $findIdx(['nombre_compañía', 'nombre_compaa', 'compañia', 'nombre']);
         $lastNameIdx = $findIdx(['apellido_envío', 'apellido_envo', 'apellido']);
@@ -158,7 +168,7 @@ class AdminRefundController extends Controller
         if ($orderIdx === null) {
             fclose($handle);
 
-            return back()->withErrors(['file' => 'No se encontró la columna "OrderID" en el archivo CSV.']);
+            return back()->withErrors(['file' => 'No se encontró la columna "OrderID" u "Orden" en el archivo CSV.']);
         }
 
         // Group rows in memory by OrderID
@@ -275,6 +285,242 @@ class AdminRefundController extends Controller
         $count = count($orders);
 
         return back()->with('success', "Se han importado {$count} órdenes de compra correctamente.");
+    }
+
+    /**
+     * Import and restore refund requests from tracking/approval CSV file.
+     * Restricted to super-admin alfredomarenco@boletea.com
+     */
+    public function importRecoveredRequests(Request $request, RefundEvent $event)
+    {
+        if (auth()->user()?->email !== 'alfredomarenco@boletea.com') {
+            abort(403, 'No tienes permisos para ejecutar esta acción de recuperación.');
+        }
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:20480',
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->getRealPath();
+        $handle = fopen($path, 'r');
+
+        $sanitizeStr = function (?string $value) {
+            if ($value === null || $value === '') {
+                return '';
+            }
+            $encoding = mb_detect_encoding($value, 'UTF-8, ISO-8859-1, Windows-1252', true);
+            if (! $encoding) {
+                $encoding = 'ISO-8859-1';
+            }
+            $utf8 = mb_convert_encoding($value, 'UTF-8', $encoding);
+
+            return trim(trim($utf8, '"'));
+        };
+
+        $restoredRequests = 0;
+        $restoredPurchases = 0;
+
+        // Obtain available physical files in storage to auto-link if present
+        $availableIneFiles = Storage::disk('local')->files('refunds/ine');
+        $availableTicketFiles = Storage::disk('local')->files('refunds/tickets');
+        $availableProofFiles = Storage::disk('local')->files('refunds/proofs');
+
+        // Sort files by creation time
+        usort($availableIneFiles, fn ($a, $b) => Storage::disk('local')->lastModified($a) <=> Storage::disk('local')->lastModified($b));
+        usort($availableTicketFiles, fn ($a, $b) => Storage::disk('local')->lastModified($a) <=> Storage::disk('local')->lastModified($b));
+        usort($availableProofFiles, fn ($a, $b) => Storage::disk('local')->lastModified($a) <=> Storage::disk('local')->lastModified($b));
+
+        $rowIndex = 0;
+
+        DB::transaction(function () use (
+            $handle,
+            $event,
+            $sanitizeStr,
+            &$restoredRequests,
+            &$restoredPurchases,
+            $availableIneFiles,
+            $availableTicketFiles,
+            $availableProofFiles,
+            &$rowIndex
+        ) {
+            while (($row = fgetcsv($handle)) !== false) {
+                // Ignore empty or invalid rows
+                if (count($row) < 5) {
+                    continue;
+                }
+
+                $rawOrder = $sanitizeStr($row[1] ?? '');
+                $orderNumber = preg_replace('/[^0-9]/', '', $rawOrder);
+                if (empty($orderNumber)) {
+                    continue;
+                }
+
+                $buyerName = mb_strtoupper($sanitizeStr($row[3] ?? 'COMPRADOR'));
+                $clabe = preg_replace('/[^0-9]/', '', $sanitizeStr($row[4] ?? ''));
+                $bankName = mb_strtoupper($sanitizeStr($row[6] ?? 'OTRO'));
+                $ticketsCount = (int) preg_replace('/[^0-9]/', '', $sanitizeStr($row[7] ?? '1'));
+
+                // Find email and total amount dynamically across the row
+                $email = '';
+                $amounts = [];
+                $statusRaw = '';
+
+                foreach ($row as $cell) {
+                    $cleanCell = $sanitizeStr($cell);
+
+                    // Email detection
+                    if (empty($email) && filter_var(strtolower($cleanCell), FILTER_VALIDATE_EMAIL)) {
+                        $email = strtolower($cleanCell);
+                    }
+
+                    // Currency detection (must explicitly contain $)
+                    if (str_contains($cleanCell, '$')) {
+                        $valClean = str_replace(['$', ' '], '', $cleanCell);
+                        if (str_contains($valClean, ',')) {
+                            $valClean = str_replace('.', '', $valClean);
+                            $valClean = str_replace(',', '.', $valClean);
+                        }
+                        if (is_numeric($valClean) && (float) $valClean > 0) {
+                            $amounts[] = (float) $valClean;
+                        }
+                    }
+
+                    // Status detection
+                    $upper = mb_strtoupper($cleanCell);
+                    if (str_contains($upper, 'TRANSFERENCIA') || str_contains($upper, 'PEND X DEP')) {
+                        $statusRaw = $upper;
+                    }
+                }
+
+                if (empty($email)) {
+                    $email = 'recuperado_'.$orderNumber.'@boletea.com';
+                }
+
+                // Total amount is the largest monetary value in the row (e.g. Total vs Unit price)
+                $amount = ! empty($amounts) ? max($amounts) : 0.00;
+
+                $status = 'pending';
+                if (str_contains($statusRaw, 'TRANSFERENCIA') || str_contains($statusRaw, 'COMPLETADA') || str_contains($statusRaw, 'APROBADA')) {
+                    $status = 'approved';
+                }
+
+                // Auto-assign existing physical image paths if present in sequence, fallback to placeholder
+                $inePath = $availableIneFiles[$rowIndex] ?? 'recovered/placeholder_ine.png';
+                $ticketsPath = $availableTicketFiles[$rowIndex] ?? 'recovered/placeholder_tickets.png';
+                $proofPath = $availableProofFiles[$rowIndex] ?? null;
+
+                $rowIndex++;
+
+                $ticketsDetails = [];
+                $countToCreate = max(1, $ticketsCount);
+                for ($t = 1; $t <= $countToCreate; $t++) {
+                    $ticketsDetails[] = [
+                        'ticket_id' => "REC-{$orderNumber}-{$t}",
+                        'barcode' => "REC-{$orderNumber}-{$t}",
+                        'area' => 'General Recuperado',
+                        'seat' => 'S/N',
+                        'quantity' => 1,
+                        'total' => $amount > 0 ? ($amount / $countToCreate) : 0.00,
+                        'status' => 'RECUPERADO',
+                    ];
+                }
+
+                // 1. Recreate/Update RefundPurchase
+                $purchase = RefundPurchase::updateOrCreate(
+                    [
+                        'refund_event_id' => $event->id,
+                        'order_number' => $orderNumber,
+                    ],
+                    [
+                        'email' => $email,
+                        'buyer_name' => $buyerName,
+                        'payment_method' => 'TRANSFERENCIA',
+                        'amount' => $amount > 0 ? $amount : 0.00,
+                        'tickets_details' => $ticketsDetails,
+                    ]
+                );
+                if ($purchase->wasRecentlyCreated) {
+                    $restoredPurchases++;
+                }
+
+                $validatedDocs = ['ine' => ($status === 'approved'), 'proof' => true, 'clabe' => true];
+                if ($status === 'approved') {
+                    for ($t = 1; $t <= $countToCreate; $t++) {
+                        $validatedDocs["ticket_{$t}"] = true;
+                    }
+                } else {
+                    for ($t = 1; $t <= $countToCreate; $t++) {
+                        $validatedDocs["ticket_{$t}"] = false;
+                    }
+                }
+
+                // 2. Recreate/Update RefundRequest
+                $requestModel = RefundRequest::updateOrCreate(
+                    [
+                        'refund_event_id' => $event->id,
+                        'order_number' => $orderNumber,
+                    ],
+                    [
+                        'refund_purchase_id' => $purchase->id,
+                        'tracking_id' => 'REC-'.str_pad($orderNumber, 8, '0', STR_PAD_LEFT),
+                        'email' => $email,
+                        'buyer_name' => $buyerName,
+                        'clabe' => ! empty($clabe) ? substr($clabe, 0, 18) : '000000000000000000',
+                        'bank_name' => $bankName,
+                        'ine_path' => $inePath,
+                        'proof_of_payment_path' => $proofPath,
+                        'tickets_path' => $ticketsPath,
+                        'validated_tickets' => [],
+                        'validated_documents' => $validatedDocs,
+                        'status' => $status,
+                        'admin_notes' => ($status === 'pending')
+                            ? 'Solicitud pendiente de recepción de evidencia fotográfica.'
+                            : 'Registro restaurado mediante archivo CSV de seguimiento.',
+                        'exported' => ($status === 'approved'),
+                    ]
+                );
+                if ($requestModel->wasRecentlyCreated) {
+                    $restoredRequests++;
+                }
+            }
+        });
+
+        fclose($handle);
+
+        return back()->with('success', "Proceso de recuperación completado: {$restoredRequests} solicitudes y {$restoredPurchases} órdenes restauradas.");
+    }
+
+    /**
+     * Send email notifications with signed document update links to clients with pending refund requests.
+     * Restricted to super-admin alfredomarenco@boletea.com
+     */
+    public function sendPendingEvidenceNotifications(Request $request, RefundEvent $event)
+    {
+        if (auth()->user()?->email !== 'alfredomarenco@boletea.com') {
+            abort(403, 'No tienes permisos para enviar notificaciones masivas.');
+        }
+
+        $pendingRequests = RefundRequest::where('refund_event_id', $event->id)
+            ->where('status', 'pending')
+            ->where('tracking_id', 'like', 'REC-%')
+            ->get();
+
+        if ($pendingRequests->isEmpty()) {
+            return back()->with('info', 'No se encontraron solicitudes pendientes por notificar en este evento.');
+        }
+
+        $sentCount = 0;
+        foreach ($pendingRequests as $req) {
+            try {
+                Mail::to($req->email)->send(new RecoveredRefundEvidenceMail($req));
+                $sentCount++;
+            } catch (\Throwable $e) {
+                // Log exception if needed and continue
+            }
+        }
+
+        return back()->with('success', "Se han enviado correctamente {$sentCount} notificaciones de solicitud de evidencia por correo.");
     }
 
     /**
