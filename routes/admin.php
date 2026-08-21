@@ -39,6 +39,8 @@ Route::resource('sales-center-groups', SalesCenterGroupController::class);
 Route::resource('categories', CategoryController::class);
 Route::resource('venues', VenueController::class);
 Route::resource('users', UserController::class);
+Route::get('seating-maps/{seatingMap}/export', [SeatingMapController::class, 'export'])->name('seating-maps.export');
+Route::post('seating-maps/import', [SeatingMapController::class, 'import'])->name('seating-maps.import');
 Route::resource('seating-maps', SeatingMapController::class);
 
 // --- Local Events & Showtimes (Funciones) --- //

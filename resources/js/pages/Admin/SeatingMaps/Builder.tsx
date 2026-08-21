@@ -578,6 +578,12 @@ export default function Builder({ seatingMap }: Props) {
                                 </div>
                             </PopoverContent>
                         </Popover>
+                        <Button variant="outline" size="sm" className="h-8 text-xs text-green-700 dark:text-green-400 border-green-300 dark:border-green-800 bg-green-50/50 dark:bg-green-950/30 hover:bg-green-100" asChild title="Descargar plantilla de mapa en archivo JSON">
+                            <a href={route('admin.seating-maps.export', seatingMap.id)} download>
+                                <Download className="h-3.5 w-3.5 mr-1.5" />
+                                Exportar JSON
+                            </a>
+                        </Button>
                         <Button size="sm" onClick={handleSave} disabled={isSaving} className="h-8 px-5 bg-blue-600 hover:bg-blue-700 text-xs shadow-md shadow-blue-500/20">
                             <Save className="h-3.5 w-3.5 mr-2" />
                             {isSaving ? 'Guardando...' : 'Guardar Cambios'}

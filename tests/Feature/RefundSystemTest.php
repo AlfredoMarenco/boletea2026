@@ -1033,4 +1033,3 @@ test('deleting external event does not delete refund event, purchases, or custom
     expect(RefundPurchase::find($purchase->id))->not->toBeNull();
     expect(RefundRequest::find($refundRequest->id))->not->toBeNull();
 });
-
